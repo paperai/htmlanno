@@ -1,0 +1,39 @@
+::-moz-selection { color: gold;  background: red; }
+::selection      { color: gold;  background: red; }
+
+.highlight {
+  background-color: yellow;
+  /* transition:0.2s; */
+}
+.highlight:hover {
+  /* background-color: red; */
+  /* transition:0.2s; */
+  /* box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px; */
+  /* box-sizing:border-box; */
+  border: 1px solid #ccc;
+  margin: -1px;
+}
+
+.border{
+  border: 1px solid #ccc;
+  margin: -1px;
+}
+
+.circle{
+  /* visibility:hidden; */
+  top: -10px;
+  left: -5px;
+  position:absolute;
+  white-space:nowrap;
+  width:10px;
+  height:10px;
+  background-color:blue;
+  border-radius: 50%;
+  transition:0.2s;
+}
+.circle:hover {
+  box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px;
+  transition:0.2s;
+  transform: scale(1.4);
+}
+
