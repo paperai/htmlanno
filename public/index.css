@@ -19,6 +19,14 @@
   margin: -1px;
 }
 
+#svg-screen{
+  position:absolute;
+  top:0;
+  left:0;
+  bottom:0;
+  right:0;
+}
+
 .circle{
   /* visibility:hidden; */
   top: -10px;
