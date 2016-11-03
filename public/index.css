@@ -1,15 +1,10 @@
-::-moz-selection { color: gold;  background: red; }
-::selection      { color: gold;  background: red; }
+/* ::-moz-selection { color: gold;  background: red; } */
+/* ::selection      { color: gold;  background: red; } */
 
 .highlight {
   background-color: yellow;
-  /* transition:0.2s; */
 }
 .highlight:hover {
-  /* background-color: red; */
-  /* transition:0.2s; */
-  /* box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px; */
-  /* box-sizing:border-box; */
   border: 1px solid #ccc;
   margin: -1px;
 }
@@ -28,7 +23,6 @@
 }
 
 .circle{
-  /* visibility:hidden; */
   top: -10px;
   left: -5px;
   position:absolute;
@@ -42,12 +36,18 @@
 .circle:hover {
   box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px;
   transition:0.2s;
-  transform: scale(1.4);
+  transform: scale(2);
+}
+
+.circle-hover {
+  box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px;
+  transition:0.2s;
+  transform: scale(2);
 }
 
 .arrow{
   fill:none;
-  stroke:green;
+  stroke:black;
   visibility:visible;
   stroke-width:1px;
   pointer-events:stroke;

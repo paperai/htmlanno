@@ -10307,6 +10307,12 @@
 	__webpack_require__(4);
 	__webpack_require__(5);
 	
+	let temporaryArrow = null;
+	let arrows = [];
+	let mouseX = 0;
+	let mouseY = 0;
+	let rootCircle = null;
+	
 	class Arrow{
 	  constructor(fromX, fromY){
 	    this.fromX = fromX;
@@ -10333,10 +10339,6 @@
 	    this.jObject.appendTo(target);
 	    $("#svg-screen").html($("#svg-screen").html());
 	    this.jObject = $("path.arrow:last");
-	    this.jObject.hover(
-	        ()=>{console.log("h in")},
-	        ()=>{console.log("h out")}
-	        );
 	  }
 	
 	  remove(){
@@ -10346,6 +10348,77 @@
 	  point(toX, toY){
 	    const path = this.curvePath(this.fromX, this.fromY, toX, toY);
 	    this.jObject.attr("d", path);
+	  }
+	}
+	
+	class Circle{
+	  constructor(){
+	    this.jObject = $('<div draggable="true" class="circle"></div>');
+	
+	    this.on("dragstart", (e)=>{
+	      rootCircle = this;
+	      temporaryArrow = this.createArrow(rootCircle.getBoundingClientRect());
+	      temporaryArrow.appendTo($("#svg-screen"));
+	      e.originalEvent.dataTransfer.setDragImage(this.emptyImg(), 0, 0);
+	      e.originalEvent.dataTransfer.setData("text/plain",e.originalEvent.target.id);
+	      e.originalEvent.stopPropagation();
+	    },false);
+	
+	    this.on("dragend", (e)=>{
+	      if (temporaryArrow){
+	        temporaryArrow.remove();
+	      }
+	      rootCircle = null;
+	      temporaryArrow = null;
+	    });
+	
+	    this.on("dragenter", (e)=>{
+	      if (temporaryArrow && rootCircle !== this){
+	        this.jObject.addClass("circle-hover");
+	      }
+	    });
+	
+	    this.on("dragleave", (e)=>{
+	      if (temporaryArrow && rootCircle !== this){
+	        const rect = this.getBoundingClientRect();
+	        if (rect.left <= mouseX && rect.right >= mouseX && rect.top <= mouseY && rect.bottom >= mouseY){
+	          temporaryArrow.remove();
+	          temporaryArrow = null;
+	          const arw = this.createArrow(rootCircle.getBoundingClientRect());
+	          arw.point((rect.left+rect.right)/2, (rect.top+rect.bottom)/2);
+	          arw.appendTo($("#svg-screen"));
+	          arrows.push(arw);
+	        }
+	        this.jObject.removeClass("circle-hover");
+	      }
+	    });
+	  }
+	
+	  emptyImg(){
+	    const img = document.createElement('img');
+	    // empty image
+	    img.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+	
+	    return img;
+	  }
+	
+	  createArrow(rect){
+	    const fromX = window.pageXOffset + (rect.left + rect.right) / 2;
+	    const fromY = window.pageYOffset + (rect.top + rect.bottom) / 2;
+	    const arrow = new Arrow(fromX, fromY);
+	    return arrow;
+	  }
+	
+	  appendTo(target){
+	    this.jObject.appendTo(target);
+	  }
+	
+	  on(eventName, handler){
+	    this.jObject.on(eventName, handler);
+	  }
+	
+	  getBoundingClientRect(){
+	    return this.jObject.get(0).getBoundingClientRect();
 	  }
 	}
 	
@@ -10375,42 +10448,10 @@
 	    });
 	  }
 	
-	  emptyImg(){
-	    const img = document.createElement('img');
-	    // empty image
-	    img.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-	    return img;
-	  }
-	
-	  createArrow(rect){
-	    const fromX = (rect.left + rect.right) / 2;
-	    const fromY = (rect.top + rect.bottom) / 2;
-	    const arrow = new Arrow(fromX, fromY);
-	    return arrow;
-	  }
-	
 	  addCircle(element){
 	    element.setAttribute("style", "position:relative;");
-	    const circle = $('<div draggable="true" class="circle"></div>');
+	    const circle = new Circle();
 	    circle.appendTo(element);
-	
-	    let arrow = null;
-	
-	    circle.on("dragstart", (e)=>{
-	      arrow = this.createArrow(circle.get(0).getBoundingClientRect());
-	      arrow.appendTo($("#svg-screen"));
-	      e.originalEvent.dataTransfer.setDragImage(this.emptyImg(), 0, 0);
-	    });
-	
-	    circle.on("drag", (e)=>{
-	      if (e.pageX && e.pageY){
-	        arrow.point(e.pageX, e.pageY);
-	      }
-	    });
-	
-	    circle.on("dragend", (e)=>{
-	      // arrow.remove();
-	    });
 	  }
 	
 	  getClassName(){
@@ -10428,6 +10469,16 @@
 	  constructor(){
 	    this.highlights = [];
 	    this.highlightId = 1;
+	
+	    $(document).on("dragover", (e)=>{
+	      if (temporaryArrow && e.clientX && e.clientY){
+	        const x = window.pageXOffset + e.clientX - 1;
+	        const y = window.pageYOffset + e.clientY - 1;
+	        mouseX = x;
+	        mouseY = y;
+	        temporaryArrow.point(x, y);
+	      }
+	    });
 	  }
 	
 	  commitSelection(){
@@ -10454,6 +10505,7 @@
 	}
 	
 	module.exports = Htmlanno;
+	
 
 
 /***/ },
