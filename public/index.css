@@ -45,3 +45,14 @@
   transform: scale(1.4);
 }
 
+.arrow{
+  fill:none;
+  stroke:green;
+  visibility:visible;
+  stroke-width:1px;
+  pointer-events:stroke;
+}
+.arrow:hover{
+  stroke-width:2px;
+}
+

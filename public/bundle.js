@@ -10307,22 +10307,16 @@
 	__webpack_require__(4);
 	__webpack_require__(5);
 	
-	function curvePath(fromX, fromY, toX, toY){
-	  const arcHeight = 30;
-	
-	  const y = Math.min(fromY, toY) - arcHeight;
-	  const dx = (fromX - toX) / 4;
-	
-	  return `M ${fromX},${fromY} C ${fromX-dx},${y} ${toX+dx},${y} ${toX},${toY}`;
-	}
-	
 	class Arrow{
 	  constructor(fromX, fromY){
 	    this.fromX = fromX;
 	    this.fromY = fromY;
 	
 	    this.jObject = $(`
-	        <path class="arrow" d="M 0,0 C 0,0 0,0 0,0" stroke="black" fill="none" stroke-width="1px" marker-end="url(#arrow-head)" />
+	        <path
+	        class="arrow"
+	        d="M 0,0 C 0,0 0,0 0,0"
+	        marker-end="url(#arrow-head)" />
 	        `);
 	  }
 	
@@ -10339,6 +10333,10 @@
 	    this.jObject.appendTo(target);
 	    $("#svg-screen").html($("#svg-screen").html());
 	    this.jObject = $("path.arrow:last");
+	    this.jObject.hover(
+	        ()=>{console.log("h in")},
+	        ()=>{console.log("h out")}
+	        );
 	  }
 	
 	  remove(){
@@ -10411,7 +10409,7 @@
 	    });
 	
 	    circle.on("dragend", (e)=>{
-	      arrow.remove();
+	      // arrow.remove();
 	    });
 	  }
 	
