@@ -17,10 +17,5 @@ $(()=>{
   htmlanno = new Htmlanno();
   window.htmlanno = htmlanno;
 
-  $('#svg1').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
-
-  window.onresize = ()=>{
-    $('#svg1').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
-  };
 });
 
