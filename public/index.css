@@ -47,7 +47,7 @@
 
 .arrow{
   fill:none;
-  stroke:black;
+  stroke:red;
   visibility:visible;
   stroke-width:1px;
   pointer-events:stroke;

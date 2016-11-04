@@ -63,11 +63,6 @@
 	  htmlanno = new Htmlanno();
 	  window.htmlanno = htmlanno;
 	
-	  $('#svg1').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
-	
-	  window.onresize = ()=>{
-	    $('#svg1').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
-	  };
 	});
 	
 
@@ -10307,16 +10302,25 @@
 	__webpack_require__(4);
 	__webpack_require__(5);
 	
-	let temporaryArrow = null;
-	let arrows = [];
-	let mouseX = 0;
-	let mouseY = 0;
-	let rootCircle = null;
+	const EventEmitter = __webpack_require__(6).EventEmitter
+	
+	const eventEmitter = new EventEmitter();
+	
+	const cumulativeOffset = function(element) {
+	  let top = 0;
+	  let left = 0;
+	  do {
+	    top += element.offsetTop  || 0;
+	    left += element.offsetLeft || 0;
+	    element = element.offsetParent;
+	  } while(element);
+	
+	  return { top: top, left: left };
+	};
 	
 	class Arrow{
-	  constructor(fromX, fromY){
-	    this.fromX = fromX;
-	    this.fromY = fromY;
+	  constructor(position){
+	    this.move(position);
 	
 	    this.jObject = $(`
 	        <path
@@ -10332,6 +10336,9 @@
 	    const y = Math.min(fromY, toY) - arcHeight;
 	    const dx = (fromX - toX) / 4;
 	
+	    // TODO
+	    this.halfY = this.y(0.55, fromY, y, y, toY);
+	
 	    return `M ${fromX},${fromY} C ${fromX-dx},${y} ${toX+dx},${y} ${toX},${toY}`;
 	  }
 	
@@ -10345,9 +10352,87 @@
 	    this.jObject.remove();
 	  }
 	
-	  point(toX, toY){
-	    const path = this.curvePath(this.fromX, this.fromY, toX, toY);
+	  move(position){
+	    this.fromX = position.left;
+	    this.fromY = position.top;
+	  }
+	
+	  point(position){
+	
+	    const path = this.curvePath(this.fromX, this.fromY, position.left, position.top);
 	    this.jObject.attr("d", path);
+	  }
+	
+	  y(t, y1, y2, y3, y4){
+	    const tp = 1 - t;
+	    return t*t*t*y4 + 3*t*t*tp*y3 + 3*t*tp*tp*y2 + tp*tp*tp*y1;
+	  }
+	}
+	
+	class ArrowAnnotation{
+	  constructor(startingCircle){
+	    this.startingCircle = startingCircle;
+	    this.enteredCircle = null;
+	    this.endingCircle = null;
+	
+	    this.arrow = new Arrow(startingCircle.positionCenter());
+	    this.arrow.appendTo($("#svg-screen"));
+	    this.mouseX = null;
+	    this.mouseY = null;
+	
+	    this.label = null;
+	
+	    eventEmitter.on("drag", (e)=>{
+	      this.mouseX = e.originalEvent.pageX - 1;
+	      this.mouseY = e.originalEvent.pageY - 1;
+	      this.arrow.point({left: this.mouseX, top: this.mouseY});
+	    });
+	
+	    eventEmitter.on("dragenter", (data)=>{
+	      this.enteredCircle = data.circle;
+	      data.circle.jObject.addClass("circle-hover");
+	    });
+	
+	    eventEmitter.on("dragleave", (data)=>{
+	      data.circle.jObject.removeClass("circle-hover");
+	      data.circle.jObject.css("transition", "0.1s");
+	    });
+	
+	    eventEmitter.on("dragend", (data)=>{
+	      const cir = this.enteredCircle;
+	      if (cir && this.startingCircle !== cir && cir.isHit(this.mouseX, this.mouseY)){
+	        this.arrow.point(cir.positionCenter());
+	        this.endingCircle = cir;
+	        eventEmitter.on("resizewindow", this.reposition.bind(this));
+	        eventEmitter.emit("arrowconnect", this);
+	      } else{
+	        this.arrow.remove();
+	      }
+	
+	      this.removeListener();
+	    });
+	  }
+	
+	  positionCenter(){
+	    const p1 = this.startingCircle.positionCenter();
+	    const p2 = this.enteredCircle.positionCenter();
+	    return {left: (p1.left+p2.left)/2, top: (p1.top+p2.top)/2};
+	  }
+	
+	  reposition(){
+	    if(this.arrow){
+	      this.arrow.move(this.startingCircle.positionCenter());
+	      if(this.endingCircle){
+	        this.arrow.point(this.endingCircle.positionCenter());
+	      }
+	    }
+	  }
+	
+	  removeListener(){
+	    eventEmitter.removeAllListeners("drag");
+	    eventEmitter.removeAllListeners("dragenter");
+	    eventEmitter.removeAllListeners("dragleave");
+	    eventEmitter.removeAllListeners("dragend");
 	  }
 	}
 	
@@ -10355,42 +10440,25 @@
 	  constructor(){
 	    this.jObject = $('<div draggable="true" class="circle"></div>');
 	
-	    this.on("dragstart", (e)=>{
-	      rootCircle = this;
-	      temporaryArrow = this.createArrow(rootCircle.getBoundingClientRect());
-	      temporaryArrow.appendTo($("#svg-screen"));
+	    this.jObject.on("dragstart", (e)=>{
+	      eventEmitter.emit("dragstart", {event: e, circle: this});
+	
+	      // hide drag image
 	      e.originalEvent.dataTransfer.setDragImage(this.emptyImg(), 0, 0);
 	      e.originalEvent.dataTransfer.setData("text/plain",e.originalEvent.target.id);
 	      e.originalEvent.stopPropagation();
-	    },false);
-	
-	    this.on("dragend", (e)=>{
-	      if (temporaryArrow){
-	        temporaryArrow.remove();
-	      }
-	      rootCircle = null;
-	      temporaryArrow = null;
 	    });
 	
-	    this.on("dragenter", (e)=>{
-	      if (temporaryArrow && rootCircle !== this){
-	        this.jObject.addClass("circle-hover");
-	      }
+	    this.jObject.on("dragend", (e)=>{
+	      eventEmitter.emit("dragend", {event: e});
 	    });
 	
-	    this.on("dragleave", (e)=>{
-	      if (temporaryArrow && rootCircle !== this){
-	        const rect = this.getBoundingClientRect();
-	        if (rect.left <= mouseX && rect.right >= mouseX && rect.top <= mouseY && rect.bottom >= mouseY){
-	          temporaryArrow.remove();
-	          temporaryArrow = null;
-	          const arw = this.createArrow(rootCircle.getBoundingClientRect());
-	          arw.point((rect.left+rect.right)/2, (rect.top+rect.bottom)/2);
-	          arw.appendTo($("#svg-screen"));
-	          arrows.push(arw);
-	        }
-	        this.jObject.removeClass("circle-hover");
-	      }
+	    this.jObject.on("dragenter", (e)=>{
+	      eventEmitter.emit("dragenter", {event: e, circle: this});
+	    });
+	
+	    this.jObject.on("dragleave", (e)=>{
+	      eventEmitter.emit("dragleave", {event: e, circle: this});
 	    });
 	  }
 	
@@ -10402,23 +10470,65 @@
 	    return img;
 	  }
 	
-	  createArrow(rect){
-	    const fromX = window.pageXOffset + (rect.left + rect.right) / 2;
-	    const fromY = window.pageYOffset + (rect.top + rect.bottom) / 2;
-	    const arrow = new Arrow(fromX, fromY);
-	    return arrow;
+	  positionCenter(){
+	    const position = cumulativeOffset(this.jObject.get(0));
+	    position.left += 5;
+	    position.top += 5;
+	    return position;
 	  }
 	
 	  appendTo(target){
 	    this.jObject.appendTo(target);
 	  }
 	
-	  on(eventName, handler){
-	    this.jObject.on(eventName, handler);
+	  isHit(x, y){
+	    const rect = this.jObject.get(0).getBoundingClientRect();
+	    return rect.left <= x && rect.right >= x && rect.top <= y && rect.bottom >= y;
+	  }
+	}
+	
+	class Label{
+	  handleInputBlur() {
+	    const content = this.element.value.trim();
+	    if (content !== ""){
+	      this.element.style.border = `1px solid red`;
+	      $("#ruler").text(content);
+	      $("#ruler").css("fontSize", 11);
+	      const width = $("#ruler").width() + 8;
+	      this.element.style.width = width + "px";
+	      this.element.style.left = (this.position.left - width/2) + "px";
+	    } else{
+	      this.element.style.display = "none";
+	    }
 	  }
 	
-	  getBoundingClientRect(){
-	    return this.jObject.get(0).getBoundingClientRect();
+	  handleInputKeyup(e) {
+	    if (e.keyCode === 27) {
+	      // closeInput();
+	    }
+	  }
+	
+	  constructor(position){
+	    this.position = position;
+	    const x = position.left;
+	    const y = position.top;
+	    const input = document.createElement('input');
+	    input.setAttribute('id', 'text-input');
+	    input.setAttribute('placeholder', 'Enter text');
+	    input.style.border = `3px solid green`;
+	    input.style.borderRadius = '3px';
+	    input.style.position = 'absolute';
+	    input.style.width = "100px";
+	    input.style.top = `${y}px`;
+	    input.style.left = `${x-50}px`;
+	    input.style.fontSize = 10;
+	    input.addEventListener('blur', this.handleInputBlur.bind(this));
+	    input.addEventListener('keyup', this.handleInputKeyup.bind(this));
+	
+	    document.body.appendChild(input);
+	    input.focus();
+	
+	    this.element = input;
 	  }
 	}
 	
@@ -10434,6 +10544,7 @@
 	        this.handleHoverIn.bind(this),
 	        this.handleHoverOut.bind(this)
 	        );
+	
 	  }
 	
 	  handleHoverIn(){
@@ -10470,14 +10581,28 @@
 	    this.highlights = [];
 	    this.highlightId = 1;
 	
+	    $('#svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
+	    $(window).on("resize", (e)=>{
+	      eventEmitter.emit("resizewindow", null);
+	      $('#svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
+	    });
+	
 	    $(document).on("dragover", (e)=>{
-	      if (temporaryArrow && e.clientX && e.clientY){
-	        const x = window.pageXOffset + e.clientX - 1;
-	        const y = window.pageYOffset + e.clientY - 1;
-	        mouseX = x;
-	        mouseY = y;
-	        temporaryArrow.point(x, y);
+	      if (e.originalEvent.pageX && e.originalEvent.pageY){
+	        eventEmitter.emit("drag", e);
 	      }
+	    });
+	
+	    let arrowAnno = null;
+	
+	    eventEmitter.on("dragstart", (data)=>{
+	      arrowAnno = new ArrowAnnotation(data.circle);
+	    });
+	    eventEmitter.on("arrowconnect", (data)=>{
+	      const position = {left: data.positionCenter().left, top: data.arrow.halfY};
+	      const label = new Label(position);
+	      data.label = label;
+	      arrowAnno = null;
 	    });
 	  }
 	
@@ -16091,6 +16216,314 @@
 	    
 	    return rangy;
 	}, this);
+
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+	// Copyright Joyent, Inc. and other Node contributors.
+	//
+	// Permission is hereby granted, free of charge, to any person obtaining a
+	// copy of this software and associated documentation files (the
+	// "Software"), to deal in the Software without restriction, including
+	// without limitation the rights to use, copy, modify, merge, publish,
+	// distribute, sublicense, and/or sell copies of the Software, and to permit
+	// persons to whom the Software is furnished to do so, subject to the
+	// following conditions:
+	//
+	// The above copyright notice and this permission notice shall be included
+	// in all copies or substantial portions of the Software.
+	//
+	// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+	// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+	// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+	// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+	// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+	// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+	// USE OR OTHER DEALINGS IN THE SOFTWARE.
+	
+	function EventEmitter() {
+	  this._events = this._events || {};
+	  this._maxListeners = this._maxListeners || undefined;
+	}
+	module.exports = EventEmitter;
+	
+	// Backwards-compat with node 0.10.x
+	EventEmitter.EventEmitter = EventEmitter;
+	
+	EventEmitter.prototype._events = undefined;
+	EventEmitter.prototype._maxListeners = undefined;
+	
+	// By default EventEmitters will print a warning if more than 10 listeners are
+	// added to it. This is a useful default which helps finding memory leaks.
+	EventEmitter.defaultMaxListeners = 10;
+	
+	// Obviously not all Emitters should be limited to 10. This function allows
+	// that to be increased. Set to zero for unlimited.
+	EventEmitter.prototype.setMaxListeners = function(n) {
+	  if (!isNumber(n) || n < 0 || isNaN(n))
+	    throw TypeError('n must be a positive number');
+	  this._maxListeners = n;
+	  return this;
+	};
+	
+	EventEmitter.prototype.emit = function(type) {
+	  var er, handler, len, args, i, listeners;
+	
+	  if (!this._events)
+	    this._events = {};
+	
+	  // If there is no 'error' event listener then throw.
+	  if (type === 'error') {
+	    if (!this._events.error ||
+	        (isObject(this._events.error) && !this._events.error.length)) {
+	      er = arguments[1];
+	      if (er instanceof Error) {
+	        throw er; // Unhandled 'error' event
+	      } else {
+	        // At least give some kind of context to the user
+	        var err = new Error('Uncaught, unspecified "error" event. (' + er + ')');
+	        err.context = er;
+	        throw err;
+	      }
+	    }
+	  }
+	
+	  handler = this._events[type];
+	
+	  if (isUndefined(handler))
+	    return false;
+	
+	  if (isFunction(handler)) {
+	    switch (arguments.length) {
+	      // fast cases
+	      case 1:
+	        handler.call(this);
+	        break;
+	      case 2:
+	        handler.call(this, arguments[1]);
+	        break;
+	      case 3:
+	        handler.call(this, arguments[1], arguments[2]);
+	        break;
+	      // slower
+	      default:
+	        args = Array.prototype.slice.call(arguments, 1);
+	        handler.apply(this, args);
+	    }
+	  } else if (isObject(handler)) {
+	    args = Array.prototype.slice.call(arguments, 1);
+	    listeners = handler.slice();
+	    len = listeners.length;
+	    for (i = 0; i < len; i++)
+	      listeners[i].apply(this, args);
+	  }
+	
+	  return true;
+	};
+	
+	EventEmitter.prototype.addListener = function(type, listener) {
+	  var m;
+	
+	  if (!isFunction(listener))
+	    throw TypeError('listener must be a function');
+	
+	  if (!this._events)
+	    this._events = {};
+	
+	  // To avoid recursion in the case that type === "newListener"! Before
+	  // adding it to the listeners, first emit "newListener".
+	  if (this._events.newListener)
+	    this.emit('newListener', type,
+	              isFunction(listener.listener) ?
+	              listener.listener : listener);
+	
+	  if (!this._events[type])
+	    // Optimize the case of one listener. Don't need the extra array object.
+	    this._events[type] = listener;
+	  else if (isObject(this._events[type]))
+	    // If we've already got an array, just append.
+	    this._events[type].push(listener);
+	  else
+	    // Adding the second element, need to change to array.
+	    this._events[type] = [this._events[type], listener];
+	
+	  // Check for listener leak
+	  if (isObject(this._events[type]) && !this._events[type].warned) {
+	    if (!isUndefined(this._maxListeners)) {
+	      m = this._maxListeners;
+	    } else {
+	      m = EventEmitter.defaultMaxListeners;
+	    }
+	
+	    if (m && m > 0 && this._events[type].length > m) {
+	      this._events[type].warned = true;
+	      console.error('(node) warning: possible EventEmitter memory ' +
+	                    'leak detected. %d listeners added. ' +
+	                    'Use emitter.setMaxListeners() to increase limit.',
+	                    this._events[type].length);
+	      if (typeof console.trace === 'function') {
+	        // not supported in IE 10
+	        console.trace();
+	      }
+	    }
+	  }
+	
+	  return this;
+	};
+	
+	EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+	
+	EventEmitter.prototype.once = function(type, listener) {
+	  if (!isFunction(listener))
+	    throw TypeError('listener must be a function');
+	
+	  var fired = false;
+	
+	  function g() {
+	    this.removeListener(type, g);
+	
+	    if (!fired) {
+	      fired = true;
+	      listener.apply(this, arguments);
+	    }
+	  }
+	
+	  g.listener = listener;
+	  this.on(type, g);
+	
+	  return this;
+	};
+	
+	// emits a 'removeListener' event iff the listener was removed
+	EventEmitter.prototype.removeListener = function(type, listener) {
+	  var list, position, length, i;
+	
+	  if (!isFunction(listener))
+	    throw TypeError('listener must be a function');
+	
+	  if (!this._events || !this._events[type])
+	    return this;
+	
+	  list = this._events[type];
+	  length = list.length;
+	  position = -1;
+	
+	  if (list === listener ||
+	      (isFunction(list.listener) && list.listener === listener)) {
+	    delete this._events[type];
+	    if (this._events.removeListener)
+	      this.emit('removeListener', type, listener);
+	
+	  } else if (isObject(list)) {
+	    for (i = length; i-- > 0;) {
+	      if (list[i] === listener ||
+	          (list[i].listener && list[i].listener === listener)) {
+	        position = i;
+	        break;
+	      }
+	    }
+	
+	    if (position < 0)
+	      return this;
+	
+	    if (list.length === 1) {
+	      list.length = 0;
+	      delete this._events[type];
+	    } else {
+	      list.splice(position, 1);
+	    }
+	
+	    if (this._events.removeListener)
+	      this.emit('removeListener', type, listener);
+	  }
+	
+	  return this;
+	};
+	
+	EventEmitter.prototype.removeAllListeners = function(type) {
+	  var key, listeners;
+	
+	  if (!this._events)
+	    return this;
+	
+	  // not listening for removeListener, no need to emit
+	  if (!this._events.removeListener) {
+	    if (arguments.length === 0)
+	      this._events = {};
+	    else if (this._events[type])
+	      delete this._events[type];
+	    return this;
+	  }
+	
+	  // emit removeListener for all listeners on all events
+	  if (arguments.length === 0) {
+	    for (key in this._events) {
+	      if (key === 'removeListener') continue;
+	      this.removeAllListeners(key);
+	    }
+	    this.removeAllListeners('removeListener');
+	    this._events = {};
+	    return this;
+	  }
+	
+	  listeners = this._events[type];
+	
+	  if (isFunction(listeners)) {
+	    this.removeListener(type, listeners);
+	  } else if (listeners) {
+	    // LIFO order
+	    while (listeners.length)
+	      this.removeListener(type, listeners[listeners.length - 1]);
+	  }
+	  delete this._events[type];
+	
+	  return this;
+	};
+	
+	EventEmitter.prototype.listeners = function(type) {
+	  var ret;
+	  if (!this._events || !this._events[type])
+	    ret = [];
+	  else if (isFunction(this._events[type]))
+	    ret = [this._events[type]];
+	  else
+	    ret = this._events[type].slice();
+	  return ret;
+	};
+	
+	EventEmitter.prototype.listenerCount = function(type) {
+	  if (this._events) {
+	    var evlistener = this._events[type];
+	
+	    if (isFunction(evlistener))
+	      return 1;
+	    else if (evlistener)
+	      return evlistener.length;
+	  }
+	  return 0;
+	};
+	
+	EventEmitter.listenerCount = function(emitter, type) {
+	  return emitter.listenerCount(type);
+	};
+	
+	function isFunction(arg) {
+	  return typeof arg === 'function';
+	}
+	
+	function isNumber(arg) {
+	  return typeof arg === 'number';
+	}
+	
+	function isObject(arg) {
+	  return typeof arg === 'object' && arg !== null;
+	}
+	
+	function isUndefined(arg) {
+	  return arg === void 0;
+	}
 
 
 /***/ }
