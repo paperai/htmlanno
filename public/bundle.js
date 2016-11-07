@@ -10303,278 +10303,11 @@
 	__webpack_require__(5);
 	
 	const EventEmitter = __webpack_require__(6).EventEmitter
+	window.eventEmitter = new EventEmitter();
 	
-	const eventEmitter = new EventEmitter();
-	
-	const cumulativeOffset = function(element) {
-	  let top = 0;
-	  let left = 0;
-	  do {
-	    top += element.offsetTop  || 0;
-	    left += element.offsetLeft || 0;
-	    element = element.offsetParent;
-	  } while(element);
-	
-	  return { top: top, left: left };
-	};
-	
-	class Arrow{
-	  constructor(position){
-	    this.move(position);
-	
-	    this.jObject = $(`
-	        <path
-	        class="arrow"
-	        d="M 0,0 C 0,0 0,0 0,0"
-	        marker-end="url(#arrow-head)" />
-	        `);
-	  }
-	
-	  curvePath(fromX, fromY, toX, toY){
-	    const arcHeight = 30;
-	
-	    const y = Math.min(fromY, toY) - arcHeight;
-	    const dx = (fromX - toX) / 4;
-	
-	    // TODO
-	    this.halfY = this.y(0.55, fromY, y, y, toY);
-	
-	    return `M ${fromX},${fromY} C ${fromX-dx},${y} ${toX+dx},${y} ${toX},${toY}`;
-	  }
-	
-	  appendTo(target){
-	    this.jObject.appendTo(target);
-	    $("#svg-screen").html($("#svg-screen").html());
-	    this.jObject = $("path.arrow:last");
-	  }
-	
-	  remove(){
-	    this.jObject.remove();
-	  }
-	
-	  move(position){
-	    this.fromX = position.left;
-	    this.fromY = position.top;
-	  }
-	
-	  point(position){
-	
-	    const path = this.curvePath(this.fromX, this.fromY, position.left, position.top);
-	    this.jObject.attr("d", path);
-	  }
-	
-	  y(t, y1, y2, y3, y4){
-	    const tp = 1 - t;
-	    return t*t*t*y4 + 3*t*t*tp*y3 + 3*t*tp*tp*y2 + tp*tp*tp*y1;
-	  }
-	}
-	
-	class ArrowAnnotation{
-	  constructor(startingCircle){
-	    this.startingCircle = startingCircle;
-	    this.enteredCircle = null;
-	    this.endingCircle = null;
-	
-	    this.arrow = new Arrow(startingCircle.positionCenter());
-	    this.arrow.appendTo($("#svg-screen"));
-	    this.mouseX = null;
-	    this.mouseY = null;
-	
-	    this.label = null;
-	
-	    eventEmitter.on("drag", (e)=>{
-	      this.mouseX = e.originalEvent.pageX - 1;
-	      this.mouseY = e.originalEvent.pageY - 1;
-	      this.arrow.point({left: this.mouseX, top: this.mouseY});
-	    });
-	
-	    eventEmitter.on("dragenter", (data)=>{
-	      this.enteredCircle = data.circle;
-	      data.circle.jObject.addClass("circle-hover");
-	    });
-	
-	    eventEmitter.on("dragleave", (data)=>{
-	      data.circle.jObject.removeClass("circle-hover");
-	      data.circle.jObject.css("transition", "0.1s");
-	    });
-	
-	    eventEmitter.on("dragend", (data)=>{
-	      const cir = this.enteredCircle;
-	      if (cir && this.startingCircle !== cir && cir.isHit(this.mouseX, this.mouseY)){
-	        this.arrow.point(cir.positionCenter());
-	        this.endingCircle = cir;
-	        eventEmitter.on("resizewindow", this.reposition.bind(this));
-	        eventEmitter.emit("arrowconnect", this);
-	      } else{
-	        this.arrow.remove();
-	      }
-	
-	      this.removeListener();
-	    });
-	  }
-	
-	  positionCenter(){
-	    const p1 = this.startingCircle.positionCenter();
-	    const p2 = this.enteredCircle.positionCenter();
-	    return {left: (p1.left+p2.left)/2, top: (p1.top+p2.top)/2};
-	  }
-	
-	  reposition(){
-	    if(this.arrow){
-	      this.arrow.move(this.startingCircle.positionCenter());
-	      if(this.endingCircle){
-	        this.arrow.point(this.endingCircle.positionCenter());
-	      }
-	    }
-	  }
-	
-	  removeListener(){
-	    eventEmitter.removeAllListeners("drag");
-	    eventEmitter.removeAllListeners("dragenter");
-	    eventEmitter.removeAllListeners("dragleave");
-	    eventEmitter.removeAllListeners("dragend");
-	  }
-	}
-	
-	class Circle{
-	  constructor(){
-	    this.jObject = $('<div draggable="true" class="circle"></div>');
-	
-	    this.jObject.on("dragstart", (e)=>{
-	      eventEmitter.emit("dragstart", {event: e, circle: this});
-	
-	      // hide drag image
-	      e.originalEvent.dataTransfer.setDragImage(this.emptyImg(), 0, 0);
-	      e.originalEvent.dataTransfer.setData("text/plain",e.originalEvent.target.id);
-	      e.originalEvent.stopPropagation();
-	    });
-	
-	    this.jObject.on("dragend", (e)=>{
-	      eventEmitter.emit("dragend", {event: e});
-	    });
-	
-	    this.jObject.on("dragenter", (e)=>{
-	      eventEmitter.emit("dragenter", {event: e, circle: this});
-	    });
-	
-	    this.jObject.on("dragleave", (e)=>{
-	      eventEmitter.emit("dragleave", {event: e, circle: this});
-	    });
-	  }
-	
-	  emptyImg(){
-	    const img = document.createElement('img');
-	    // empty image
-	    img.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-	
-	    return img;
-	  }
-	
-	  positionCenter(){
-	    const position = cumulativeOffset(this.jObject.get(0));
-	    position.left += 5;
-	    position.top += 5;
-	    return position;
-	  }
-	
-	  appendTo(target){
-	    this.jObject.appendTo(target);
-	  }
-	
-	  isHit(x, y){
-	    const rect = this.jObject.get(0).getBoundingClientRect();
-	    return rect.left <= x && rect.right >= x && rect.top <= y && rect.bottom >= y;
-	  }
-	}
-	
-	class Label{
-	  handleInputBlur() {
-	    const content = this.element.value.trim();
-	    if (content !== ""){
-	      this.element.style.border = `1px solid red`;
-	      $("#ruler").text(content);
-	      $("#ruler").css("fontSize", 11);
-	      const width = $("#ruler").width() + 8;
-	      this.element.style.width = width + "px";
-	      this.element.style.left = (this.position.left - width/2) + "px";
-	    } else{
-	      this.element.style.display = "none";
-	    }
-	  }
-	
-	  handleInputKeyup(e) {
-	    if (e.keyCode === 27) {
-	      // closeInput();
-	    }
-	  }
-	
-	  constructor(position){
-	    this.position = position;
-	    const x = position.left;
-	    const y = position.top;
-	    const input = document.createElement('input');
-	    input.setAttribute('id', 'text-input');
-	    input.setAttribute('placeholder', 'Enter text');
-	    input.style.border = `3px solid green`;
-	    input.style.borderRadius = '3px';
-	    input.style.position = 'absolute';
-	    input.style.width = "100px";
-	    input.style.top = `${y}px`;
-	    input.style.left = `${x-50}px`;
-	    input.style.fontSize = 10;
-	    input.addEventListener('blur', this.handleInputBlur.bind(this));
-	    input.addEventListener('keyup', this.handleInputKeyup.bind(this));
-	
-	    document.body.appendChild(input);
-	    input.focus();
-	
-	    this.element = input;
-	  }
-	}
-	
-	class Highlight{
-	  constructor(id, selection, elements){
-	    this.id = id;
-	    this.selection = selection;
-	    this.elements = elements;
-	
-	    this.addCircle(elements[0]);
-	    this.setClass();
-	    $(`.${this.getClassName()}`).hover(
-	        this.handleHoverIn.bind(this),
-	        this.handleHoverOut.bind(this)
-	        );
-	
-	  }
-	
-	  handleHoverIn(){
-	    this.elements.forEach((e)=>{
-	      $(e).addClass("border");
-	    });
-	  }
-	
-	  handleHoverOut(){
-	    this.elements.forEach((e)=>{
-	      $(e).removeClass("border");
-	    });
-	  }
-	
-	  addCircle(element){
-	    element.setAttribute("style", "position:relative;");
-	    const circle = new Circle();
-	    circle.appendTo(element);
-	  }
-	
-	  getClassName(){
-	    return `hl-${this.id}`;
-	  }
-	
-	  setClass(){
-	    this.elements.forEach((e)=>{
-	      $(e).addClass(this.getClassName());
-	    });
-	  }
-	}
+	const ArrowAnnotation = __webpack_require__(7);
+	const Label = __webpack_require__(9);
+	const Highlight = __webpack_require__(11);
 	
 	class Htmlanno{
 	  constructor(){
@@ -10597,12 +10330,6 @@
 	
 	    eventEmitter.on("dragstart", (data)=>{
 	      arrowAnno = new ArrowAnnotation(data.circle);
-	    });
-	    eventEmitter.on("arrowconnect", (data)=>{
-	      const position = {left: data.positionCenter().left, top: data.arrow.halfY};
-	      const label = new Label(position);
-	      data.label = label;
-	      arrowAnno = null;
 	    });
 	  }
 	
@@ -16524,6 +16251,400 @@
 	function isUndefined(arg) {
 	  return arg === void 0;
 	}
+
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	const $ = __webpack_require__(1);
+	const Label = __webpack_require__(9);
+	
+	const EventEmitter = __webpack_require__(6).EventEmitter
+	
+	const eventEmitter = window.eventEmitter;
+	
+	class Arrow{
+	  constructor(position){
+	    this.move(position);
+	
+	    this.jObject = $(`
+	        <path
+	        class="arrow"
+	        d="M 0,0 C 0,0 0,0 0,0"
+	        marker-end="url(#arrow-head)" />
+	        `);
+	  }
+	
+	  curvePath(fromX, fromY, toX, toY){
+	    const arcHeight = 30;
+	
+	    const y = Math.min(fromY, toY) - arcHeight;
+	    const dx = (fromX - toX) / 4;
+	
+	    // TODO
+	    this.halfY = this.y(0.55, fromY, y, y, toY);
+	
+	    return `M ${fromX},${fromY} C ${fromX-dx},${y} ${toX+dx},${y} ${toX},${toY}`;
+	  }
+	
+	  appendTo(target){
+	    this.jObject.appendTo(target);
+	    $("#svg-screen").html($("#svg-screen").html());
+	    this.jObject = $("path.arrow:last");
+	    this.element = this.jObject.get(0);
+	  }
+	
+	  remove(){
+	    this.jObject.remove();
+	  }
+	
+	  move(position){
+	    this.fromX = position.left;
+	    this.fromY = position.top;
+	  }
+	
+	  point(position){
+	
+	    const path = this.curvePath(this.fromX, this.fromY, position.left, position.top);
+	    this.jObject.attr("d", path);
+	  }
+	
+	  y(t, y1, y2, y3, y4){
+	    const tp = 1 - t;
+	    return t*t*t*y4 + 3*t*t*tp*y3 + 3*t*tp*tp*y2 + tp*tp*tp*y1;
+	  }
+	
+	  handleHoverIn(e){
+	    console.log(this.element);
+	    this.element.style["stroke-width"] = "3px";
+	    this.jObject.addClass("arrow-hover");
+	  }
+	  handleHoverOut(e){
+	    this.element.style["stroke-width"] = "1px";
+	    this.jObject.removeClass("arrow-hover");
+	  }
+	}
+	
+	class ArrowAnnotation{
+	  constructor(startingCircle){
+	    this.startingCircle = startingCircle;
+	    this.enteredCircle = null;
+	    this.endingCircle = null;
+	
+	    this.arrow = new Arrow(startingCircle.positionCenter());
+	    this.arrow.appendTo($("#svg-screen"));
+	    this.mouseX = null;
+	    this.mouseY = null;
+	
+	    this.label = null;
+	    this.selected = false;
+	
+	    this.arrow.jObject.click((e)=>{
+	      console.log("click");
+	    });
+	    this.arrow.jObject.hover(
+	        this.handleHoverIn.bind(this),
+	        this.handleHoverOut.bind(this)
+	        );
+	
+	    eventEmitter.on("drag", (e)=>{
+	      this.mouseX = e.originalEvent.pageX - 1;
+	      this.mouseY = e.originalEvent.pageY - 1;
+	      this.arrow.point({left: this.mouseX, top: this.mouseY});
+	    });
+	
+	    eventEmitter.on("dragenter", (data)=>{
+	      this.enteredCircle = data.circle;
+	      data.circle.jObject.addClass("circle-hover");
+	    });
+	
+	    eventEmitter.on("dragleave", (data)=>{
+	      data.circle.jObject.removeClass("circle-hover");
+	      data.circle.jObject.css("transition", "0.1s");
+	    });
+	
+	    eventEmitter.on("dragend", (data)=>{
+	      this.connect();
+	    });
+	  }
+	
+	  connect(){
+	    const cir = this.enteredCircle;
+	    if (cir && this.startingCircle !== cir && cir.isHit(this.mouseX, this.mouseY)){
+	      this.arrow.point(cir.positionCenter());
+	      this.endingCircle = cir;
+	      eventEmitter.on("resizewindow", this.reposition.bind(this));
+	      this.label = new Label(this.labelPosition());
+	      this.label.jObject.hover(
+	          this.handleHoverIn.bind(this),
+	          this.handleHoverOut.bind(this)
+	          );
+	
+	    } else{
+	      this.arrow.remove();
+	    }
+	
+	    this.removeListener();
+	  }
+	
+	  positionCenter(){
+	    const p1 = this.startingCircle.positionCenter();
+	    const p2 = this.enteredCircle.positionCenter();
+	    return {left: (p1.left+p2.left)/2, top: (p1.top+p2.top)/2};
+	  }
+	
+	  labelPosition(){
+	    return {left: this.positionCenter().left, top: this.arrow.halfY};
+	  }
+	
+	  reposition(){
+	    if (this.arrow){
+	      this.arrow.move(this.startingCircle.positionCenter());
+	      if(this.endingCircle){
+	        this.arrow.point(this.endingCircle.positionCenter());
+	      }
+	    }
+	    if (this.label){
+	      this.label.reposition(this.labelPosition());
+	    }
+	  }
+	
+	  removeListener(){
+	    eventEmitter.removeAllListeners("drag");
+	    eventEmitter.removeAllListeners("dragenter");
+	    eventEmitter.removeAllListeners("dragleave");
+	    eventEmitter.removeAllListeners("dragend");
+	  }
+	
+	  handleHoverIn(e){
+	    this.arrow.handleHoverIn();
+	    if (this.label){
+	      this.label.handleHoverIn();
+	    }
+	  }
+	  handleHoverOut(e){
+	    this.arrow.handleHoverOut();
+	    if (this.label){
+	      this.label.handleHoverOut();
+	    }
+	  }
+	}
+	
+	module.exports = ArrowAnnotation;
+	
+
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	const $ = __webpack_require__(1);
+	const EventEmitter = window.eventEmitter;
+	
+	const cumulativeOffset = function(element) {
+	  let top = 0;
+	  let left = 0;
+	  do {
+	    top += element.offsetTop  || 0;
+	    left += element.offsetLeft || 0;
+	    element = element.offsetParent;
+	  } while(element);
+	
+	  return { top: top, left: left };
+	};
+	
+	class Circle{
+	  constructor(){
+	    this.jObject = $('<div draggable="true" class="circle"></div>');
+	
+	    this.jObject.on("dragstart", (e)=>{
+	      eventEmitter.emit("dragstart", {event: e, circle: this});
+	
+	      // hide drag image
+	      e.originalEvent.dataTransfer.setDragImage(this.emptyImg(), 0, 0);
+	      e.originalEvent.dataTransfer.setData("text/plain",e.originalEvent.target.id);
+	      e.originalEvent.stopPropagation();
+	    });
+	
+	    this.jObject.on("dragend", (e)=>{
+	      eventEmitter.emit("dragend", {event: e});
+	    });
+	
+	    this.jObject.on("dragenter", (e)=>{
+	      eventEmitter.emit("dragenter", {event: e, circle: this});
+	    });
+	
+	    this.jObject.on("dragleave", (e)=>{
+	      eventEmitter.emit("dragleave", {event: e, circle: this});
+	    });
+	  }
+	
+	  emptyImg(){
+	    const img = document.createElement('img');
+	    // empty image
+	    img.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+	
+	    return img;
+	  }
+	
+	  positionCenter(){
+	    const position = cumulativeOffset(this.jObject.get(0));
+	    position.left += 5;
+	    position.top += 5;
+	    return position;
+	  }
+	
+	  appendTo(target){
+	    this.jObject.appendTo(target);
+	  }
+	
+	  isHit(x, y){
+	    const rect = this.jObject.get(0).getBoundingClientRect();
+	    return rect.left <= x && rect.right >= x && rect.top <= y && rect.bottom >= y;
+	  }
+	}
+	
+	module.exports = Circle;
+
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	const $ = __webpack_require__(1);
+	
+	class Label{
+	  constructor(position){
+	    this.position = position;
+	    const x = position.left;
+	    this.jObject = $('<input placeholder="Enter text" class="label" type="text">');
+	    this.jObject.css("width",  "100px");
+	    this.jObject.css("left", `${this.position.left-50}px`);
+	    this.jObject.css("top",  `${this.position.top}px`);
+	    this.jObject.on('blur', this.handleInputBlur.bind(this));
+	    this.jObject.on('keyup', this.handleInputKeyup.bind(this));
+	    this.jObject.on('keypress', this.handleInputKeypress.bind(this));
+	
+	    this.element = this.jObject.get(0);
+	    document.body.appendChild(this.element);
+	    this.element.focus();
+	  }
+	
+	  resizeInput(){
+	    const content = this.content();
+	    if (content !== ""){
+	      $("#ruler").text(content);
+	      const width = $("#ruler").width() + 8;
+	      this.jObject.css("width", width + "px");
+	      this.jObject.css("left", (this.position.left - width/2) + "px");
+	      this.jObject.css("top",  `${this.position.top}px`);
+	    }
+	  }
+	
+	  commitText(){
+	    const content = this.content();
+	    if (content !== ""){
+	      this.resizeInput();
+	      this.text = content;
+	    } else{
+	      this.element.style.display = "none";
+	    }
+	  }
+	
+	  content(){
+	    return this.element.value.trim();
+	  }
+	
+	  reposition(position){
+	    this.position = position;
+	    this.resizeInput();
+	  }
+	
+	  handleInputBlur() {
+	    this.commitText();
+	  }
+	
+	  handleInputKeyup(e) {
+	    this.resizeInput();
+	  }
+	
+	  handleInputKeypress(e) {
+	    // enter
+	    if (e.keyCode === 13) {
+	      this.element.blur();
+	    }
+	    // esc
+	    if (e.keyCode === 27) {
+	    }
+	  }
+	
+	  handleHoverIn(e){
+	    if (this.text){
+	      $(this.element).addClass("label-hover");
+	    }
+	  }
+	  handleHoverOut(e){
+	    $(this.element).removeClass("label-hover");
+	  }
+	}
+	
+	module.exports = Label;
+
+
+/***/ },
+/* 10 */,
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	const $ = __webpack_require__(1);
+	const Circle = __webpack_require__(8);
+	const EventEmitter = window.eventEmitter;
+	
+	class Highlight{
+	  constructor(id, selection, elements){
+	    this.id = id;
+	    this.selection = selection;
+	    this.elements = elements;
+	
+	    this.addCircle(elements[0]);
+	    this.setClass();
+	    $(`.${this.getClassName()}`).hover(
+	        this.handleHoverIn.bind(this),
+	        this.handleHoverOut.bind(this)
+	        );
+	  }
+	
+	  handleHoverIn(){
+	    this.elements.forEach((e)=>{
+	      $(e).addClass("border");
+	    });
+	  }
+	
+	  handleHoverOut(){
+	    this.elements.forEach((e)=>{
+	      $(e).removeClass("border");
+	    });
+	  }
+	
+	  addCircle(element){
+	    element.setAttribute("style", "position:relative;");
+	    const circle = new Circle();
+	    circle.appendTo(element);
+	  }
+	
+	  getClassName(){
+	    return `hl-${this.id}`;
+	  }
+	
+	  setClass(){
+	    this.elements.forEach((e)=>{
+	      $(e).addClass(this.getClassName());
+	    });
+	  }
+	}
+	
+	module.exports = Highlight;
 
 
 /***/ }

@@ -33,13 +33,7 @@
   border-radius: 50%;
   transition:0.2s;
 }
-.circle:hover {
-  box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px;
-  transition:0.2s;
-  transform: scale(2);
-}
-
-.circle-hover {
+.circle:hover, .circle-hover {
   box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px;
   transition:0.2s;
   transform: scale(2);
@@ -52,7 +46,25 @@
   stroke-width:1px;
   pointer-events:stroke;
 }
-.arrow:hover{
-  stroke-width:2px;
+
+.arrow-hover{
+  stroke-width:3px;
+}
+
+.label, #ruler{
+  position:absolute;
+  font-family : inherit;
+  font-size   : 100%;
+  text-align: center;
+}
+
+.label{
+  border:1px solid red;
+  border-radius:3px;
+}
+
+.label-hover{
+  border:3px solid red;
+  border-radius:3px;
 }
 
