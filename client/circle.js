@@ -1,5 +1,5 @@
 const $ = require("jquery");
-const EventEmitter = window.eventEmitter;
+const EventEmitter = window.globalEvent;
 
 const cumulativeOffset = function(element) {
   let top = 0;
@@ -14,11 +14,14 @@ const cumulativeOffset = function(element) {
 };
 
 class Circle{
-  constructor(){
-    this.jObject = $('<div draggable="true" class="circle"></div>');
+  constructor(id, highlight){
+    this.id = id;
+    this.highlight = highlight;
+
+    this.jObject = $('<div id="${this.domI()}" draggable="true" class="circle"></div>');
 
     this.jObject.on("dragstart", (e)=>{
-      eventEmitter.emit("dragstart", {event: e, circle: this});
+      globalEvent.emit("dragstart", {event: e, circle: this});
 
       // hide drag image
       e.originalEvent.dataTransfer.setDragImage(this.emptyImg(), 0, 0);
@@ -27,16 +30,25 @@ class Circle{
     });
 
     this.jObject.on("dragend", (e)=>{
-      eventEmitter.emit("dragend", {event: e});
+      globalEvent.emit("dragend", {event: e});
     });
 
     this.jObject.on("dragenter", (e)=>{
-      eventEmitter.emit("dragenter", {event: e, circle: this});
+      globalEvent.emit("dragenter", {event: e, circle: this});
     });
 
     this.jObject.on("dragleave", (e)=>{
-      eventEmitter.emit("dragleave", {event: e, circle: this});
+      globalEvent.emit("dragleave", {event: e, circle: this});
     });
+    this.jObject.on("click", (e)=>{
+      console.log("click", this.highlight);
+      globalEvent.emit("highlightselect", this.highlight);
+      // this.highlight.select();
+    });
+  }
+
+  domId(){
+    return "circle-"+this.id;
   }
 
   emptyImg(){
@@ -61,6 +73,10 @@ class Circle{
   isHit(x, y){
     const rect = this.jObject.get(0).getBoundingClientRect();
     return rect.left <= x && rect.right >= x && rect.top <= y && rect.bottom >= y;
+  }
+
+  remove(){
+    this.jObject.remove();
   }
 }
 

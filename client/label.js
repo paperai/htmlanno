@@ -72,6 +72,10 @@ class Label{
   handleHoverOut(e){
     $(this.element).removeClass("label-hover");
   }
+
+  remove(){
+    this.jObject.remove();
+  }
 }
 
 module.exports = Label;

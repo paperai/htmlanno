@@ -3,13 +3,10 @@
 
 .highlight {
   background-color: yellow;
-}
-.highlight:hover {
-  border: 1px solid #ccc;
+  border: 1px solid yellow;
   margin: -1px;
 }
-
-.border{
+.highlight:hover, .border{
   border: 1px solid #ccc;
   margin: -1px;
 }
@@ -66,5 +63,33 @@
 .label-hover{
   border:3px solid red;
   border-radius:3px;
+}
+
+.selected-highlight{
+  position:absolute;
+  /* border:1px solid red; */
+  white-space:nowrap;
+  background: linear-gradient(90deg, blue 50%, transparent 50%), linear-gradient(90deg, blue 50%, transparent 50%), linear-gradient(0deg, blue 50%, transparent 50%), linear-gradient(0deg, blue 50%, transparent 50%);
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-size: 15px 2px, 15px 2px, 2px 15px, 2px 15px;
+  padding: 3px;
+  animation-duration: 1.5s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes border-dance {
+  0% {
+    background-position: 0px 0px, 15px 117px, 0px 15px, 317px 0px;
+  }
+  100% {
+    background-position: 15px 0px, 0px 117px, 0px 0px, 317px 15px;
+  }
+}
+
+.selected-arrow{
+  position:absolute;
+  border:1px solid red;
+  white-space:nowrap;
 }
 

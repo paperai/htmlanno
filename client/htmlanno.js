@@ -2,58 +2,121 @@ const $ = require("jquery");
 const rangy = require("rangy");
 require("rangy/lib/rangy-classapplier.js");
 require("rangy/lib/rangy-highlighter.js");
+require("rangy/lib/rangy-serializer.js");
 
 const EventEmitter = require('events').EventEmitter
-window.eventEmitter = new EventEmitter();
+window.globalEvent = new EventEmitter();
 
 const ArrowAnnotation = require("./arrowannotation.js");
-const Label = require("./label.js");
-const Highlight = require("./highlight.js");
+const Highlighter = require("./highlighter.js");
 
 class Htmlanno{
   constructor(){
-    this.highlights = [];
-    this.highlightId = 1;
+    this.highlighter = new Highlighter();
+    this.handleResize();
+    this.wrapGlobalEvents();
+    this.selectedAnnotation = null;
+    this.selectedHighlight = null;
 
-    $('#svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
-    $(window).on("resize", (e)=>{
-      eventEmitter.emit("resizewindow", null);
-      $('#svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
+    globalEvent.on("resizewindow", this.handleResize.bind(this));
+
+    globalEvent.on("keydown", this.handleKeydown.bind(this));
+    globalEvent.on("arrowannotationselect", (e)=>{
+      console.log("select arrow");
+      if (this.selectedHighlight){
+        this.selectedHighlight.blur();
+      }
+      if (this.selectedAnnotation){
+        this.selectedAnnotation.blur();
+      }
+      this.selectedAnnotation = e;
+      this.selectedAnnotation.select();
     });
 
-    $(document).on("dragover", (e)=>{
-      if (e.originalEvent.pageX && e.originalEvent.pageY){
-        eventEmitter.emit("drag", e);
+    globalEvent.on("highlightselect", (e)=>{
+      if (this.selectedHighlight){
+        this.selectedHighlight.blur();
       }
+      this.selectedHighlight = e;
+      this.selectedHighlight.select();
+    });
+
+    globalEvent.on("mouseup", (e)=>{
+      this.commitSelection();
     });
 
     let arrowAnno = null;
+    let arrowAnnoId = 1;
 
-    eventEmitter.on("dragstart", (data)=>{
-      arrowAnno = new ArrowAnnotation(data.circle);
+    globalEvent.on("dragstart", (data)=>{
+      arrowAnno = new ArrowAnnotation(arrowAnnoId, data.circle);
+    });
+    globalEvent.on("arrowannotationconnect", (data)=>{
+      arrowAnnoId += 1;
+      console.log("connected");
     });
   }
 
+  wrapGlobalEvents(){
+    $(document).on("dragover", (e)=>{
+      if (e.originalEvent.pageX && e.originalEvent.pageY){
+        globalEvent.emit("drag", e);
+      }
+    });
+
+    $(document).on("keydown", (e)=>{
+      globalEvent.emit("keydown", e);
+    });
+
+    $(document).on("mouseup", (e)=>{
+      globalEvent.emit("mouseup", e);
+    });
+
+    $(window).on("resize", (e)=>{
+      globalEvent.emit("resizewindow", e);
+    });
+  }
+
+  handleResize(){
+    $('#svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
+  }
+
+  handleKeydown(e){
+    // delete or back space
+    // esc
+    if (e.keyCode === 27) {
+      if (this.selectedHighlight){
+        this.selectedHighlight.blur();
+      }
+      if (this.selectedAnnotation){
+        this.selectedAnnotation.blur();
+      }
+    }
+    return;
+    if (e.keyCode === 46 || e.keyCode == 8) {
+      if (this.selectedAnnotation){
+        this.selectedAnnotation.remove();
+      }
+      if (this.selectedHighlight){
+        this.selectedHighlight.remove();
+      }
+      e.preventDefault();
+    }
+  }
+
+  save(){
+    // this.remove();
+    // localStorage["savedata"] = rangy.serializeSelection();
+    this.highlighter.highlight();
+  }
+
+  remove(){
+    this.highlighter.remove();
+  }
+
   commitSelection(){
-    const selection = rangy.getSelection();
-    if (selection.isCollapsed){
-      return;
-    }
-
-    const highlighter = rangy.createHighlighter();
-    const temporaryElements = [];
-    highlighter.addClassApplier(rangy.createClassApplier("highlight", {
-      ignoreWhiteSpace: true,
-      onElementCreate: (element)=>{temporaryElements.push(element)}
-    }));
-    highlighter.highlightSelection("highlight");
-
-    if (temporaryElements.length > 0){
-      const highlight = new Highlight(this.highlightId, selection, temporaryElements);
-      this.highlights.push(highlight);
-      this.highlightId += 1;
-    }
-    selection.removeAllRanges();
+    this.highlighter.highlight();
+    // this.save();
   }
 }
 
