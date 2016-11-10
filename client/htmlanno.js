@@ -13,9 +13,9 @@ const Highlighter = require("./highlighter.js");
 
 class Htmlanno{
   constructor(){
-    const a = new Arrow(1, {top:100, left:100});
-    a.appendTo($("#svg-screen"));
-    a.point({top:200, left:300});
+    // const a = new Arrow(1, {top:100, left:100});
+    // a.appendTo($("#svg-screen"));
+    // a.point({top:200, left:300});
     this.highlighter = new Highlighter();
     this.handleResize();
     this.wrapGlobalEvents();
