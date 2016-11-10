@@ -61,12 +61,26 @@ class Highlight{
   }
 
   setClass(){
+    this.addClass(this.getClassName());
+  }
+
+  addClass(name){
     this.elements.forEach((e)=>{
-      $(e).addClass(this.getClassName());
+      $(e).addClass(name);
+    });
+  }
+
+  removeClass(name){
+    this.elements.forEach((e)=>{
+      $(e).removeClass(name);
     });
   }
 
   select(){
+    this.addClass("highlight-selected");
+    // this.removeClass("highlight");
+    return;
+
     const rect = this.getBoundingClientRect();
     const circlePosition = this.circle.positionCenter();
     const jo = $(`<div id="sh-${this.id}" class="selected-highlight"></div>`);
@@ -100,6 +114,8 @@ class Highlight{
   }
 
   blur(){
+    this.removeClass("highlight-selected");
+    return;
     if (this.selectFrame){
       this.selectFrame.remove();
     }

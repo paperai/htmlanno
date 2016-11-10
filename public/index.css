@@ -10,6 +10,16 @@
   border: 1px solid #ccc;
   margin: -1px;
 }
+.highlight-selected{
+  background-color: yellow;
+  border: 2px dotted black;
+  margin: -2px;
+}
+.highlight-selected:hover{
+  border: 2px dotted black;
+  margin: -2px;
+}
+
 
 #svg-screen{
   position:absolute;
@@ -40,15 +50,25 @@
   fill:none;
   stroke:red;
   visibility:visible;
-  stroke-width:1px;
+  stroke-width:2px;
+  pointer-events:stroke;
+}
+
+.arrow2{
+  fill:none;
+  stroke:black;
+  visibility:visible;
+  stroke-width:5px;
+  stroke-dasharray: 3;
   pointer-events:stroke;
 }
 
 .arrow-hover{
   stroke-width:3px;
+  transition:0.2s;
 }
 
-.label, #ruler{
+.label, .label-outline, #ruler{
   position:absolute;
   font-family : inherit;
   font-size   : 100%;
@@ -56,12 +76,20 @@
 }
 
 .label{
+  width:100%;
+  transition:0.1s;
   border:1px solid red;
   border-radius:3px;
 }
 
 .label-hover{
+  transition:0.1s;
   border:3px solid red;
+  border-radius:3px;
+}
+.label-selected{
+  transition:0.1s;
+  border:3px dotted black;
   border-radius:3px;
 }
 

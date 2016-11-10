@@ -1,9 +1,11 @@
 const $ = require("jquery");
 
 class Label{
-  constructor(position){
+  constructor(id, position){
+    this.id = id;
     this.position = position;
-    this.jObject = $('<input placeholder="Enter text" class="label" type="text">');
+    this.jObject = $(`<input id="label-${this.id}" placeholder="Enter text" class="label" type="text">
+        `);
     this.jObject.css("width",  "100px");
     this.jObject.css("left", `${this.position.left-50}px`);
     this.jObject.css("top",  `${this.position.top}px`);
@@ -66,15 +68,25 @@ class Label{
 
   handleHoverIn(e){
     if (this.text){
-      $(this.element).addClass("label-hover");
+      this.jObject.addClass("label-hover");
     }
   }
   handleHoverOut(e){
-    $(this.element).removeClass("label-hover");
+    this.jObject.removeClass("label-hover");
   }
 
   remove(){
     this.jObject.remove();
+  }
+
+  select(){
+    if (this.text){
+      this.jObject.addClass("label-selected");
+    }
+  }
+
+  blur(){
+    this.jObject.removeClass("label-selected");
   }
 }
 

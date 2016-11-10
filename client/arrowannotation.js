@@ -50,7 +50,7 @@ class ArrowAnnotation{
       this.arrow.point(cir.positionCenter());
       this.endingCircle = cir;
       globalEvent.on("resizewindow", this.reposition.bind(this));
-      this.label = new Label(this.labelPosition());
+      this.label = new Label(this.id, this.labelPosition());
       this.label.jObject.hover(
           this.handleHoverIn.bind(this),
           this.handleHoverOut.bind(this)
@@ -86,6 +86,11 @@ class ArrowAnnotation{
   }
 
   select(){
+    this.arrow.select();
+    if (this.label){
+      this.label.select();
+    }
+    return;
     const p1 = this.startingCircle.positionCenter();
     const p2 = this.enteredCircle.positionCenter();
 
@@ -97,7 +102,7 @@ class ArrowAnnotation{
     const h = bottom - top;
 
     const pad = 4;
-    const jo = $(`<div class = "selected-highlight"></div>`);
+    const jo = $(`<div class="selected-highlight"></div>`);
     jo.css("top", top);
     jo.css("left", left);
     jo.css("width", w);
@@ -123,6 +128,11 @@ class ArrowAnnotation{
   }
 
   blur(){
+    this.arrow.blur();
+    if (this.label){
+      this.label.blur();
+    }
+    return;
     if (this.selectFrame){
       this.selectFrame.remove();
     }

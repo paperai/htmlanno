@@ -8,10 +8,14 @@ const EventEmitter = require('events').EventEmitter
 window.globalEvent = new EventEmitter();
 
 const ArrowAnnotation = require("./arrowannotation.js");
+const Arrow = require("./arrow.js");
 const Highlighter = require("./highlighter.js");
 
 class Htmlanno{
   constructor(){
+    const a = new Arrow(1, {top:100, left:100});
+    a.appendTo($("#svg-screen"));
+    a.point({top:200, left:300});
     this.highlighter = new Highlighter();
     this.handleResize();
     this.wrapGlobalEvents();
