@@ -1,5 +1,5 @@
 const $ = require("jquery");
-const EventEmitter = window.globalEvent;
+const globalEvent = window.globalEvent;
 
 const cumulativeOffset = function(element) {
   let top = 0;
@@ -18,7 +18,7 @@ class Circle{
     this.id = id;
     this.highlight = highlight;
 
-    this.jObject = $('<div id="${this.domI()}" draggable="true" class="circle"></div>');
+    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="circle"></div>`);
 
     this.jObject.on("dragstart", (e)=>{
       globalEvent.emit("dragstart", {event: e, circle: this});
@@ -40,10 +40,9 @@ class Circle{
     this.jObject.on("dragleave", (e)=>{
       globalEvent.emit("dragleave", {event: e, circle: this});
     });
+
     this.jObject.on("click", (e)=>{
-      console.log("click", this.highlight);
       globalEvent.emit("highlightselect", this.highlight);
-      // this.highlight.select();
     });
   }
 
@@ -76,7 +75,9 @@ class Circle{
   }
 
   remove(){
+    globalEvent.emit("removecircle", this);
     this.jObject.remove();
+    globalEvent.removeObject(this);
   }
 }
 

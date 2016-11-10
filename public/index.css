@@ -1,15 +1,14 @@
-/* ::-moz-selection { color: gold;  background: red; } */
-/* ::selection      { color: gold;  background: red; } */
-
 .highlight {
   background-color: yellow;
   border: 1px solid yellow;
   margin: -1px;
 }
+
 .highlight:hover, .border{
   border: 1px solid #ccc;
   margin: -1px;
 }
+
 .highlight-selected{
   background-color: yellow;
   border: 2px dotted black;
@@ -20,7 +19,6 @@
   margin: -2px;
 }
 
-
 #svg-screen{
   position:absolute;
   top:0;
@@ -30,9 +28,9 @@
 }
 
 .circle{
+  position:absolute;
   top: -10px;
   left: -5px;
-  position:absolute;
   white-space:nowrap;
   width:10px;
   height:10px;
@@ -40,6 +38,7 @@
   border-radius: 50%;
   transition:0.2s;
 }
+
 .circle:hover, .circle-hover {
   box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px;
   transition:0.2s;
@@ -54,7 +53,7 @@
   pointer-events:stroke;
 }
 
-.arrow2{
+.arrow-outline{
   fill:none;
   stroke:black;
   visibility:visible;
@@ -68,7 +67,11 @@
   transition:0.2s;
 }
 
-.label, .label-outline, #ruler{
+#arrow-head{
+  fill:red;
+}
+
+.label, #ruler{
   position:absolute;
   font-family : inherit;
   font-size   : 100%;
@@ -87,37 +90,10 @@
   border:3px solid red;
   border-radius:3px;
 }
+
 .label-selected{
   transition:0.1s;
   border:3px dotted black;
   border-radius:3px;
-}
-
-.selected-highlight{
-  position:absolute;
-  /* border:1px solid red; */
-  white-space:nowrap;
-  background: linear-gradient(90deg, blue 50%, transparent 50%), linear-gradient(90deg, blue 50%, transparent 50%), linear-gradient(0deg, blue 50%, transparent 50%), linear-gradient(0deg, blue 50%, transparent 50%);
-  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
-  background-size: 15px 2px, 15px 2px, 2px 15px, 2px 15px;
-  padding: 3px;
-  animation-duration: 1.5s;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-
-@keyframes border-dance {
-  0% {
-    background-position: 0px 0px, 15px 117px, 0px 15px, 317px 0px;
-  }
-  100% {
-    background-position: 15px 0px, 0px 117px, 0px 0px, 317px 15px;
-  }
-}
-
-.selected-arrow{
-  position:absolute;
-  border:1px solid red;
-  white-space:nowrap;
 }
 
