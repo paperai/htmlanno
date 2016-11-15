@@ -1,0 +1,504 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"><html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Wilson, Aruliah, Brown, Chue Hong, Davis, Guy, Haddock, Huff, Mitchell, Plumbley, Waugh, White, Wilson, and Eisen: Best Practices for Scientific Computing</title>
+<link rel="stylesheet" type="text/css" href="jats-preview.css">
+</head>
+<body>
+<div id="article-front" class="front">
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell">
+<h4 class="generated">Journal Information</h4>
+<div class="metadata-group">
+<p class="metadata-entry"><span class="generated">Journal ID (<span class="data">publisher-id</span>): </span>plos</p>
+<p class="metadata-entry"><span class="generated">Journal ID (<span class="data">nlm-ta</span>): </span>PLoS Biol</p>
+<p class="metadata-entry"><span class="generated">Journal ID (<span class="data">pmc</span>): </span>plosbiol</p>
+<p class="metadata-entry"><span class="generated">Title: </span>PLoS Biology</p>
+<p class="metadata-entry"><span class="generated">ISSN (<span class="data">print</span>): </span>1544-9173</p>
+<p class="metadata-entry"><span class="generated">ISSN (<span class="data">electronic</span>): </span>1545-7885</p>
+<p class="metadata-entry"><span class="generated">Publisher: </span>Public Library of Science<span class="generated"> (</span>San Francisco, USA<span class="generated">)</span></p>
+</div>
+</div>
+<div class="cell">
+<h4 class="generated">Article Information</h4>
+<div class="metadata-group">
+<p class="metadata-entry"><span class="generated">Copyright: </span>2014, Wilson et al</p>
+<div class="metadata-area">
+<p class="metadata-entry"><span class="generated">License (<span class="data"><a href="http://creativecommons.org/licenses/by/4.0/">http://creativecommons.org/licenses/by/4.0/</a></span>): </span></p>
+<div class="metadata-chunk">
+<p class="first" id="IDVKWOMSTTC1HJJHITJGTLL1MS4MTT400UP0R3RRNKLGOAQ5ON0HVH">This is an open-access article distributed under the terms of the <a target="xrefwindow" href="http://creativecommons.org/licenses/by/4.0/" id="IDR4DUJGOUHNZKIUDK0H3PETDQZP4MGPQD2NOPGGG3GEVBZEI0L1DE">Creative Commons Attribution License</a>, which permits unrestricted use, distribution, and reproduction in any medium, provided the original author and source are credited.</p>
+</div>
+</div>
+<p class="metadata-entry"><span class="generated">Publication date (<span class="data">collection</span>): </span>January 2014</p>
+<p class="metadata-entry"><span class="generated">Publication date (<span class="data">electronic</span>): </span>7 January 2014</p>
+<p class="metadata-entry"><span class="generated">Volume: </span>12</p>
+<p class="metadata-entry"><span class="generated">Issue: </span>1</p>
+<p class="metadata-entry"><span class="generated">Electronic Location
+      Identifier: </span>e1001745</p>
+<p class="metadata-entry"><span class="generated">Publisher ID: </span>PBIOLOGY-D-13-02315</p>
+<p class="metadata-entry"><span class="generated">DOI: </span>10.1371/journal.pbio.1001745</p>
+<p class="metadata-entry"><span class="generated">Funding: </span>Neil Chue Hong was supported by the UK Engineering and Physical Sciences Research Council (EPSRC) Grant EP/H043160/1 for the UK Software Sustainability Institute. Ian M. Mitchell was supported by NSERC Discovery Grant #298211. Mark Plumbley was supported by EPSRC through a Leadership Fellowship (EP/G007144/1) and a grant (EP/H043101/1) for SoundSoftware.ac.uk. Ethan White was supported by a CAREER grant from the US National Science Foundation (DEB 0953694). Greg Wilson was supported by a grant from the Sloan Foundation. The funders had no role in study design, data collection and analysis, decision to publish, or preparation of the manuscript.</p>
+</div>
+</div>
+</div>
+</div>
+<hr class="part-rule">
+<div class="metadata centered">
+<h1 class="document-title">Best Practices for Scientific Computing</h1>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="ID4YY0YURFYAAZCSTKWDHIQMY1IPAPJIZ4FP2XA3GDVCEUI3L5RRD"><!-- named anchor --></a>Greg Wilson<span class="generated">[</span><a href="#aff1"><sup>1</sup></a><span class="generated">]</span><span class="generated">[</span><a href="#cor1"><sup>*</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDPQ5TOAEFIGESBA3CAJM3DE41PKYRB4YXQ2UYM4JERJFGSP3ABR5P"><!-- named anchor --></a>D. A. Aruliah<span class="generated">[</span><a href="#aff2"><sup>2</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDDWRXPHKWSBL2OPL4VJ2EOP1POM23VVRGQCUTDFGXSNLYSSMWSY4P"><!-- named anchor --></a>C. Titus Brown<span class="generated">[</span><a href="#aff3"><sup>3</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="ID3OIBZXFD3WZBLGR0YVIRUBH4TEQOXIY2WU2LDDKASJPZ2PQBQEBE"><!-- named anchor --></a>Neil P. Chue Hong<span class="generated">[</span><a href="#aff4"><sup>4</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDCAC0VSVG3U4UFHA143BP14V4XNEQ2QAEUSCYRDHFFUCDUW53Z54G"><!-- named anchor --></a>Matt Davis<span class="generated">[</span><a href="#aff5"><sup>5</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="ID3C4ZFP3ISXHBJQG5FFOF0PQCYOE5SOVQDL0WLROUWTXDMSYEJTCO"><!-- named anchor --></a>Richard T. Guy<span class="generated">[</span><a href="#aff6"><sup>6</sup></a><span class="generated">]</span><span class="generated">[</span><a href="#fn1"><sup>¤</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDKUNDZ0LMZJJPDUOLWB3IQ1B3EHDB5Q5OJ2XE2BIHQBO2VHTHUUH"><!-- named anchor --></a>Steven H. D. Haddock<span class="generated">[</span><a href="#aff7"><sup>7</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDRRK1UTFADW5JDWRIECJ4ZEW0WOOL0Q0EW0VXNUHAKMWGA4AL1HQI"><!-- named anchor --></a>Kathryn D. Huff<span class="generated">[</span><a href="#aff8"><sup>8</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="ID0QLWEQTPFU0OKI2X0P4VY3V2UPL3ZJUKTH3E5MLHDKUESRCLFENK"><!-- named anchor --></a>Ian M. Mitchell<span class="generated">[</span><a href="#aff9"><sup>9</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDN1APVDBHJ2NBG55XVWMOQ22D2O1LQSWWTV5BFBGZDVXK4GU2NR1J"><!-- named anchor --></a>Mark D. Plumbley<span class="generated">[</span><a href="#aff10"><sup>10</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDWPUW4PRORVVJJ321EHFIDI42LFW4UT5M0BLMJEIMUOKYXT3VIO4P"><!-- named anchor --></a>Ben Waugh<span class="generated">[</span><a href="#aff11"><sup>11</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDI0ORXIDWMOUEFZDJMEVZJLYKSNCAXFWAJML4BTCAEDG3ZFW1QXPD"><!-- named anchor --></a>Ethan P. White<span class="generated">[</span><a href="#aff12"><sup>12</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDBOWJ2Z0B5TG5JVAIOH0JUPLEPEP0ZO414SCDM3ORVRM2BGZW2J4C"><!-- named anchor --></a>Paul Wilson<span class="generated">[</span><a href="#aff13"><sup>13</sup></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group"></div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="IDA3FDH2O4OMRMDPPD1ERXTMKU0CTTCXBA4ABCNQCY05I1ZFCLD35O"><!-- named anchor --></a>Jonathan A. Eisen<span class="generated">[</span><a href="#edit1"><span class="warning">{ label needed for aff[@id='edit1'] }</span></a><span class="generated">]</span></p>
+</div>
+</div>
+<div class="cell">
+<div class="metadata-group">
+<p class="metadata-entry">Academic Editor</p>
+</div>
+</div>
+</div>
+</div>
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell empty"></div>
+<div class="cell">
+<div class="metadata-group">
+<p class="metadata-entry"><a id="aff1"><!-- named anchor --></a><span class="generated">[</span>1<span class="generated">] </span>Mozilla Foundation, Toronto, Ontario, Canada</p>
+<p class="metadata-entry"><a id="aff2"><!-- named anchor --></a><span class="generated">[</span>2<span class="generated">] </span>University of Ontario Institute of Technology, Oshawa, Ontario, Canada</p>
+<p class="metadata-entry"><a id="aff3"><!-- named anchor --></a><span class="generated">[</span>3<span class="generated">] </span>Michigan State University, East Lansing, Michigan, United States of America</p>
+<p class="metadata-entry"><a id="aff4"><!-- named anchor --></a><span class="generated">[</span>4<span class="generated">] </span>Software Sustainability Institute, Edinburgh, United Kingdom</p>
+<p class="metadata-entry"><a id="aff5"><!-- named anchor --></a><span class="generated">[</span>5<span class="generated">] </span>Space Telescope Science Institute, Baltimore, Maryland, United States of America</p>
+<p class="metadata-entry"><a id="aff6"><!-- named anchor --></a><span class="generated">[</span>6<span class="generated">] </span>University of Toronto, Toronto, Ontario, Canada</p>
+<p class="metadata-entry"><a id="aff7"><!-- named anchor --></a><span class="generated">[</span>7<span class="generated">] </span>Monterey Bay Aquarium Research Institute, Moss Landing, California, United States of America</p>
+<p class="metadata-entry"><a id="aff8"><!-- named anchor --></a><span class="generated">[</span>8<span class="generated">] </span>University of California Berkeley, Berkeley, California, United States of America</p>
+<p class="metadata-entry"><a id="aff9"><!-- named anchor --></a><span class="generated">[</span>9<span class="generated">] </span>University of British Columbia, Vancouver, British Columbia, Canada</p>
+<p class="metadata-entry"><a id="aff10"><!-- named anchor --></a><span class="generated">[</span>10<span class="generated">] </span>Queen Mary University of London, London, United Kingdom</p>
+<p class="metadata-entry"><a id="aff11"><!-- named anchor --></a><span class="generated">[</span>11<span class="generated">] </span>University College London, London, United Kingdom</p>
+<p class="metadata-entry"><a id="aff12"><!-- named anchor --></a><span class="generated">[</span>12<span class="generated">] </span>Utah State University, Logan, Utah, United States of America</p>
+<p class="metadata-entry"><a id="aff13"><!-- named anchor --></a><span class="generated">[</span>13<span class="generated">] </span>University of Wisconsin, Madison, Wisconsin, United States of America</p>
+<p class="metadata-entry"><a id="edit1"><!-- named anchor --></a>University of California Davis, United States of America</p>
+<div class="metadata-area">
+<p class="metadata-entry"><span class="generated">Author notes: </span></p>
+<div class="metadata-chunk"><a id="ID0QNBRDB1QBH0BEIEHM214KRY5PSBBQT0BUPSOTMHUMDIZN3SJ3PI"><!-- named anchor --></a><p class="metadata-entry"><span class="generated"><a id="cor1"><!-- named anchor --></a>Correspondence to: </span>* E-mail: <a href="mailto:gvwilson@software-carpentry.org">gvwilson@software-carpentry.org</a></p><p class="metadata-entry"><span class="generated"><span class="generated"> Conflicts of interest</span>: </span><a id="IDOQFFBCQWJP0SGEQQDC2BKYSPSNLORJKPSMENA0CXLKZ02EYOPZZ"><!-- named anchor --></a><p id="IDVKBPEUZH0OJRIAOSLWBC3UESBJKCNR55I1JTHYKIM2RXPM4P40NO"> The lead author (GVW) is involved in a pilot study of code review in scientific computing with <i>PLOS Computational Biology</i>.</p></p><p class="metadata-entry"><span class="generated"><span class="generated"> Contributed by</span>: </span><a id="IDLQPCC4KV3N1XBY0WPK45PJDHGLVDRMOOIHYIFPGRUZ2TGQQ4SDZO"><!-- named anchor --></a><p id="IDAWSJ0TYT3QMAJW3K15FYVEOTHODV1I0YJVWVWOJM5ILEG2SVPA3O"> The author(s) have made the following declarations about their contributions: Wrote the paper: GVW DAA CTB NPCH MD RTG SHDH KH IMM MDP BW EPW PW.</p></p><p class="metadata-entry"><span class="generated"><span class="generated"> Current affiliation</span>: </span><a id="fn1"><!-- named anchor --></a><p id="IDLIFZWXDAJCWDNVBQGGQJW2G04PGUVXSSWTFMDNCAWTACY5VWJJHO">¤ Current address: Microsoft, Inc., Seattle, Washington, United States of America</p></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<hr class="section-rule">
+<div class="metadata two-column table">
+<div class="row">
+<div class="cell" style="text-align: right">
+<h4 class="callout-title"><span class="generated">Abstract</span></h4>
+</div>
+<div class="cell">
+<div class="section"><a id="IDLRMXXEFEBDEUPELYPLW4PR4ETBLKL2SYIOYUI0ODVN1IMIJSEP4J"><!-- named anchor --></a><p id="IDO5D1ZZOQ2FHRSHUCSQQJP31VPDB3QBHBHWOBFO4RUAGWF1TYCPD">We describe a set of best practices for scientific software development, based on research and experience, that will improve scientists' productivity and the reliability of their software.</p>
+</div>
+</div>
+</div>
+</div>
+<hr class="part-rule">
+</div>
+<div id="article-body" class="body">
+<div class="section"><a id="s1"><!-- named anchor --></a><h2 class="main-title">Introduction</h2>
+<p id="IDXX4MXPTJ5QYWJIWMF1MKLZRQWGUNL2UE52BH1UEXVFRQXA50GUXO">Scientists spend an increasing amount of time building and using software. However, most scientists are never taught how to do this efficiently. As a result, many are unaware of tools and practices that would allow them to write more reliable and maintainable code with less effort. We describe a set of best practices for scientific software development that have solid foundations in research and experience, and that improve scientists' productivity and the reliability of their software.</p>
+<p id="ID3CAXHUA4MLPRJ051XFV4W5N3HNG2JGRJONWVC3FM3RIGRUYRE0PN">Software is as important to modern scientific research as telescopes and test tubes. From groups that work exclusively on computational problems, to traditional laboratory and field scientists, more and more of the daily operation of science revolves around developing new algorithms, managing and analyzing the large amounts of data that are generated in single research projects, combining disparate datasets to assess synthetic problems, and other computational tasks.</p>
+<p id="IDBJ3RYP0XHD0BFVERZCIXBDDYWHSVAJVGYU0NKOOYLBJ2VDBAVDGB">Scientists typically develop their own software for these purposes because doing so requires substantial domain-specific knowledge. As a result, recent studies have found that scientists typically spend 30% or more of their time developing software <a href="#pbio.1001745-Hannay1">[1]</a>,<a href="#pbio.1001745-Prabhu1">[2]</a>. However, 90% or more of them are primarily self-taught <a href="#pbio.1001745-Hannay1">[1]</a>,<a href="#pbio.1001745-Prabhu1">[2]</a>, and therefore lack exposure to basic software development practices such as writing maintainable code, using version control and issue trackers, code reviews, unit testing, and task automation.</p>
+<p id="IDRAV01RWDHSS0KEL1ZF2ORDU2CB2HGHHBRI3RCBEJ5LDY0QFEV5PD">We believe that software is just another kind of experimental apparatus <a href="#pbio.1001745-Vardi1">[3]</a> and should be built, checked, and used as carefully as any physical apparatus. However, while most scientists are careful to validate their laboratory and field equipment, most do not know how reliable their software is <a href="#pbio.1001745-Hatton1">[4]</a>,<a href="#pbio.1001745-Hatton2">[5]</a>. This can lead to serious errors impacting the central conclusions of published research <a href="#pbio.1001745-Merali1">[6]</a>: recent high-profile retractions, technical comments, and corrections because of errors in computational methods include papers in <i>Science</i> <a href="#pbio.1001745-Chang1">[7]</a>,<a href="#pbio.1001745-Ferrari1">[8]</a>, <i>PNAS</i> <a href="#pbio.1001745-Ma1">[9]</a>, the <i>Journal of Molecular Biology</i> <a href="#pbio.1001745-Chang2">[10]</a>, <i>Ecology Letters</i> <a href="#pbio.1001745-Lees1">[11]</a>,<a href="#pbio.1001745-Currie1">[12]</a>, the <i>Journal of Mammalogy</i> <a href="#pbio.1001745-Kelt1">[13]</a>, <i>Journal of the American College of Cardiology</i> <a href="#pbio.1001745-Anon1">[14]</a>, <i>Hypertension</i> <a href="#pbio.1001745-1">[15]</a>, and <i>The American Economic Review</i> <a href="#pbio.1001745-Herndon1">[16]</a>.</p>
+<p id="IDK3Y02KO1DHUMHY3HBSIJHITWNIVSXQYIJXHAOUC3AAEJXCOVWQDN">In addition, because software is often used for more than a single project, and is often reused by other scientists, computing errors can have disproportionate impacts on the scientific process. This type of cascading impact caused several prominent retractions when an error from another group's code was not discovered until after publication <a href="#pbio.1001745-Merali1">[6]</a>. As with bench experiments, not everything must be done to the most exacting standards; however, scientists need to be aware of best practices both to improve their own approaches and for reviewing computational work by others.</p>
+<p id="IDR1MHH0T2S3ZMINSCDXE0GQC4POV14XBP5SSB3HG3TQMX4UR5GKIJ">This paper describes a set of practices that are easy to adopt and have proven effective in many research settings. Our recommendations are based on several decades of collective experience both building scientific software and teaching computing to scientists <a href="#pbio.1001745-Aranda1">[17]</a>,<a href="#pbio.1001745-Wilson1">[18]</a>, reports from many other groups <a href="#pbio.1001745-Heroux1">[19]</a>–, guidelines for commercial and open source software development <a href="#pbio.1001745-Spolsky1">[26]</a>,, and on empirical studies of scientific computing <a href="#pbio.1001745-Carver1">[28]</a>–<a href="#pbio.1001745-Segal2">[31]</a> and software development in general (summarized in <a href="#pbio.1001745-Oram1">[32]</a>). None of these practices will guarantee efficient, error-free software development, but used in concert they will reduce the number of errors in scientific software, make it easier to reuse, and save the authors of the software time and effort that can used for focusing on the underlying scientific questions.</p>
+<p id="IDVMIKASMIPU1BLND3QPVOQUWYLM4OLYMMA3IA3VGSU5OXZF31KP">Our practices are summarized in <a href="#pbio-1001745-box001">Box 1</a>; labels in the main text such as “(1a)” refer to items in that summary. For reasons of space, we do not discuss the equally important (but independent) issues of reproducible research, publication and citation of code and data, and open science. We do believe, however, that all of these will be much easier to implement if scientists have the skills we describe.</p>
+<div class="boxed-text panel" style="display: float; clear: both"><a id="pbio-1001745-box001"><!-- named anchor --></a><div class="section"><a id="s1a"><!-- named anchor --></a><h4 class="subsection-title">Box 1. Summary of Best Practices</h4>
+<div class="list"><a id="IDIFENKVG3PDWBC3KSL0VIARIYCKB1E4MKNEOXRJDM31KGLFJTVNRO"><!-- named anchor --></a><ol style="list-style-type: decimal">
+<li>
+<p id="IDEDSW3RDL203YFDXP3SD4ARW5EHTIXKXKQJ5Q3QG2S5TAVD2FPOJH">Write programs for people, not computers.</p>
+<div class="list"><a id="IDQCI5CJBXM5AIFVJVBEB5I0ZT5EC2QTXI0HEQECXVDVDGPFGRJYE"><!-- named anchor --></a><ol style="list-style-type: lower-alpha">
+<li>
+<p id="IDLRJGNVJX0G22I0YY5FVNRBDWPD5ZWQTLAJ0UUUMM5UHZBQIZFPWP">A program should not require its readers to hold more than a handful of facts in memory at once.</p>
+</li>
+<li>
+<p id="IDIVGEHOVNFDRFHCJANSGKEZQ3IO33EV3GDEAJC3HS3G55FUI5JTDK">Make names consistent, distinctive, and meaningful.</p>
+</li>
+<li>
+<p id="IDKVHNPLRBFWJHFVFXC2J1VWK1GL0FWKPWLUQHQVGBPV3VVITM5GVL">Make code style and formatting consistent.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p id="IDSUNLLOSJCTFYLHB0KRP5XTYNPFRHDBZDPSNSHPCKNB15MRAUECIF">Let the computer do the work.</p>
+<div class="list"><a id="IDIRYK25FCG0H1L1Z0M13MRFRWMLM2HKXFFHJDPNJJVX1O0FHBWOS"><!-- named anchor --></a><ol style="list-style-type: lower-alpha">
+<li>
+<p id="ID0GDI3OWXFGXTDHP5DBF1R2ITAFXKQ0F2R03MD4IRLMIFJSFVQOXC">Make the computer repeat tasks.</p>
+</li>
+<li>
+<p id="IDXGK35XNOVKD3FURYZLNGFNPFZJOSN51UGONHT4CROZWVXBVKD0WJ">Save recent commands in a file for re-use.</p>
+</li>
+<li>
+<p id="ID3BNRXVCEPGRBEXCRX23CXMJYGL0YD2POUVKH1SK4UWK212H01DIK">Use a build tool to automate workflows.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p id="IDOYBNYFQ0OKBPGOSS3XBDTVBJ4CL5VQLTSPVAUKNV5YBSJTZFQQH">Make incremental changes.</p>
+<div class="list"><a id="IDGLZ3NZFKPOSBOUNU1K1IRUE0HERVHPO3KAOCALDMVLTTZA0KIEZP"><!-- named anchor --></a><ol style="list-style-type: lower-alpha">
+<li>
+<p id="IDJZ4MH3WSCHMCODGK2EGQ3DMVMPTZMATJZ4I22EINMFEM5BFVAW0P">Work in small steps with frequent feedback and course correction.</p>
+</li>
+<li>
+<p id="IDO31GHUGE2X1N2KNARWJXBXJDEIGDNKPBFF5QTFYP1HUZQQXBIYI">Use a version control system.</p>
+</li>
+<li>
+<p id="IDJIYG5WHCY1OOCF5WDVTUUGL3NGMPUAF5YCLDESI3X0FO00RIWXNK">Put everything that has been created manually in version control.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p id="ID3TEWVWTCPAS0JYPWF3JW52CM5NY0BTE45FRZSANMIW5O1Z2SDIBI">Don't repeat yourself (or others).</p>
+<div class="list"><a id="IDHE222QCZOZF1JI53XZ5RU5EJIMIWK5F0MGJGJKDQX44U2VFWSLEH"><!-- named anchor --></a><ol style="list-style-type: lower-alpha">
+<li>
+<p id="IDN3VMEFCOWRKTGRTNBIJPOI45XJUYVKTRRH1I25H3PNJ1XQCJRTZC">Every piece of data must have a single authoritative representation in the system.</p>
+</li>
+<li>
+<p id="IDLKBK3ZRKILKUP5FL3IKDIT2QSO45RKSULJ03MNEMQWNCFEJ0OV2H">Modularize code rather than copying and pasting.</p>
+</li>
+<li>
+<p id="ID2OXMM50OUJMKGFMFQ2C51GDBEPJ5T3JZVI10C5FFK1BRGN3AAGWE">Re-use code instead of rewriting it.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p id="IDJUEW3332Q23WGVMFGR3C2DWMBDYVMZSR0LQ5RBB4BE2UOD50K12D">Plan for mistakes.</p>
+<div class="list"><a id="IDTRTHHUIUUYHCDBXWJA5EX3KD2NPZS0PBZPCUGILU4QYQKLKLGAQB"><!-- named anchor --></a><ol style="list-style-type: lower-alpha">
+<li>
+<p id="IDK4RETIBTJ3FIMXBANBSYHX3Q4IZBMG23CC4VMWGLCYXTQVMJ3VD">Add assertions to programs to check their operation.</p>
+</li>
+<li>
+<p id="IDTJLOL0XTOCMMIRLVC3BTFK5NVO0UTIIYS0XRQDHHD03YOAA0IP4E">Use an off-the-shelf unit testing library.</p>
+</li>
+<li>
+<p id="IDJTDZL1N3K5KUJVP1MUNF53W05UJFY0XW0I0N3CP4CEUATMT4G">Turn bugs into test cases.</p>
+</li>
+<li>
+<p id="IDCLYTHC1QEZNHJLDOBZDDG4D3GOS3FAZ1HWGY0THYPLMHLLPGYXCN">Use a symbolic debugger.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p id="IDVKZM2VFV5RKOCPL2KFMFSHXEKCVI04CNQ0OMKFMWSRMX41J2WDYD">Optimize software only after it works correctly.</p>
+<div class="list"><a id="IDBMDH4XAGLWXNPB04SOY1WROSDHPLEOIOEUM5KSPK51MJET1IFJCM"><!-- named anchor --></a><ol style="list-style-type: lower-alpha">
+<li>
+<p id="IDY34U1BZKHCT3SUMWI0LBYYCTGYEZQSSLWKVRQDQJUUA1JFT40IL">Use a profiler to identify bottlenecks.</p>
+</li>
+<li>
+<p id="ID4L4WWRJO0ZNQP32ZL1DPJQVL2MFW2ZXBPSSSJ5PF2XG4C5XU4CBC">Write code in the highest-level language possible.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p id="IDCUJDMSVDY5JHL1I2RK32MAMPUGQ4SD5KUQBTEGQJY14QWGBJN1C">Document design and purpose, not mechanics.</p>
+<div class="list"><a id="IDGPHTAKMECOJWMW10P4DGQ0AA3PNHCNU2PHJMYUHI05RMQAANHZKJ"><!-- named anchor --></a><ol style="list-style-type: lower-alpha">
+<li>
+<p id="ID3Z5CWHJKUQSSJDSLHDT0XJXZGN4R4YN3YCE0OXDZFEOQGA55BNIB">Document interfaces and reasons, not implementations.</p>
+</li>
+<li>
+<p id="IDMZXX32QHAI5LBDJY3VRPCS50PHU4YCB5NKRJJGP55COCTQQLZ31N">Refactor code in preference to explaining how it works.</p>
+</li>
+<li>
+<p id="ID0QLVHXZBZTHME5B50I1CQXWBQBVL0222HWH4UCPRNSFCCFGP1Y3J">Embed the documentation for a piece of software in that software.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p id="ID1LYAZRLQHZO4GWSLZTYP4BKX3CNP0CCX2CB4RLBSKJYM4SE4O33M">Collaborate.</p>
+<div class="list"><a id="IDLE5DQS5EZAADJIZLYQYJ0TITCBZVFCBPXFAGUXCG4NJKNP2Q1BZG"><!-- named anchor --></a><ol style="list-style-type: lower-alpha">
+<li>
+<p id="IDVTWHVT1R3RSHJ2DA0VUYNFO4ZNZKMBLMXWREGQOSW0LIMB0PQDNP">Use pre-merge code reviews.</p>
+</li>
+<li>
+<p id="IDHZZSJVTYYGONHMWW1CFQETT32EB3WLTMJQKKLFOWAH221EZWFFJB">Use pair programming when bringing someone new up to speed and when tackling particularly tricky problems.</p>
+</li>
+<li>
+<p id="IDKK4JSO5DGQXUHZKZGYN2OGQJPCURV3KIARBOX2PIPXY55NZNMVQN">Use an issue tracking tool.</p>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div class="section"><a id="s2"><!-- named anchor --></a><h2 class="main-title">Write Programs for People, Not Computers</h2>
+<p id="IDFM03ROCVFOD0CNK5M5BX321EIBRZ32UTECQ24TBX3WEXAXQ1SGLH">Scientists writing software need to write code that both executes correctly and can be easily read and understood by other programmers (especially the author's future self). If software cannot be easily read and understood, it is much more difficult to know that it is actually doing what it is intended to do. To be productive, software developers must therefore take several aspects of human cognition into account: in particular, that human working memory is limited, human pattern matching abilities are finely tuned, and human attention span is short <a href="#pbio.1001745-Baddeley1">[33]</a>–<a href="#pbio.1001745-Robinson1">[37]</a>.</p>
+<p id="IDNIYVN3PWVSDLNST5MGJSRVR5ECVWYNSF4LFBGGBHFTGCUUFFGZQO">First, <b><i>a program should not require its readers to hold more than a handful of facts in memory at once (1a)</i></b>. Human working memory can hold only a handful of items at a time, where each item is either a single fact or a “chunk” aggregating several facts <a href="#pbio.1001745-Baddeley1">[33]</a>,<a href="#pbio.1001745-Hock1">[34]</a>, so programs should limit the total number of items to be remembered to accomplish a task. The primary way to accomplish this is to break programs up into easily understood functions, each of which conducts a single, easily understood, task. This serves to make each piece of the program easier to understand in the same way that breaking up a scientific paper using sections and paragraphs makes it easier to read.</p>
+<p id="ID2MTQRW2YPDAKIWJSNC0BZTLRVKRI2JPKCFZSUQP3R21OUHHK4Q0L">Second, scientists should <b><i>make names consistent, distinctive, and meaningful (1b)</i></b>. For example, using non-descriptive names, like a and foo, or names that are very similar, like results and results2, is likely to cause confusion.</p>
+<p id="ID3YEKXKQLWPBTDUHMUWPAURKIYKKHPPURKVH1OYFX30DMVTNN2WYO">Third, scientists should <b><i>make code style and formatting consistent (1c)</i></b>. If different parts of a scientific paper used different formatting and capitalization, it would make that paper more difficult to read. Likewise, if different parts of a program are indented differently, or if programmers mix CamelCaseNaming and pothole_case_naming, code takes longer to read and readers make more mistakes <a href="#pbio.1001745-Letovsky1">[35]</a>,<a href="#pbio.1001745-Binkley1">[36]</a>.</p>
+</div>
+<div class="section"><a id="s3"><!-- named anchor --></a><h2 class="main-title">Let the Computer Do the Work</h2>
+<p id="IDRO032MNUQPIBHYUSIJW4AC2NHDN1Z5F3ZG5TGEICYH1CX00WA1XI">Science often involves repetition of computational tasks such as processing large numbers of data files in the same way or regenerating figures each time new data are added to an existing analysis. Computers were invented to do these kinds of repetitive tasks but, even today, many scientists type the same commands in over and over again or click the same buttons repeatedly <a href="#pbio.1001745-Aranda1">[17]</a>. In addition to wasting time, sooner or later even the most careful researcher will lose focus while doing this and make mistakes.</p>
+<p id="ID5LG1QQR0D1LNG4UNGMR2M0MVFMCRW40J1CBR2IPT2QYPQUKPIPUD">Scientists should therefore <b><i>make the computer repeat tasks (2a)</i></b> and <b><i>save recent commands in a file for re-use (2b)</i></b>. For example, most command-line tools have a “history” option that lets users display and re-execute recent commands, with minor edits to filenames or parameters. This is often cited as one reason command-line interfaces remain popular <a href="#pbio.1001745-Ray1">[38]</a>,<a href="#pbio.1001745-Haddock1">[39]</a>: “do this again” saves time and reduces errors.</p>
+<p id="ID5VAAQFDHNVKXG2UQEA102W0KPGZ0IDRIOCQDS3L5EI4QWAWSAVEB">A file containing commands for an interactive system is often called a <i>script</i>, though there is real no difference between this and a program. When these scripts are repeatedly used in the same way, or in combination, a workflow management tool can be used. The paradigmatic example is compiling and linking programs in languages such as Fortran, C++, Java, and C# <a href="#pbio.1001745-Dubois1">[40]</a>. The most widely used tool for this task is probably Make (<a target="xrefwindow" href="http://www.gnu.org/software/make" id="IDPKHCFRDHEIJTP41D2ATRKG3SCPRSZUCB400XNEL2XC2NWSCXZOGH">http://www.gnu.org/software/make</a>), although many alternatives are now available <a href="#pbio.1001745-Smith1">[41]</a>. All of these allow people to express dependencies between files, i.e., to say that if A or B has changed, then C needs to be updated using a specific set of commands. These tools have been successfully adopted for scientific workflows as well <a href="#pbio.1001745-Fomel1">[42]</a>.</p>
+<p id="IDCOC3R3RA1EE0GLJKXX42MS55UDBGZPPL42REAZLEAN4UDJALHG5J">To avoid errors and inefficiencies from repeating commands manually, we recommend that scientists <b><i>use a build tool to automate workflows (2c)</i></b>, e.g., specify the ways in which intermediate data files and final results depend on each other, and on the programs that create them, so that a single command will regenerate anything that needs to be regenerated.</p>
+<p id="IDVVFSVT35FWMLHUKTMGWIZVLLRNKFMGINDF0QXWJUXKVKG0B1NH4O">In order to maximize reproducibility, everything needed to re-create the output should be recorded automatically in a format that other programs can read. (Borrowing a term from archaeology and forensics, this is often called the <i>provenance</i> of data.) There have been some initiatives to automate the collection of this information, and standardize its format <a href="#pbio.1001745-Moreau1">[43]</a>, but it is already possible to record the following without additional tools:</p>
+<div class="list"><a id="IDI0CMNH2XBIGXOJ3PU1YQF2FPMN0OPCDXZZBZJWGYEZGIPA0PKWLK"><!-- named anchor --></a><ul>
+<li>
+<p id="IDJWIL31030IW4FRSDD1IISLTY3BYAK0JPR2R50OEWMQIZO42GHOF">unique identifiers and version numbers for raw data records (which scientists may need to create themselves);</p>
+</li>
+<li>
+<p id="ID23GIOW5HBYAIGSLVY5FLXECADNTNQUTPGRYCZPLCKYM3WRSG2VP">unique identifiers and version numbers for programs and libraries;</p>
+</li>
+<li>
+<p id="IDF3D1G2VXP4WCPY44AZFVYXC1KPBBM3XYXIUUBEC53RDKJMQACXEH">the values of parameters used to generate any given output; and</p>
+</li>
+<li>
+<p id="IDDBWXZHEXGVDQIHJUJVHCGKOU2BJTXFFTQ3JGSAEJ1CHYMFY0G14P">the names and version numbers of programs (however small) used to generate those outputs.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="section"><a id="s4"><!-- named anchor --></a><h2 class="main-title">Make Incremental Changes</h2>
+<p id="IDVZ1ZUGEUCT5AJD0V5ELMR5JJ4CP4A3YZFPHGNSMMXKYRCHAOB0RC">Unlike traditional commercial software developers, but very much like developers in open source projects or startups, scientific programmers usually don't get their requirements from customers, and their requirements are rarely frozen <a href="#pbio.1001745-Segal2">[31]</a>,<a href="#pbio.1001745-Segal3">[44]</a>. In fact, scientists often <i>can't</i> know what their programs should do next until the current version has produced some results. This challenges design approaches that rely on specifying requirements in advance.</p>
+<p id="ID2E1BMXPKEDSFD210U3WFTBYAGOOND5B5TZ2BKIHEMPIVHPAA30DI">Programmers are most productive when they <b><i>work in small steps with frequent feedback and course correction (3a)</i></b> rather than trying to plan months or years of work in advance. While the details vary from team to team, these developers typically work in steps that are sized to be about an hour long, and these steps are often grouped in iterations that last roughly one week. This accommodates the cognitive constraints discussed in the first section, and acknowledges the reality that real-world requirements are constantly changing. The goal is to produce working (if incomplete) code after each iteration. While these practices have been around for decades, they gained prominence starting in the late 1990s under the banner of <i>agile development</i> <a href="#pbio.1001745-Martin1">[45]</a>,<a href="#pbio.1001745-Kniberg1">[46]</a>.</p>
+<p id="IDVQUBAONI3OU2JPGMNU0JBXIBMK5LJL1WB5K5MRF4WXOUDCAQJPUO">Two of the biggest challenges scientists and other programmers face when working with code and data are keeping track of changes (and being able to revert them if things go wrong), and collaborating on a program or dataset <a href="#pbio.1001745-Matthews1">[23]</a>. Typical solutions are to email software to colleagues or to copy successive versions of it to a shared folder, e.g., Dropbox (<a target="xrefwindow" href="http://www.dropbox.com" id="IDENCOVVESOZFIJVU3CFJH5JKZQGQVP4P5VSRYDDMGBINPESTL1WAO">http://www.dropbox.com</a>). However, both approaches are fragile and can lead to confusion and lost work when important changes are overwritten or out-of-date files are used. It's also difficult to find out which changes are in which versions or to say exactly how particular results were computed at a later date.</p>
+<p id="ID0XUAGD13XLFTKDPBBFNMKUEMHNTASZHLI3ZD3QPFTRK50B30W0MI">The standard solution in both industry and open source is to <b><i>use a version control system (3b)</i></b> (VCS) <a href="#pbio.1001745-Fogel1">[27]</a>,<a href="#pbio.1001745-McConnell1">[47]</a>. A VCS stores snapshots of a project's files in a <i>repository</i> (or a set of repositories). Programmers can modify their working copy of the project at will, then <i>commit</i> changes to the repository when they are satisfied with the results to share them with colleagues.</p>
+<p id="IDZSTDLMSZ2ZSYNIVB4FNZT4WJEGSNNWNMUVD0EIKJH5LRMV3LION">Crucially, if several people have edited files simultaneously, the VCS highlights the differences and requires them to resolve any conflicts before accepting the changes. The VCS also stores the entire history of those files, allowing arbitrary versions to be retrieved and compared, together with metadata such as comments on what was changed and the author of the changes. All of this information can be extracted to provide provenance for both code and data.</p>
+<p id="IDU0UZWIIYLYJAKHOA5MQMKEM1U1E4VQFGESYSBJ4LCIILFIAF3VP">Many good VCSes are open source and freely available, including Git (<a target="xrefwindow" href="http://git-scm.com" id="IDAZDVMHMKBV4HGMULKP4GYX5QLNUZJU4L545E2HZ4IYZOARUQIFE">http://git-scm.com</a>), Subversion (<a target="xrefwindow" href="http://subversion.apache.org" id="IDPYDGIKVSKW5QDFOJWLIS2Z1MYMYNKDOIY5EPRRHD0CINVPNICZTH">http://subversion.apache.org</a>), and Mercurial (<a target="xrefwindow" href="http://mercurial.selenic.com" id="ID3KODJSYPERBDHQC4EHSFZD2TGC1GHYKPYKT3KSGXIB2WGYZNHJXB">http://mercurial.selenic.com</a>). Many free hosting services are available as well, with GitHub (<a target="xrefwindow" href="https://github.com" id="IDIZL1D5NGR1UMJITWMJVS22QMKHBCS1RYVI3KZRH5NZYPKAYCF4L">https://github.com</a>), BitBucket (<a target="xrefwindow" href="https://bitbucket.org" id="IDLBJGJ11YIQCMHPOYEKR4ZGIHPI34ELZSTNYVIWCVJGEJXLKNE1OF">https://bitbucket.org</a>), SourceForge (<a target="xrefwindow" href="http://sourceforge.net" id="IDJYYR21Z5TNYSKXNDKQ5YAEFYUPLIXXFQN1IHIEIBB4MMHCJR53KC">http://sourceforge.net</a>), and Google Code (<a target="xrefwindow" href="http://code.google.com" id="ID4ESMXR1ZGVJGE3LOTEC4BGX5F5KNEHI3ITBICKQLTQ35Q1TRFSC">http://code.google.com</a>) being the most popular. As with coding style, the best one to use is almost always whatever your colleagues are already using <a href="#pbio.1001745-Fogel1">[27]</a>.</p>
+<p id="IDA2Q5FWVVXNMHNCHJ55W23YQYNKTNLMDRJQUSJXJVHLDUVKUNXAMF">Reproducibility is maximized when scientists <b><i>put everything that has been created manually in version control (3c)</i></b>, including programs, original field observations, and the source files for papers. Automated output and intermediate files can be regenerated as needed. Binary files (e.g., images and audio clips) may be stored in version control, but it is often more sensible to use an archiving system for them, and store the metadata describing their contents in version control instead <a href="#pbio.1001745-Noble1">[48]</a>.</p>
+</div>
+<div class="section"><a id="s5"><!-- named anchor --></a><h2 class="main-title">Don't Repeat Yourself (or Others)</h2>
+<p id="IDQCCOZVXD3BW4KKCRZBUM3NMDNDHT44DWUHCMCADAZPYI5GMTBTJO">Anything that is repeated in two or more places is more difficult to maintain. Every time a change or correction is made, multiple locations must be updated, which increases the chance of errors and inconsistencies. To avoid this, programmers follow the DRY Principle <a href="#pbio.1001745-Hunt1">[49]</a>, for “don't repeat yourself,” which applies to both data and code.</p>
+<p id="IDPWIQNQ4AJVWFOCPLUPM2O3S5LHSENH1ZDQ2IKUC2CWMCFLNLGWRC">For data, this maxim holds that <b><i>every piece of data must have a single authoritative representation in the system (4a)</i></b>. Physical constants ought to be defined exactly once to ensure that the entire program is using the same value; raw data files should have a single canonical version, every geographic location from which data has been collected should be given an ID that can be used to look up its latitude and longitude, and so on.</p>
+<p id="IDPRCZKVDD0S04BQZTT1R4MDKDBNKXLWXKQFNEEKB2K2FHC20UUJMB">The DRY Principle applies to code at two scales. At small scales, <b><i>modularize code rather than copying and pasting (4b)</i></b>. Avoiding “code clones” has been shown to reduce error rates <a href="#pbio.1001745-Juergens1">[50]</a>: when a change is made or a bug is fixed, that change or fix takes effect everywhere, and people's mental model of the program (i.e., their belief that “this one's been fixed”) remains accurate. As a side effect, modularizing code allows people to remember its functionality as a single mental chunk, which in turn makes code easier to understand. Modularized code can also be more easily repurposed for other projects.</p>
+<p id="ID3CG2AMACTLQZBCXNL2PSPPEW5NQEONOWJ45VMTJIWC4PDXCXQYQP">At larger scales, it is vital that scientific programmers <b><i>re-use code instead of rewriting it (4c)</i></b>. Tens of millions of lines of high-quality open source software are freely available on the web, and at least as much is available commercially. It is typically better to find an established library or package that solves a problem than to attempt to write one's own routines for well established problems (e.g., numerical integration, matrix inversions, etc.).</p>
+</div>
+<div class="section"><a id="s6"><!-- named anchor --></a><h2 class="main-title">Plan for Mistakes</h2>
+<p id="IDOXNQY32Z54KPNXD034ACZMYEACBJDF3M330J2EN45FYGHJ5XQC5O">Mistakes are inevitable, so verifying and maintaining the validity of code over time is immensely challenging <a href="#pbio.1001745-Grubb1">[51]</a>. While no single practice has been shown to catch or prevent all mistakes, several are very effective when used in combination <a href="#pbio.1001745-McConnell1">[47]</a>,<a href="#pbio.1001745-Dubois2">[52]</a>,<a href="#pbio.1001745-Sanders1">[53]</a>.</p>
+<p id="IDWTWUYCKKOVI1G10FM0PDD4YOPDYDJ1HHGZ1CU0B0QXM0AV2BL1SD">The first line of defense is <i>defensive programming</i>. Experienced programmers <b><i>add assertions to programs to check their operation (5a)</i></b> because experience has taught them that everyone (including their future self) makes mistakes. An <i>assertion</i> is simply a statement that something holds true at a particular point in a program; as the example below shows, assertions can be used to ensure that inputs are valid, outputs are consistent, and so on.<div class="disp-formula panel"><a id="pbio.1001745.e001"><!-- named anchor --></a><img alt="info:doi/10.1371/journal.pbio.1001745.e001" src="info:doi/10.1371/journal.pbio.1001745.e001"></div>Assertions can make up a sizeable fraction of the code in well-written applications, just as tools for calibrating scientific instruments can make up a sizeable fraction of the equipment in a lab. These assertions serve two purposes. First, they ensure that if something does go wrong, the program will halt immediately, which simplifies debugging. Second, assertions are <i>executable documentation</i>, i.e., they explain the program as well as checking its behavior. This makes them more useful in many cases than comments since the reader can be sure that they are accurate and up to date.</p>
+<p id="IDV4KXU43TFYLXEUSHJEIVIDPH4INF4N5JA22YPCOLULBDCQSLUNWN">The second layer of defense is <i>automated testing</i>. Automated tests can check to make sure that a single unit of code is returning correct results (<i>unit tests</i>), that pieces of code work correctly when combined (<i>integration tests</i>), and that the behavior of a program doesn't change when the details are modified (<i>regression tests</i>). These tests are conducted by the computer, so that they are easy to rerun every time the program is modified. Creating and managing tests is easier if programmers <b><i>use an off-the-shelf unit testing library (5b)</i></b> to initialize inputs, run tests, and report their results in a uniform way. These libraries are available for all major programming languages including those commonly used in scientific computing <a href="#pbio.1001745-List1">[54]</a>–<a href="#pbio.1001745-Osherove1">[56]</a>.</p>
+<p id="IDQJM4N2C05OOXJ1BUVDF4FZ4RLHFRMDZ1NOUWZ2NIEEJIEACO243F">Tests check to see whether the code matches the researcher's expectations of its behavior, which depends on the researcher's understanding of the problem at hand <a href="#pbio.1001745-Hook1">[57]</a>–<a href="#pbio.1001745-Oberkampf1">[59]</a>. For example, in scientific computing, tests are often conducted by comparing output to simplified cases, experimental data, or the results of earlier programs that are trusted. Another approach for generating tests is to <b><i>turn bugs into test cases (5c)</i></b> by writing tests that trigger a bug that has been found in the code and (once fixed) will prevent the bug from reappearing unnoticed. In combination these kinds of testing can improve our confidence that scientific code is operating properly and that the results it produces are valid. An additional benefit of testing is that it encourages programmers to design and build code that is testable (i.e., self-contained functions and classes that can run more or less independently of one another). Code that is designed this way is also easier to understand and more reusable.</p>
+<p id="IDJ5YTFQNZTJ34OWIDQAXIWLBV5I3THGJCNCLQVBE35RFNFGREBTKN">No matter how good one's computational practice is, reasonably complex code will always initially contain bugs. Fixing bugs that have been identified is often easier if you <b><i>use a symbolic debugger (5d)</i></b> to track them down. A better name for this kind of tool would be “interactive program inspector” since a debugger allows users to pause a program at any line (or when some condition is true), inspect the values of variables, and walk up and down active function calls to figure out why things are behaving the way they are. Debuggers are usually more productive than adding and removing print statements or scrolling through hundreds of lines of log output <a href="#pbio.1001745-Zeller1">[60]</a>, because they allow the user to see exactly how the code is executing rather than just snapshots of state of the program at a few moments in time. In other words, the debugger allows the scientist to witness what is going wrong directly, rather than having to anticipate the error or infer the problem using indirect evidence.</p>
+</div>
+<div class="section"><a id="s7"><!-- named anchor --></a><h2 class="main-title">Optimize Software Only after It Works Correctly</h2>
+<p id="IDWSXGGBKPX4PONEMB4W5IR1ZK3OU0NVW2NI1QFRMZEAMSGYCCPSDH">Today's computers and software are so complex that even experts find it hard to predict which parts of any particular program will be performance bottlenecks <a href="#pbio.1001745-Jones1">[61]</a>. The most productive way to make code fast is therefore to make it work correctly, determine whether it's actually worth speeding it up, and—in those cases where it is—to <b><i>use a profiler to identify bottlenecks (6a)</i></b>.</p>
+<p id="IDJOQ43BCSZDQZL1IRWZ5GCQWGIJE5EWJGVDCRY0LYSEIOXC4QICUB">This strategy also has interesting implications for choice of programming language. Research has confirmed that most programmers write roughly the same number of lines of code per unit time regardless of the language they use <a href="#pbio.1001745-Prechelt1">[62]</a>. Since faster, lower level, languages require more lines of code to accomplish the same task, scientists are most productive when they <b><i>write code in the highest-level language possible (6b)</i></b>, and shift to low-level languages like C and Fortran only when they are sure the performance boost is needed. (Using higher-level languages also helps program comprehensibility, since such languages have, in a sense, “pre-chunked” the facts that programmers need to have in short-term memory.)</p>
+<p id="IDZBSZPBL0SH1WFHW1KECEWWBIVMU0CSJRKX5VWDOXD5X3AGIIS4OK">Taking this approach allows more code to be written (and tested) in the same amount of time. Even when it is known before coding begins that a low-level language will ultimately be necessary, rapid prototyping in a high-level language helps programmers make and evaluate design decisions quickly. Programmers can also use a high-level prototype as a test oracle for a high-performance low-level reimplementation, i.e., compare the output of the optimized (and usually more complex) program against the output from its unoptimized (but usually simpler) predecessor in order to check its correctness.</p>
+</div>
+<div class="section"><a id="s8"><!-- named anchor --></a><h2 class="main-title">Document Design and Purpose, Not Mechanics</h2>
+<p id="ID25VHHO4LWNHNPJYRFWRSE5ZJNG5ORFLNUNWHPHG0QX2HUWY3KGAO">In the same way that a well documented experimental protocol makes research methods easier to reproduce, good documentation helps people understand code. This makes the code more reusable and lowers maintenance costs <a href="#pbio.1001745-McConnell1">[47]</a>. As a result, code that is well documented makes it easier to transition when the graduate students and postdocs who have been writing code in a lab transition to the next career phase. Reference documentation and descriptions of design decisions are key for improving the understandability of code. However, inline documentation that recapitulates code is <i>not</i> useful. Therefore we recommend that scientific programmers <b><i>document interfaces and reasons, not implementations (7a)</i></b>. For example, a clear description like this at the beginning of a function that describes what it does and its inputs and outputs is useful:<div class="disp-formula panel"><a id="pbio.1001745.e002"><!-- named anchor --></a><img alt="info:doi/10.1371/journal.pbio.1001745.e002" src="info:doi/10.1371/journal.pbio.1001745.e002"></div>In contrast, the comment in the code fragment below does nothing to aid comprehension:<div class="disp-formula panel"><a id="pbio.1001745.e003"><!-- named anchor --></a><img alt="info:doi/10.1371/journal.pbio.1001745.e003" src="info:doi/10.1371/journal.pbio.1001745.e003"></div>If a substantial description of the implementation of a piece of software is needed, it is better to <b><i>refactor code in preference to explaining how it works (7b)</i></b>, i.e., rather than write a paragraph to explain a complex piece of code, reorganize the code itself so that it doesn't need such an explanation. This may not always be possible—some pieces of code are intrinsically difficult—but the onus should always be on the author to convince his or her peers of that.</p>
+<p id="ID0MIZ3VNGTFRFIY1LCW23OBTMHMPY2ODCUHFQBTJAM0XQDMELHSEL">The best way to create and maintain reference documentation is to <b><i>embed the documentation for a piece of software in that software (7c)</i></b>. Doing this increases the probability that when programmers change the code, they will update the documentation at the same time.</p>
+<p id="IDZ0LTTENN2YUKH0AICD5V2AFCAP2AYCEL1ZCIZRDV3KYLYUS3MWUN">Embedded documentation usually takes the form of specially-formatted and placed comments. Typically, a <i>documentation generator</i> such as Javadoc, Doxygen, or Sphinx extracts these comments and generates well-formatted web pages and other human-friendly documents (<a target="xrefwindow" href="http://en.wikipedia.org/wiki/Comparison_of_documentation_generators" id="ID14SB4KIUXFTPGDBKV24VSC11QE2W4I24IH3TN2SUIILYAFRJWLE">http://en.wikipedia.org/wiki/Comparison_of_documentation_generators</a>). Alternatively, code can be embedded in a larger document that includes information about what the code is doing (i.e., literate programming). Common approaches to this include this use of knitr <a href="#pbio.1001745-Xie1">[63]</a> and IPython Notebooks <a href="#pbio.1001745-Prez1">[64]</a>.</p>
+</div>
+<div class="section"><a id="s9"><!-- named anchor --></a><h2 class="main-title">Collaborate</h2>
+<p id="IDX0TCFGMQSH1YILJK41MVVWMYWIJYL2SMFVJFYYPS2TUSSZDFVXD">In the same way that having manuscripts reviewed by other scientists can reduce errors and make research easier to understand, reviews of source code can eliminate bugs and improve readability. A large body of research has shown that <i>code reviews</i> are the most cost-effective way of finding bugs in code <a href="#pbio.1001745-Fagan1">[65]</a>,<a href="#pbio.1001745-Cohen1">[66]</a>. They are also a good way to spread knowledge and good practices around a team. In projects with shifting membership, such as most academic labs, code reviews help ensure that critical knowledge isn't lost when a student or postdoc leaves the lab.</p>
+<p id="IDNZEVBRRTO2XTETPVPMHS5DJEHIYNBSIVAHGK2KMRX4WOYP4ORIGK">Code can be reviewed either before or after it has been committed to a shared version control repository. Experience shows that if reviews don't have to be done in order to get code into the repository, they will soon not be done at all <a href="#pbio.1001745-Fogel1">[27]</a>. We therefore recommend that projects <b><i>use pre-merge code reviews (8a)</i></b>.</p>
+<p id="ID5D3VSN0S5BHOONLJEBPL52QITBJF1R5Q4PEA4CBNLGYT33JFGI0G">An extreme form of code review is <i>pair programming</i>, in which two developers sit together while writing code. One (the driver) actually writes the code; the other (the navigator) provides real-time feedback and is free to track larger issues of design and consistency. Several studies have found that pair programming improves productivity <a href="#pbio.1001745-Williams1">[67]</a>, but many programmers find it intrusive. We therefore recommend that teams <b><i>use pair programming when bringing someone new up to speed and when tackling particularly tricky problems (8b)</i></b>.</p>
+<p id="IDCEKAUAG4VPA1LQ5RNWTZS4MT2ND2LKR0DQEUKVNDFDBTEMNBW0TI">Once a team grows beyond a certain size, it becomes difficult to keep track of what needs to be reviewed, or of who's doing what. Teams can avoid a lot of duplicated effort and dropped balls if they <b><i>use an issue tracking tool (8c)</i></b> to maintain a list of tasks to be performed and bugs to be fixed <a href="#pbio.1001745-Dubois3">[68]</a>. This helps avoid duplicated work and makes it easier for tasks to be transferred to different people. Free repository hosting services like GitHub include issue tracking tools, and many good standalone tools exist as well, such as Trac (<a target="xrefwindow" href="http://trac.edgewall.org" id="ID25LY2GZAQIKJMUHAMQXAPQBVULULL5QABQUJ3MIAHX2F5B0DGBDB">http://trac.edgewall.org</a>).</p>
+</div>
+<div class="section"><a id="s10"><!-- named anchor --></a><h2 class="main-title">Conclusion</h2>
+<p id="ID1GKW2GNPMDGLKPWA2TGX53NWLHHS1I02AGH00BMUC5FWNJJ3QIFP">We have outlined a series of recommended best practices for scientific computing based on extensive research, as well as our collective experience. These practices can be applied to individual work as readily as group work; separately and together, they improve the productivity of scientific programming and the reliability of the resulting code, and therefore the speed with which we produce results and our confidence in them. They are also, we believe, prerequisites for reproducible computational research: if software is not version controlled, readable, and tested, the chances of its authors (much less anyone else) being able to re-create results are remote.</p>
+<p id="IDPDJME2CN15SKMEGZJKFN4MHYY4ZXWZHIAFFLLF0BMZUZFCVISMI">Our 24 recommendations are a beginning, not an end. Individuals and groups who have incorporated them into their work will find links to more advanced practices at Software Carpentry (<a target="xrefwindow" href="http://software-carpentry.org" id="IDZ5OFX1JOU3OQ2MKLDVQQD4YHEWI5RPMMZSQG5P2HZIKTEURZ0">http://software-carpentry.org</a>).</p>
+<p id="ID3KRH5FBC1AWRQSEOEQTJZBUYGQYI2BDILESB2KA5QDW2KEFH5VJ">Research suggests that the time cost of implementing these kinds of tools and approaches in scientific computing is almost immediately offset by the gains in productivity of the programmers involved <a href="#pbio.1001745-Aranda1">[17]</a>. Even so, the recommendations described above may seem intimidating to implement. Fortunately, the different practices reinforce and support one another, so the effort required is less than the sum of adding each component separately. Nevertheless, we do not recommend that research groups attempt to implement all of these recommendations at once, but instead suggest that these tools be introduced incrementally over a period of time.</p>
+<p id="IDCO12R5YGTZUUNEQQEOIVRAUH2P541P1DHGVQJIPI55P3BH5FWAOD">How to implement the recommended practices can be learned from many excellent tutorials available online or through workshops and classes organized by groups like Software Carpentry. This type of training has proven effective at driving adoption of these tools in scientific settings <a href="#pbio.1001745-Aranda1">[17]</a>,<a href="#pbio.1001745-Wilson2">[69]</a>.</p>
+<p id="IDVN24KF5JJSMSNV1DUBA1AD5TWOGYIXUWVY35RHLUUPV3TQBF5FTK">For computing to achieve the level of rigor that is expected throughout other parts of science, it is necessary for scientists to begin to adopt the tools and approaches that are known to improve both the quality of software and the efficiency with which it is produced. To facilitate this adoption, universities and funding agencies need to support the training of scientists in the use of these tools and the investment of time and money in building better scientific software. Investment in these approaches by both individuals and institutions will improve our confidence in the results of computational science and will allow us to make more rapid progress on important scientific questions than would otherwise be possible.</p>
+</div>
+</div>
+<div id="article-back" class="back">
+<div class="back-section"><a id="ID0CLMTNUAHXVICE22UN5025OOWL113EJMNTIMVGDZAM12OR2CMKKP"><!-- named anchor --></a><h2 class="main-title">Acknowledgements</h2>
+<p class="first" id="IDOOTESFHUWTJCJMH213HLNP0AHHY1JYUHXNCRZ2CFG0OJSQRUF41O">We are grateful to Joel Adamson, Aron Ahmadia, Roscoe Bartlett, Erik Bray, Stephen Crouch, Michael Jackson, Justin Kitzes, Adam Obeng, Karthik Ram, Yoav Ram, and Tracy Teal for feedback on this paper.</p>
+</div>
+<div class="back-section"><a id="IDZ1JYPNNVAS4AHHF0PYBUVBOCJM0OVRHW5FIZYFPCBJIEIKGRIJHE"><!-- named anchor --></a><div class="section ref-list"><a id="IDZ1JYPNNVAS4AHHF0PYBUVBOCJM0OVRHW5FIZYFPCBJIEIKGRIJHE"><!-- named anchor --></a><h2 class="main-title">References</h2><div class="ref-list table"><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">1</span> <a id="pbio.1001745-Hannay1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID5NDNPGVY2WFOL123R3D2HE1XENS25RO1XBJ1PHJJRRE2EHO2IHTC"><!-- named anchor --></a>Hannay JE, Langtangen HP, MacLeod C, Pfahl D, Singer J, et al.. (2009) How do scientists develop and use scientific software? In: Proceedings Second International Workshop on Software Engineering for Computational Science and Engineering. pp. 1–8. doi:10.1109/SECSE.2009.5069155.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">2</span> <a id="pbio.1001745-Prabhu1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDRCXZJQ51IBQIPYSKULP5PPK3EMIRJ0B5URKEK3E5C0BCS5SQB5FL"><!-- named anchor --></a>Prabhu P, Jablin TB, Raman A, Zhang Y, Huang J, et al.. (2011) A survey of the practice of computational science. In: Proceedings 24th ACM/IEEE Conference on High Performance Computing, Networking, Storage and Analysis. pp. 19:1–19:12. doi:10.1145/2063348.2063374.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">3</span> <a id="pbio.1001745-Vardi1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDQIRX0LKAEWK5CFFX3E1EFW33FKKPO1INCDFSHDGEAUXI4SPVQM3M"><!-- named anchor --></a>M Vardi (2010) Science has only two legs. Communications of the ACM 53: 5.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">4</span> <a id="pbio.1001745-Hatton1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID2GW1U0AQRZBHN2AY2PH11LLN5BLZQHKG2CPEBKOP2M1UW0VTCBRL"><!-- named anchor --></a>L Hatton, A Roberts (1994) How accurate is scientific software? IEEE T Software Eng 20: 785–797.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">5</span> <a id="pbio.1001745-Hatton2"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID1QOR2PZ3QS5GMORR3FZXRFIJNPV2DXJZ4W12GP5ORUGWFIPKGK"><!-- named anchor --></a>L Hatton (1997) The T experiments: errors in scientific software. Computational Science &amp; Engineering 4: 27–38.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">6</span> <a id="pbio.1001745-Merali1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDP1PPSYTOBFHVMZZWB5L0WDHCLLGX12NYU05WLGDPOMMII0SX51F"><!-- named anchor --></a>Z Merali (2010) Error: why scientific programming does not compute. Nature 467: 775–777.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">7</span> <a id="pbio.1001745-Chang1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID2D0TQ52AQG0AKBGIQB04ZPELIKV3KI5GDOS25JGK0K2DPW0FZYRD"><!-- named anchor --></a>G Chang, CB Roth, CL Reyes, O Pornillos, YJ Chen, et al. (2006) Retraction. Science 314: 1875.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">8</span> <a id="pbio.1001745-Ferrari1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID12AIOCHABDYKPCORKEPO5DD3NP1DZ0GVIY2J0TPC4TLQPCZAAP0M"><!-- named anchor --></a>F Ferrari, YL Jung, PV Kharchenko, A Plachetka, AA Alekseyenko, et al. (2013) Comment on “Drosophila dosage compensation involves enhanced Pol II recruitment to male X-Linked promoters”. Science 340: 273.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">9</span> <a id="pbio.1001745-Ma1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDHQ31HDD4U2NKIW55TI0PI2R00I3UNF5NZAXXRVXXL2I4J42RRSD"><!-- named anchor --></a>C Ma, G Chang (2007) Retraction for Ma and Chang, structure of the multidrug resistance efflux transporter EmrE from <i>Escherichia coli</i>. Proc Natl Acad Sci U S A 104: 3668.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">10</span> <a id="pbio.1001745-Chang2"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDCKPJKTKISU14GETDYGH4RVNOPENVMTUQAT11NRCOXJ13JU1ZH4KP"><!-- named anchor --></a>G Chang (2007) Retraction of ‘Structure of MsbA from Vibrio cholera: A Multidrug Resistance ABC Transporter Homolog in a Closed Conformation’ [J. Mol. Biol. (2003) 330 419430]. Journal of Molecular Biology 369: 596.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">11</span> <a id="pbio.1001745-Lees1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDIWZBRJ1EW0SOE0LLMP3PZVYCCBV2ZW5XMJJQC4LYD1WJBEJ3FMME"><!-- named anchor --></a>DC Lees, RK Colwell (2007) A strong Madagascan rainforest MDE and no equatorward increase in species richness: re-analysis of ‘The Missing Madagascan Mid-Domain Effect’, by Kerr JT, Perring M, Currie DJ (Ecol Lett 9:149159, 2006). Ecol Lett 10: E4–E8.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">12</span> <a id="pbio.1001745-Currie1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDRC5KQ3V3SGVVPGVLQDY5KDKEBJP3HYQRJOAB2RKBKSQPYPOMQ5N"><!-- named anchor --></a>D Currie, J Kerr (2007) Testing, as opposed to supporting, the mid-domain hypothesis: a response to lees and colwell. Ecol Lett 10: E9–E10.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">13</span> <a id="pbio.1001745-Kelt1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID1DU3OOC51RBUCTA3H5T0CHLYZF55CMAXNNP432OWIA3JQ4X0NOJE"><!-- named anchor --></a>DA Kelt, JA Wilson, ES Konno, JD Braswell, D Deutschman (2008) Differential responses of two species of kangaroo rat (Dipodomys) to heavy rains: a humbling reappraisal. J Mammal 89: 252–254.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">14</span> <a id="pbio.1001745-Anon1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDQHSBZHHGY0FUDWIWYY3YJWOMHNHSXMGWQD2OJ44MEMU0RH1R5RL"><!-- named anchor --></a>Anon (2013) Retraction notice to “Plasma PCSK9 levels and clinical outcomes in the TNT (Treating to New Targets) Trial” [J Am Coll Cardiol 2012;59:17781784]. J Am Coll Cardiol 61: 1751.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">15</span> <a id="pbio.1001745-1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDKUV5VGPXRS0ZOJHDUIBWX2FEQNF0WO0MKKEAGHIVSP5GGY4T1ONB"><!-- named anchor --></a>Hypertension 60: e29. Retraction. Implications of new hypertension guidelines in the United States. Retraction of Bertoia ML, Waring ME, Gupta PS, Roberts MB, Eaton CB. Hypertension (2011) 58: 361–366.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">16</span> <a id="pbio.1001745-Herndon1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDYAWKIN22BA0PJQBMSP3R4XWIJFWGMQD3QVOLPZBMEJK4FPOZP3TB"><!-- named anchor --></a>Herndon T, Ash M, Pollin R (2013). Does high public debt consistently stifle economic growth? A critique of Reinhart and Rogoff. Working paper, Political Economy Research Institute. Available: <a target="xrefwindow" href="http://www.peri.umass.edu/fileadmin/pdf/working" id="IDZMTMZAIIDIVWKZZBQTCI324SYCHGYGLWCW0SZPNDEHNKAR1YSB4K">http://www.peri.umass.edu/fileadmin/pdf/working</a> papers/working papers 301-350/WP322.pdf.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">17</span> <a id="pbio.1001745-Aranda1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID1ANTLFISTFU1GMQKWNE5EVJOANOER5JEZQPYZ2G1IGSM4N523OG"><!-- named anchor --></a>Aranda J (2012). Software carpentry assessment report. Available: <a target="xrefwindow" href="http://software-carpentry.org/papers/arandaassessment-2012-07.pdf" id="IDE5VU3ZQBSWHIMQLMQXZ4ADUTHJY3X10BAUMG4OGH43RQAZNP0BYB">http://software-carpentry.org/papers/arandaassessment-2012-07.pdf</a>.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">18</span> <a id="pbio.1001745-Wilson1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDQGK2PMXE5PC4FXR0JYLRNBRMXD4GB0I5Y0HMLAPJFPB2C40HJDAP"><!-- named anchor --></a>G Wilson (2006) Software carpentry: getting scientists to write better code by making them more productive. Comput Sci Eng 66–69.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">19</span> <a id="pbio.1001745-Heroux1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDUELZQWXWLENDFP3HGMG0W0DDSPRCOXGSS0XWAZIBXRHAAUXNOLVG"><!-- named anchor --></a>Heroux MA, Willenbring JM (2009) Barely-sufficient software engineering: 10 practices to improve your CSE software. In: Proceedings Second International Workshop on Software Engineering for Computational Science and Engineering. pp. 15–21. 10.1109/SECSE.2009.5069157.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">20</span> <a id="pbio.1001745-Kane1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDNJLAME3OIUDBHZRJ5HXO5YQ5VOYBLPV5AGI3A0IDCB2LFF34G2MP"><!-- named anchor --></a>Kane D (2003) Introducing agile development into bioinformatics: an experience report. In: Proceedings of the Conference on Agile Development, IEEE Computer Society, Washington (D.C.); 2003, 0-7695-2013-8, pp. 132–139, 10.1109/ADC.2003.1231463.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">21</span> <a id="pbio.1001745-Kane2"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDGUGHCALVQUPGM35CPW5MMLHI1CG0SKKY0DB2FOCVBOWJIDBAQYZJ"><!-- named anchor --></a>D Kane, M Hohman, E Cerami, M McCormick, K Kuhlmman, et al. (2006) Agile methods in biomedical software development: a multi-site experience report. BMC Bioinformatics 7: 273.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">22</span> <a id="pbio.1001745-Killcoyne1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID0LJQ2OXSNYETFHROL5Y3WDORJHAGP43T0REDCVCKPDCMDDYG0DFF"><!-- named anchor --></a>S Killcoyne, J Boyle (2009) Managing chaos: lessons learned developing software in the life sciences. Comput Sci Eng 11: 20–29.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">23</span> <a id="pbio.1001745-Matthews1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDKSAPSV2UH5JRHR5NPKKWKSKQFOZYRYVBXBRL3QO4SAFVAOXNEOGE"><!-- named anchor --></a>D Matthews, G Wilson, S Easterbrook (2008) Configuration management for large-scale scientific computing at the UK Met office. Comput Sci Eng 56–64.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">24</span> <a id="pbio.1001745-PittFrancis1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDWUUMQCMDTHOMJUQSAE5STAFCWD2CPXBJ4WOKB1KSRYUXXYGZMF3"><!-- named anchor --></a>J Pitt-Francis, MO Bernabeu, J Cooper, A Garny, L Momtahan, et al. (2008) Chaste: using agile programming techniques to develop computational biology software. Philos Trans A Math Phys Eng Sci 366: 3111–3136.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">25</span> <a id="pbio.1001745-Pouillon1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDS1GSZ0V52YXKIULFGX4YNIWT2PC4QCAOCZPVYRHABHR1F5J14WEO"><!-- named anchor --></a>Y Pouillon, JM Beuken, T Deutsch, M Torrent, X Gonze (2011) Organizing software growth and distributed development: the case of abinit. Comput Sci Eng 13: 62–69.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">26</span> <a id="pbio.1001745-Spolsky1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDG1TIGEEPG5WBKTXRBCKCVFS0JOFVJXUC4ZFCSJDAWEHH0KCIGZSF"><!-- named anchor --></a>Spolsky J (2000). The Joel test: 12 steps to better code. Available: <a target="xrefwindow" href="http://www.joelonsoftware.com/articles/fog0000000043.html" id="ID1UBCM5LU5NL0NOILWPJXUY51DP5QWHNW4PCIEWCIPV43UMF2SDOJ">http://www.joelonsoftware.com/articles/fog0000000043.html</a>. Accessed September 2013.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">27</span> <a id="pbio.1001745-Fogel1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDNMUL1M3X5BNYKRLSH5UKU2G4QGC5MJST43Q03QPF3WW4IXTCC3PI"><!-- named anchor --></a>Fogel K (2005) Producing open source software: how to run a successful free software project. Sepastopol (California): O'Reilly. Available: <a target="xrefwindow" href="http://producingoss.com" id="IDVWBACLFFPKPANRY00BG3VV53WGXA0TGHNNPVI0M4R03AUNIY3RLM">http://producingoss.com</a>.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">28</span> <a id="pbio.1001745-Carver1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDHQVFY3BDL1DAFCMQVVBSBY4TQNYTXG535L32X1NDGA4EM31S2BLP"><!-- named anchor --></a>Carver JC, Kendall RP, Squires SE, Post DE (2007) Software development environments for scientific and engineering software: a series of case studies. In: Proceedings 29th International Conference on Software Engineering. pp. 550–559. 10.1109/ICSE.2007.77.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">29</span> <a id="pbio.1001745-Kelly1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDGG4SH4NQXGOMP43OJ05C0MZQ2AKYY3UAJS1IDN3XZOWPTL2LTYB"><!-- named anchor --></a>D Kelly, D Hook, R Sanders (2009) Five recommended practices for computational scientists who write software. Comput Sci Eng 11: 48–53.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">30</span> <a id="pbio.1001745-Segal1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDTHC5HDFWAVZSMKLBCWZMDD3OALPNM1UIIMRY0SDK4EZRUEH0JH3B"><!-- named anchor --></a>J Segal (2005) When software engineers met research scientists: a case study. Empir Softw Eng 10: 517–536.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">31</span> <a id="pbio.1001745-Segal2"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDZAVYHLG4BFOTHAEXQNQP3YH1AHZT4SQ2Y5KUGHIP3MRTPJV3UIWD"><!-- named anchor --></a>Segal J (2008) Models of scientific software development. In: Proceedings First International Workshop on Software Engineering for Computational Science and Engineering. Available: <a target="xrefwindow" href="http://secse08.cs.ua.edu/Papers/Segal.pdf" id="ID4C5UJQKSX4LMPPRAVRFLJB0S5KAQDV2USO2WOMCJBPXFGC4YHS0H">http://secse08.cs.ua.edu/Papers/Segal.pdf</a>.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">32</span> <a id="pbio.1001745-Oram1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDHRSIZLYQVA20GHKY13XEVDK0DK0EXE4JY04R3RG1B0X2CSLJK1VB"><!-- named anchor --></a>Oram A, Wilson G, editors(2010) Making software: what really works, and why we believe it. Sepastopol (California): O'Reilly.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">33</span> <a id="pbio.1001745-Baddeley1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDSGCTRZ12I1EDGMQJXREYHDNW2NKCUV0AMRJHN5GCKMT5JZPVAV1I"><!-- named anchor --></a>Baddeley A, Eysenck MW, Anderson MC (2009) Memory. New York: Psychology Press.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">34</span> <a id="pbio.1001745-Hock1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDSTFUGRG0W2GWZ0YEZVGS00WXNDY0TBITPSA4LLHGVZO0SXCL1FP"><!-- named anchor --></a>Hock RR (2008) Forty studies that changed psychology: explorations into the history of psychological research, 6th edition. Upper Saddle River (New Jersey): Prentice Hall.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">35</span> <a id="pbio.1001745-Letovsky1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDV0D5OO1NJ4XOOTZ1EFOPDAVUTCXEXIMRHHIW3YEY15LHRN5FOCUN"><!-- named anchor --></a>Letovsky S (1986) Cognitive processes in program comprehension. In: Proceedings First Workshop on Empirical Studies of Programmers. pp. 58–79. 10.1016/0164-1212(87)90032-X.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">36</span> <a id="pbio.1001745-Binkley1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID1O4CTCLEQH4ZIULVD5MBBZE15MMGSSOMKDYUHGIXMMXTI3XTWHDC"><!-- named anchor --></a>Binkley D, Davis M, Lawrie D, Morrell C (2009) To CamelCase or under_score. In: Proceedings 2009 IEEE International Conference on Program Comprehension. pp. 158–167. 10.1109/ICPC.2009.5090039.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">37</span> <a id="pbio.1001745-Robinson1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDWACBSOX0UKSYCPTUI2TPXQCGIPTJN5JK12QPE5G2GFNEM3KUB2IL"><!-- named anchor --></a>Robinson E (2005) Why crunch mode doesn't work: six lessons. Available: <a target="xrefwindow" href="http://www.igda.org/why-crunch-modes-doesnt-work-six-lessons" id="IDQRRAA0KSUDSFJAGR5NQQQJ4U5FUICH0UHT0G2ZEON2QW40GDPCXD">http://www.igda.org/why-crunch-modes-doesnt-work-six-lessons</a>. Accessed: September 2013.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">38</span> <a id="pbio.1001745-Ray1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID4Y4NNPXYOZXYGHH1QDZ3BEDOFMZJVMQMV3SOHPL5UIDDFR4EK0L"><!-- named anchor --></a>Ray DS, Ray EJ (2009) Unix and Linux: visual quickstart guide. 4th edition. San Francisco: Peachpit Press.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">39</span> <a id="pbio.1001745-Haddock1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDSBOM41ERMXF5IJDFFYBXOYFD5DX1QP5IIEIILBHTGRN1WBQXIFIO"><!-- named anchor --></a>Haddock S, Dunn C (2010) Practical computing for biologists. Sunderland (Massachusetts): Sinauer Associates.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">40</span> <a id="pbio.1001745-Dubois1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDZHN1JUYOS1IDEZRNQMBMLGUHCI01DGIBKLDCP5LDDNWJHUMJUGUP"><!-- named anchor --></a>PF Dubois, T Epperly, G Kumfert (2003) Why Johnny can't build (portable scientific software). Comput Sci Eng 5: 83–88.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">41</span> <a id="pbio.1001745-Smith1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID1F1BDXSX4LDBB2WW05BBXXWXWE0RMQOZKQJRHIIT53431UTX104P"><!-- named anchor --></a>Smith P (2011) Software build systems: principles and experience. Boston: Addison-Wesley.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">42</span> <a id="pbio.1001745-Fomel1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDGL4FPY2FSEQUELETA2YR1QN103YVDJLTSG4YQIKA4BTLEAEKQVC"><!-- named anchor --></a>Fomel S, Hennenfent G (2007) Reproducible computational experiments using SCons. In: Proceedings 32nd International Conference on Acoustics, Speech, and Signal Processing. volume IV, pp. 1257–1260. 10.1109/ICASSP.2007.367305.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">43</span> <a id="pbio.1001745-Moreau1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDQ4ODUQCRQRQNLIXIZF5TQZ0YXOCX2KVV0HVLXVPQ3OQTC4RRJW0J"><!-- named anchor --></a>Moreau L, Freire J, Futrelle J, McGrath RE, Myers J, et al.. (2007) The open provenance model (v1.00). Technical report, University of Southampton. Accessed September 2013.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">44</span> <a id="pbio.1001745-Segal3"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDVKH3QCI2IH2NKGVD1A3SMT4HQIESV0NPOE5EGLG1M3AZ0OYPZM4B"><!-- named anchor --></a>J Segal, C Morris (2008) Developing scientific software. IEEE Software 25: 18–20.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">45</span> <a id="pbio.1001745-Martin1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDPDQTTMSFJ1ZCMI5XIQ11PAYCFI2UV00EHVEHHVID3SHEOXG3AG4H"><!-- named anchor --></a>Martin RC (2002) Agile software development, principles, patterns, and practices. Upper Saddle River (New Jersey): Prentice Hall.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">46</span> <a id="pbio.1001745-Kniberg1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID0M30ZIJBUMZODTPRFVQ4JUNZ3NRAGVAQBUPC0ZFNSQP3HTIEK4P"><!-- named anchor --></a>Kniberg H (2007) Scrum and XP from the trenches. C4Media, 978-1-4303-2264-1, Available from <a target="xrefwindow" href="http://www.infoq.com/minibooks/scrum-xp-from-the-trenches" id="IDVTVK3WAMCB3IGX4BZQIUIA2STMWYRBX25KPXSQPFIB1T5L23JGGE">http://www.infoq.com/minibooks/scrum-xp-from-the-trenches</a>.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">47</span> <a id="pbio.1001745-McConnell1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDGCVRZIZC5SLIE53FDKV2ANIDFCT3W30RMZ0BDCNMLR0MNA0M00EO"><!-- named anchor --></a>McConnell S (2004) Code complete: a practical handbook of software construction, 2nd edition. Seattle: Microsoft Press.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">48</span> <a id="pbio.1001745-Noble1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDCRFMMPNA4DIKCA00TDK2E42UGLFR2RPASEEQMYDYCF3RK4EXHQJP"><!-- named anchor --></a>WS Noble (2009) A quick guide to organizing computational biology projects. PLoS Comput Biol 5: e1000424 doi:<a target="xrefwindow" href="http://dx.doi.org/10.1371/journal.pcbi.1000424" id="ID2HKMBUU4PSRDD0LAX4FL003BQIVUEILFY4H3LJJHNT2N4JG51EZ">10.1371/journal.pcbi.1000424</a></p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">49</span> <a id="pbio.1001745-Hunt1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID5Y0H11K3FFSCG00DAURAZXCP2MLTKMYZA1WQS2HXSCQI4OHSABYM"><!-- named anchor --></a>Hunt A, Thomas D (1999) The pragmatic programmer: from journeyman to master. Boston: Addison-Wesley.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">50</span> <a id="pbio.1001745-Juergens1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDYJ2PGVDQTFRYHFGLGS5IZSJLVGJTJSCBDT1SBZIALMJRIAPUVZZP"><!-- named anchor --></a>Juergens E, Deissenboeck F, Hummel B, Wagner S (2009) Do code clones matter? In: Proceedings 31st International Conference on Software Engineering. pp. 485–495. 10.1109/ICSE.2009.5070547.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">51</span> <a id="pbio.1001745-Grubb1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDGQPRJTO3GI3BHFS3XR1QFM0WWIJGMSQZ4SPH3YIAJMLR5DQND1LI"><!-- named anchor --></a>Grubb P, Takang AA (2003) Software maintenance: concepts and practice, 2nd edition. Singapore: World Scientific.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">52</span> <a id="pbio.1001745-Dubois2"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDAXQT0CMWQNHOBB0SQ5O2L20DACT3R0QOHFEA3TK2OR4FLWJQZAME"><!-- named anchor --></a>PF Dubois (2005) Maintaining correctness in scientific programs. Comput Sci Eng 7: 80–85.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">53</span> <a id="pbio.1001745-Sanders1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDU1UTKG2YKZ0DI0O1GDTRD5DT4FZC1M1XJX421HKDCKREHUZDVJIJ"><!-- named anchor --></a>R Sanders, D Kelly (2008) Dealing with risk in scientific software development. IEEE Software 25: 21–28.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">54</span> <a id="pbio.1001745-List1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDZP2ECLOUFHOOOCAAU4J4BECCFKKF2AAHTL3IDPGVZZINAODHZYKL"><!-- named anchor --></a>List of unit testing frameworks. Available: <a target="xrefwindow" href="http://en.wikipedia.org/wiki/List" id="IDTBZSBDZ1MVZWLPLCOLATL2KBYL0FIROFCH14HVIWTQSOPC0TPWKH">http://en.wikipedia.org/wiki/List</a> of unit testing frameworks. Accessed September 2013.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">55</span> <a id="pbio.1001745-Meszaros1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDCNCGHK4JVIBJMKVGCAFVIIDFGOT0WXU4CZ4QTOCZPIVGXA2RTLOM"><!-- named anchor --></a>Meszaros G (2007) xUnit test patterns: refactoring test code. Boston: Addison-Wesley.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">56</span> <a id="pbio.1001745-Osherove1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDXU5Y04YPLWXYNTHJUPZYCJGFTDTQWT1O4FB4IUG3MM0JPV5Z0YRH"><!-- named anchor --></a>Osherove R (2009) The art of unit testing: with examples in.NET. Greenwich (Connecticut): Manning.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">57</span> <a id="pbio.1001745-Hook1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDQ3IMHXLITKDKDHXKZ4XUXO1QSDA5LUFENEAL3SFF5CIWGZKUVN5"><!-- named anchor --></a>Hook D, Kelly D (2009) Testing for trustworthiness in scientific software. In: Proceedings Second International Workshop on Software Engineering for Computational Science and Engineering. pp. 59–64. 10.1109/SECSE.2009.5069163.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">58</span> <a id="pbio.1001745-Kelly2"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID1SRAVZVNH5QNFTG0NDZOTHQ11F5KVTHBB3ILRPNIO2LJFOJIWUN"><!-- named anchor --></a>Kelly D, Sanders R (2008) Assessing the quality of scientific software. In: Proceedings First International Workshop on Software Engineering for Computational Science and Engineering. Available: <a target="xrefwindow" href="http://secse08.cs.ua.edu/Papers/Kelly.pdf" id="IDNEJAITIKVQZPMRINR5MBAJGJGJ21KXX1CIAAMIHPZMDHP2Q5X4CN">http://secse08.cs.ua.edu/Papers/Kelly.pdf</a>.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">59</span> <a id="pbio.1001745-Oberkampf1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="ID3HMB4CHK5I0NFLIOC1OC3EV0UHWBK12GFMWBMJBS0RQAE0CW3QMP"><!-- named anchor --></a>Oberkampf WL, Roy CJ (2010) Verification and validation in scientific computing. Cambridge: Cambridge University Press.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">60</span> <a id="pbio.1001745-Zeller1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDJZIS15MQLQSFDSACOK4B1NTSEPKLSAGFAXDIBJPULWTQ1BGAGDDP"><!-- named anchor --></a>Zeller A (2009) Why programs fail: a guide to systematic debugging. Burlington (Massachusetts): Morgan Kaufmann.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">61</span> <a id="pbio.1001745-Jones1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDS5VWLRFAGTAMI2NJB02OQEVJXJKCQNLI1EX52MMMI5KMPLLOANCM"><!-- named anchor --></a>Jones MB, Regehr J (1999) The problems you're having may not be the problems you think you're having: results from a latency study of Windows NT. In: Proceedings 7th Workshop on Hot Topics in Operating Systems. pp. 96–101. 10.1109/RTTAS.1999.777681.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">62</span> <a id="pbio.1001745-Prechelt1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDWJWDEU0NIDTDBNMZRBMGDJHUTKHE2HS4QFSOYBK5QBODX2YKIK3M"><!-- named anchor --></a>Prechelt L (2010) Two comparisons of programming languages. Oram A, Wilson G, editors. Making software: what really works, and why we believe it. Sepastopol (California): O'Reilly. pp. 239–258.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">63</span> <a id="pbio.1001745-Xie1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDGC4BNFIIGEF1ZVKXB5ZXXLZPKAZ0A2DFOGGOXGTBY012NZSKMYB"><!-- named anchor --></a>Xie Y (2013). knitr: A general-purpose tool for dynamic report generation in r. R package version 0.9. Available: <a target="xrefwindow" href="http://yihui.name/knitr/" id="IDFXKDBOHWEXQFFT2SYUQRPXXLAOAJ4TF3FVZU5EJAWTXFRA0GDOJO">http://yihui.name/knitr/</a>.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">64</span> <a id="pbio.1001745-Prez1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDB3TJ3ZR2MUNCBPC1EU4V0PI40JX1SUKO2X1FSXHZCLLYZNXELCMG"><!-- named anchor --></a>F Pérez, BE Granger (2007) IPython: a system for interactive scientific computing. Comput Sci Eng 9: 21–29.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">65</span> <a id="pbio.1001745-Fagan1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDQMGHWJ4FPZZVO5O5GQ5RPZXCDFVMJHFQUOJCYPE35N4XMHIQRQED"><!-- named anchor --></a>ME Fagan (1976) Design and code inspections to reduce errors in program development. IBM Syst J 15: 182–211.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">66</span> <a id="pbio.1001745-Cohen1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDEMWQ0CJDLCABGUA5DN44OIBQGJORXDBWJPX33CHX1022OBRYCDSI"><!-- named anchor --></a>Cohen J (2010) Modern code review. Oram A, Wilson G, editors. Making software: what really works, and why we believe it. Sepastopol (California): O'Reilly. pp. 329–336.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">67</span> <a id="pbio.1001745-Williams1"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDLV2EY0MH30URPCLGMOKMNTHFAN1QQQ0SVRFKH2MSMCI054QDCRTI"><!-- named anchor --></a>Williams L (2010) Pair programming. Oram A, Wilson G, editors. Making software: what really works, and why we believe it. Sepastopol (California): O'Reilly. pp. 311–322.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">68</span> <a id="pbio.1001745-Dubois3"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDIXX4CP43D32PNJRHLSCBVJEO4DA4AN4RFZNYGBL43VVCE40IESC"><!-- named anchor --></a>P Dubois, J Johnson (2003) Issue tracking. Comput Sci Eng 5: 71–77.</p></div></div><div class="row"><div class="ref-label cell"><p class="ref-label"><span class="label">69</span> <a id="pbio.1001745-Wilson2"><!-- named anchor --></a></p></div><div class="ref-content cell"><p class="citation"><a id="IDDMQCCADDHHAWO1O2AWZV0AHWIFSDM0AW45U2OXFKCN0GQYT4UBHN"><!-- named anchor --></a>Wilson G (2013). Software carpentry: lessons learned. arXiv:1307.5448. Available: <a target="xrefwindow" href="http://arxiv.org/abs/1307.5448" id="IDFMHEU1OSAAMHEM2H4ZTCF2AJHM0U0VGY0F43HEF245MD4SXYBOIJ">http://arxiv.org/abs/1307.5448</a>.</p></div></div></div></div>
+</div>
+</div>
+<div id="article-footer" class="footer">
+<hr class="part-rule">
+<div class="metadata">
+<h4 class="generated">Article Information (continued)</h4>
+<div class="metadata-group">
+<div class="metadata-area">
+<p class="metadata-entry"><span class="generated">Categories: </span></p>
+<div class="metadata-chunk">
+<p class="metadata-entry"><span class="generated">Subject: </span>Community Page</p>
+</div>
+</div>
+<div class="metadata-area">
+<p class="metadata-entry"><span class="generated">Counts: </span></p>
+<div class="metadata-chunk">
+<p class="metadata-entry"><span class="generated">Pages: </span>7</p>
+</div>
+</div>
+</div>
+</div>
+<hr class="part-rule">
+<div class="branding">
+<p>This display is generated from NISO JATS XML with <b>jats-html.xsl</b>. The XSLT engine is Microsoft.</p>
+</div>
+</div>
+</body>
+</html>
