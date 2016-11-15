@@ -14,6 +14,7 @@ class Htmlanno{
     // a.appendTo($("#svg-screen"));
     // a.point({top:200, left:300});
 
+    this.setupHtml();
     this.highlighter = new Highlighter();
     this.handleResize();
     this.wrapGlobalEvents();
@@ -33,6 +34,38 @@ class Htmlanno{
     globalEvent.on(this, "arrowannotationconnect", (data)=>{
       arrowAnnoId += 1;
     });
+  }
+
+  setupHtml(){
+    const html = `
+      <div id=htmlanno-anotation>
+      <link rel="stylesheet" href="index.css">
+      <svg id="htmlanno-svg-screen"
+      visibility="hidden"
+      baseProfile="full"
+      pointer-events="visible"
+      width="100%"
+      height="100%">
+      <defs>
+      <marker id="htmlanno-arrow-head"
+      class="htmlanno-arrow-head"
+      visibility="visible"
+      refX="6"
+      refY="3"
+      fill="red"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto"
+      markerUnits="strokeWidth">
+      <polyline
+      points="0,0 6,3 0,6 0.2,3" />
+      </marker>
+      </defs>
+      </svg>
+      <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;">dddd</span>
+      </div>
+      `;
+    document.body.appendChild($(html).get(0));
   }
 
   wrapGlobalEvents(){
@@ -73,7 +106,7 @@ class Htmlanno{
   }
 
   handleResize(){
-    $('#svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
+    $('#htmlanno-svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
   }
 
   handleKeydown(e){

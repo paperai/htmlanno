@@ -15,7 +15,7 @@ class ArrowAnnotation{
     this.label = null;
 
     this.arrow = new Arrow(id, startingCircle.positionCenter());
-    this.arrow.appendTo($("#svg-screen"));
+    this.arrow.appendTo($("#htmlanno-svg-screen"));
     this.arrow.on("click", (e)=>{
       globalEvent.emit("arrowannotationselect", this);
     });
@@ -30,11 +30,11 @@ class ArrowAnnotation{
 
     globalEvent.on(this, "dragenter", (data)=>{
       this.enteredCircle = data.circle;
-      data.circle.jObject.addClass("circle-hover");
+      data.circle.jObject.addClass("htmlanno-circle-hover");
     });
 
     globalEvent.on(this, "dragleave", (data)=>{
-      data.circle.jObject.removeClass("circle-hover");
+      data.circle.jObject.removeClass("htmlanno-circle-hover");
       data.circle.jObject.css("transition", "0.1s");
     });
 

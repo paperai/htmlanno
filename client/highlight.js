@@ -29,7 +29,7 @@ class Highlight{
 
   handleHoverIn(){
     this.elements.forEach((e)=>{
-      $(e).addClass("border");
+      $(e).addClass("htmlanno-border");
     });
     if (this.label.content()){
       this.label.show();
@@ -38,7 +38,7 @@ class Highlight{
 
   handleHoverOut(){
     this.elements.forEach((e)=>{
-      $(e).removeClass("border");
+      $(e).removeClass("htmlanno-border");
     });
     this.label.hide();
   }
@@ -50,7 +50,7 @@ class Highlight{
   }
 
   getClassName(){
-    return `hl-${this.id}`;
+    return `htmlanno-hl-${this.id}`;
   }
 
   getBoundingClientRect(){
@@ -83,13 +83,13 @@ class Highlight{
   }
 
   select(){
-    this.addClass("highlight-selected");
+    this.addClass("htmlanno-highlight-selected");
     this.label.select();
     // this.label.jObject.focus();
   }
 
   blur(){
-    this.removeClass("highlight-selected");
+    this.removeClass("htmlanno-highlight-selected");
     this.label.blur();
     // if (!this.label.content()){
     this.label.hide();

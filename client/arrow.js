@@ -10,14 +10,14 @@ class Arrow{
     this.jObject = $(`
         <path
         id="${this.domId()}"
-        class="arrow"
+        class="htmlanno-arrow"
         d="M 0,0 C 0,0 0,0 0,0"
-        marker-end="url(#arrow-head)" />
+        marker-end="url(#htmlanno-arrow-head)" />
         `);
     this.jObjectOutline = $(`
         <path
         id="${this.domId()}-outline"
-        class="arrow-outline"
+        class="htmlanno-arrow-outline"
         d="M 0,0 C 0,0 0,0 0,0" />
         `);
 
@@ -58,7 +58,7 @@ class Arrow{
     this.jObjectOutline.appendTo(target);
     this.jObjectOutline.hide();
     this.jObject.appendTo(target);
-    $("#svg-screen").html($("#svg-screen").html());
+    $("#htmlanno-svg-screen").html($("#htmlanno-svg-screen").html());
     globalEvent.emit("svgupdate", this);
   }
 
@@ -93,11 +93,11 @@ class Arrow{
   }
 
   handleHoverIn(e){
-    this.jObject.addClass("arrow-hover");
+    this.jObject.addClass("htmlanno-arrow-hover");
   }
 
   handleHoverOut(e){
-    this.jObject.removeClass("arrow-hover");
+    this.jObject.removeClass("htmlanno-arrow-hover");
   }
 }
 

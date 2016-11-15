@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "build": "webpack --progress --colors --watch --config ./webpack.config.js"
+    "watch": "webpack --progress --colors --watch --config ./webpack.config.js",
+    "build": "webpack --progress --colors --config ./webpack.config.js"
   },
   "dependencies": {
     "events": "^1.1.1",

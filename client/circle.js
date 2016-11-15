@@ -1,37 +1,6 @@
 const $ = require("jquery");
 const globalEvent = window.globalEvent;
 
-const cumulativeOffset = function(element) {
-  var useragent = window.navigator.userAgent.toLowerCase();
-  if (useragent.indexOf('firefox') == -1){
-    return $(element).offset();
-  }
-
-  let top = 0;
-
-  let left = 0;
-  do {
-    top += element.offsetTop  || 0;
-    left += element.offsetLeft || 0;
-    element = element.offsetParent;
-  } while(element);
-
-  return { top: top, left: left };
-};
-
-const cumulativeOffset0 = function(element) {
-  let top = 0;
-  let left = 0;
-  do {
-    top += element.offsetTop  || 0;
-    left += element.offsetLeft || 0;
-    element = element.offsetParent;
-  } while(element);
-
-  return { top: top, left: left };
-};
-
-
 class Circle{
   constructor(id, highlight){
     if (!Circle.instances){
@@ -42,8 +11,7 @@ class Circle{
     this.id = id;
     this.highlight = highlight;
 
-    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="circle"></div>`);
-    this.jObjectMarker = $(`<div id="${this.domId()}-marker" class="circle-marker"></div>`);
+    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
 
     this.jObject.on("dragstart", (e)=>{
       globalEvent.emit("dragstart", {event: e, circle: this});

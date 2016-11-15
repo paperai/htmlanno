@@ -16,7 +16,7 @@ class Highlighter{
   highlight(){
     this.highlighter = rangy.createHighlighter();
     this.temporaryElements = [];
-    this.highlighter.addClassApplier(rangy.createClassApplier("highlight"+this.highlightId, {
+    this.highlighter.addClassApplier(rangy.createClassApplier("htmlanno-highlight"+this.highlightId, {
       ignoreWhiteSpace: true,
       onElementCreate: (element)=>{this.temporaryElements.push(element)}
     }));
@@ -25,7 +25,7 @@ class Highlighter{
       return;
     }
 
-    this.highlighter.highlightSelection("highlight"+this.highlightId, {exclusive: false});
+    this.highlighter.highlightSelection("htmlanno-highlight"+this.highlightId, {exclusive: false});
     if (this.temporaryElements.length > 0){
       const highlight = new Highlight(this.highlightId, this, selection, this.temporaryElements);
       globalEvent.emit("highlightselect", highlight);

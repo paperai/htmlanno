@@ -1,23 +1,23 @@
-.highlight {
+.htmlanno-highlight {
   background-color: yellow;
 }
 
-.highlight:hover, .border{
+.htmlanno-highlight:hover, .htmlanno-border{
   box-shadow: 0 0 0 1px #ccc inset;
 }
 
-.highlight-selected{
+.htmlanno-highlight-selected{
   background-color: yellow;
   border: 2px dotted black;
   margin: -2px;
 }
 
-.highlight-selected:hover{
+.htmlanno-highlight-selected:hover{
   border: 2px dotted black;
   margin: -2px;
 }
 
-#svg-screen{
+#htmlanno-svg-screen{
   position:absolute;
   top:0;
   left:0;
@@ -25,7 +25,7 @@
   right:0;
 }
 
-.circle{
+.htmlanno-circle{
   position:absolute;
   /* top: -10px; */
   /* left: -5px; */
@@ -37,7 +37,7 @@
   transition:0.2s;
 }
 
-.circle-marker{
+.htmlanno-circle-marker{
   position:absolute;
   margin:0px;
   padding:0px;
@@ -47,13 +47,13 @@
   /* display:none; */
 }
 
-.circle:hover, .circle-hover {
+.htmlanno-circle:hover, .htmlanno-circle-hover {
   box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px;
   transition:0.2s;
   transform: scale(2);
 }
 
-.arrow{
+.htmlanno-arrow{
   fill:none;
   stroke:red;
   visibility:visible;
@@ -61,7 +61,7 @@
   pointer-events:stroke;
 }
 
-.arrow-outline{
+.htmlanno-arrow-outline{
   fill:none;
   stroke:black;
   visibility:visible;
@@ -70,36 +70,36 @@
   pointer-events:stroke;
 }
 
-.arrow-hover{
+.htmlanno-arrow-hover{
   stroke-width:3px;
   transition:0.2s;
 }
 
-#arrow-head{
+#htmlanno-arrow-head{
   fill:red;
 }
 
-.label, #ruler{
+.htmlanno-label, #htmlanno-ruler{
   position:absolute;
   font-family : inherit;
   font-size   : 100%;
   text-align: center;
 }
 
-.label{
+.htmlanno-label{
   width:100%;
   transition:0.1s;
   border:1px solid red;
   border-radius:3px;
 }
 
-.label-hover{
+.htmlanno-label-hover{
   transition:0.1s;
   border:3px solid red;
   border-radius:3px;
 }
 
-.label-selected{
+.htmlanno-label-selected{
   transition:0.1s;
   border:3px dotted black;
   border-radius:3px;

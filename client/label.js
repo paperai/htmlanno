@@ -7,7 +7,7 @@ class Label{
     this.position = position;
     this.selected = false;
 
-    this.jObject = $(`<input id="label-${this.id}" placeholder="Enter text" class="label" type="text">
+    this.jObject = $(`<input id="label-${this.id}" placeholder="Enter text" class="htmlanno-label" type="text">
         `);
     this.jObject.on('blur', this.handleInputBlur.bind(this));
     this.jObject.on('keydown', this.handleInputKeydown.bind(this));
@@ -16,7 +16,7 @@ class Label{
 
     this.element = this.jObject.get(0);
     document.body.appendChild(this.element);
-    this.element.focus();
+    // this.element.focus();
     this.resizeInput();
   }
 
@@ -76,11 +76,11 @@ class Label{
 
   handleHoverIn(e){
     if (this.content()){
-      this.jObject.addClass("label-hover");
+      this.jObject.addClass("htmlanno-label-hover");
     }
   }
   handleHoverOut(e){
-    this.jObject.removeClass("label-hover");
+    this.jObject.removeClass("htmlanno-label-hover");
   }
 
   show(){
@@ -95,12 +95,12 @@ class Label{
 
   select(){
     this.selected = true;
-    this.jObject.addClass("label-selected");
+    this.jObject.addClass("htmlanno-label-selected");
     this.show();
   }
 
   blur(){
-    this.jObject.removeClass("label-selected");
+    this.jObject.removeClass("htmlanno-label-selected");
     this.selected = false;
     if (this.content()){
       this.show();
