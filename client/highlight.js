@@ -1,5 +1,6 @@
 const $ = require("jquery");
 const Circle = require("./circle.js");
+const Label = require("./label.js");
 
 class Highlight{
   constructor(id, highlighter, selection, elements){
@@ -16,18 +17,30 @@ class Highlight{
         this.handleHoverIn.bind(this),
         this.handleHoverOut.bind(this)
         );
+
+    this.label = new Label("hlabel-" + this.id, this.labelPosition());
+  }
+
+  labelPosition(){
+    const position = this.circle.positionCenter();
+    position.top -= 34;
+    return position;
   }
 
   handleHoverIn(){
     this.elements.forEach((e)=>{
       $(e).addClass("border");
     });
+    if (this.label.content()){
+      this.label.show();
+    }
   }
 
   handleHoverOut(){
     this.elements.forEach((e)=>{
       $(e).removeClass("border");
     });
+    this.label.hide();
   }
 
   addCircle(){
@@ -71,10 +84,16 @@ class Highlight{
 
   select(){
     this.addClass("highlight-selected");
+    this.label.select();
+    // this.label.jObject.focus();
   }
 
   blur(){
     this.removeClass("highlight-selected");
+    this.label.blur();
+    // if (!this.label.content()){
+    this.label.hide();
+    // }
   }
 
   remove(){
@@ -82,6 +101,7 @@ class Highlight{
     $(`.${this.getClassName()}`).each(function() {
       $(this).replaceWith(this.childNodes);
     });
+    this.label.remove();
   }
 }
 

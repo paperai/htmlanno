@@ -5,6 +5,7 @@ require("rangy/lib/rangy-highlighter.js");
 require("rangy/lib/rangy-serializer.js");
 
 const Highlight = require("./highlight.js");
+const globalEvent = window.globalEvent;
 
 class Highlighter{
   constructor(){
@@ -27,6 +28,7 @@ class Highlighter{
     this.highlighter.highlightSelection("highlight"+this.highlightId, {exclusive: false});
     if (this.temporaryElements.length > 0){
       const highlight = new Highlight(this.highlightId, this, selection, this.temporaryElements);
+      globalEvent.emit("highlightselect", highlight);
       this.highlights.push(highlight);
       this.highlightId += 1;
     }

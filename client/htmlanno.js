@@ -56,12 +56,19 @@ class Htmlanno{
   }
 
   handleSelect(e){
-    if (this.selectedAnnotation){
+    console.log("hs", e, this.selectedAnnotation);
+    if (this.selectedAnnotation === e){
       this.selectedAnnotation.blur();
       this.selectedAnnotation = null;
-    }else{
-      this.selectedAnnotation = e;
-      this.selectedAnnotation.select();
+    } else{
+      if (this.selectedAnnotation){
+        this.selectedAnnotation.blur();
+        this.selectedAnnotation = null;
+      }
+      if (e){
+        this.selectedAnnotation = e;
+        this.selectedAnnotation.select();
+      }
     }
   }
 
@@ -70,6 +77,7 @@ class Htmlanno{
   }
 
   handleKeydown(e){
+    console.log("keyd");
     // esc
     if (e.keyCode === 27) {
       if (this.selectedAnnotation){
@@ -81,19 +89,11 @@ class Htmlanno{
     // delete or back space
     if (e.keyCode === 46 || e.keyCode == 8) {
       if (this.selectedAnnotation){
+        e.preventDefault();
         this.selectedAnnotation.remove();
         this.selectedAnnotation = null;
       }
-      e.preventDefault();
     }
-  }
-
-  save(){
-    this.highlighter.highlight();
-  }
-
-  remove(){
-    this.highlighter.remove();
   }
 
   commitSelection(){

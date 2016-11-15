@@ -1,12 +1,9 @@
 .highlight {
   background-color: yellow;
-  border: 1px solid yellow;
-  margin: -1px;
 }
 
 .highlight:hover, .border{
-  border: 1px solid #ccc;
-  margin: -1px;
+  box-shadow: 0 0 0 1px #ccc inset;
 }
 
 .highlight-selected{
@@ -14,6 +11,7 @@
   border: 2px dotted black;
   margin: -2px;
 }
+
 .highlight-selected:hover{
   border: 2px dotted black;
   margin: -2px;
@@ -29,14 +27,24 @@
 
 .circle{
   position:absolute;
-  top: -10px;
-  left: -5px;
+  /* top: -10px; */
+  /* left: -5px; */
   white-space:nowrap;
   width:10px;
   height:10px;
   background-color:blue;
   border-radius: 50%;
   transition:0.2s;
+}
+
+.circle-marker{
+  position:absolute;
+  margin:0px;
+  padding:0px;
+  white-space:nowrap;
+  width:0px;
+  height:0px;
+  /* display:none; */
 }
 
 .circle:hover, .circle-hover {

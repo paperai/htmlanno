@@ -2,6 +2,24 @@ const $ = require("jquery");
 const globalEvent = window.globalEvent;
 
 const cumulativeOffset = function(element) {
+  var useragent = window.navigator.userAgent.toLowerCase();
+  if (useragent.indexOf('firefox') == -1){
+    return $(element).offset();
+  }
+
+  let top = 0;
+
+  let left = 0;
+  do {
+    top += element.offsetTop  || 0;
+    left += element.offsetLeft || 0;
+    element = element.offsetParent;
+  } while(element);
+
+  return { top: top, left: left };
+};
+
+const cumulativeOffset0 = function(element) {
   let top = 0;
   let left = 0;
   do {
@@ -13,12 +31,19 @@ const cumulativeOffset = function(element) {
   return { top: top, left: left };
 };
 
+
 class Circle{
   constructor(id, highlight){
+    if (!Circle.instances){
+      Circle.instances = [];
+    }
+
+    Circle.instances.push(this);
     this.id = id;
     this.highlight = highlight;
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="circle"></div>`);
+    this.jObjectMarker = $(`<div id="${this.domId()}-marker" class="circle-marker"></div>`);
 
     this.jObject.on("dragstart", (e)=>{
       globalEvent.emit("dragstart", {event: e, circle: this});
@@ -58,15 +83,53 @@ class Circle{
     return img;
   }
 
+  originalPosition(){
+    return this.basePosition;
+  }
+
+  samePositionCircles(){
+    let n = 0;
+    for (let i = 0; i < Circle.instances.length; i++){
+      const cir = Circle.instances[i];
+      if (cir === this){
+        break;
+      }
+      const l1 = cir.originalPosition().left;
+      const t1 = cir.originalPosition().top;
+      const l2 = this.originalPosition().left;
+      const t2 = this.originalPosition().top;
+      if (Math.abs(Math.floor(l1-l2)) <= 5 && Math.abs(Math.floor(t1-t2)) <= 5) {
+        n += 1;
+      }
+    }
+
+    return n;
+  }
+
+  divPosition(){
+    return {left: -5, top: -10 - (this.samePositionCircles() * 12)}
+  }
+
   positionCenter(){
-    const position = cumulativeOffset(this.jObject.get(0));
-    position.left += 5;
-    position.top += 5;
-    return position;
+    const pos = this.divPosition();
+    const p = this.originalPosition();
+    pos.left += p.left;
+    pos.top += p.top;
+    pos.left += 5;
+    pos.top += 5;
+
+    return pos;
   }
 
   appendTo(target){
     this.jObject.appendTo(target);
+    this.jObject.css("left", `0px`);
+    this.jObject.css("top", `0px`);
+    // this.jObject.css("transition", "0.0s");
+    this.basePosition = this.jObject.offset();
+    const pos = this.divPosition();
+    this.jObject.css("left", `${pos.left}px`);
+    this.jObject.css("top", `${pos.top}px`);
   }
 
   isHit(x, y){
@@ -78,6 +141,10 @@ class Circle{
     globalEvent.emit("removecircle", this);
     this.jObject.remove();
     globalEvent.removeObject(this);
+    const idx = Circle.instances.findIndex((e)=>e===this);
+    if (idx !== -1){
+      Circle.instances.splice(idx, 1);
+    }
   }
 }
 

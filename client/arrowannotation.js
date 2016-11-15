@@ -66,7 +66,6 @@ class ArrowAnnotation{
     } else{
       this.arrow.remove();
     }
-
   }
 
   positionCenter(){

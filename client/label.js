@@ -1,21 +1,23 @@
 const $ = require("jquery");
+const globalEvent = window.globalEvent;
 
 class Label{
   constructor(id, position){
     this.id = id;
     this.position = position;
+    this.selected = false;
+
     this.jObject = $(`<input id="label-${this.id}" placeholder="Enter text" class="label" type="text">
         `);
-    this.jObject.css("width",  "100px");
-    this.jObject.css("left", `${this.position.left-50}px`);
-    this.jObject.css("top",  `${this.position.top}px`);
     this.jObject.on('blur', this.handleInputBlur.bind(this));
-    this.jObject.on('keyup', this.handleInputKeyup.bind(this));
+    this.jObject.on('keydown', this.handleInputKeydown.bind(this));
+    this.jObject.on('keyup', this.handleInputKeydown.bind(this));
     this.jObject.on('keypress', this.handleInputKeypress.bind(this));
 
     this.element = this.jObject.get(0);
     document.body.appendChild(this.element);
     this.element.focus();
+    this.resizeInput();
   }
 
   resizeInput(){
@@ -24,7 +26,12 @@ class Label{
       $("#ruler").text(content);
       const width = $("#ruler").width() + 8;
       this.jObject.css("width", width + "px");
-      this.jObject.css("left", (this.position.left - width/2) + "px");
+      let left = (this.position.left - width/2);
+      this.jObject.css("left", left + "px");
+      this.jObject.css("top",  `${this.position.top}px`);
+    } else{
+      this.jObject.css("width",  "100px");
+      this.jObject.css("left", `${this.position.left-50}px`);
       this.jObject.css("top",  `${this.position.top}px`);
     }
   }
@@ -33,9 +40,8 @@ class Label{
     const content = this.content();
     if (content !== ""){
       this.resizeInput();
-      this.text = content;
     } else{
-      this.element.style.display = "none";
+      this.hide();
     }
   }
 
@@ -52,11 +58,13 @@ class Label{
     this.commitText();
   }
 
-  handleInputKeyup(e) {
+  handleInputKeydown(e) {
     this.resizeInput();
+    e.stopPropagation();
   }
 
   handleInputKeypress(e) {
+    console.log("keypress");
     // enter
     if (e.keyCode === 13) {
       this.element.blur();
@@ -67,7 +75,7 @@ class Label{
   }
 
   handleHoverIn(e){
-    if (this.text){
+    if (this.content()){
       this.jObject.addClass("label-hover");
     }
   }
@@ -75,18 +83,34 @@ class Label{
     this.jObject.removeClass("label-hover");
   }
 
-  remove(){
-    this.jObject.remove();
+  show(){
+    this.jObject.show();
+  }
+
+  hide(){
+    if (!this.selected){
+      this.jObject.hide();
+    }
   }
 
   select(){
-    if (this.text){
-      this.jObject.addClass("label-selected");
-    }
+    this.selected = true;
+    this.jObject.addClass("label-selected");
+    this.show();
   }
 
   blur(){
     this.jObject.removeClass("label-selected");
+    this.selected = false;
+    if (this.content()){
+      this.show();
+    } else{
+      this.hide();
+    }
+  }
+
+  remove(){
+    this.jObject.remove();
   }
 }
 
