@@ -16,8 +16,9 @@ class Label{
 
     this.element = this.jObject.get(0);
     document.body.appendChild(this.element);
-    // this.element.focus();
     this.resizeInput();
+    // this.jObject.focus();
+    setTimeout(()=>{this.jObject.focus()}, 1);
   }
 
   resizeInput(){

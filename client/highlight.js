@@ -67,7 +67,7 @@ class Highlight{
 
   setClass(){
     this.addClass(this.getClassName());
-    this.addClass("highlight");
+    this.addClass("htmlanno-highlight");
   }
 
   addClass(name){

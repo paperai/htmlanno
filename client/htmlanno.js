@@ -10,10 +10,6 @@ const Highlighter = require("./highlighter.js");
 
 class Htmlanno{
   constructor(){
-    // const a = new Arrow(1, {top:100, left:100});
-    // a.appendTo($("#svg-screen"));
-    // a.point({top:200, left:300});
-
     this.setupHtml();
     this.highlighter = new Highlighter();
     this.handleResize();
@@ -32,6 +28,10 @@ class Htmlanno{
       new ArrowAnnotation(arrowAnnoId, data.circle);
     });
     globalEvent.on(this, "arrowannotationconnect", (data)=>{
+      if (this.selectedAnnotation){
+        this.selectedAnnotation.blur();
+        this.selectedAnnotation = null;
+      }
       arrowAnnoId += 1;
     });
   }

@@ -101,8 +101,9 @@ class Circle{
   }
 
   isHit(x, y){
-    const rect = this.jObject.get(0).getBoundingClientRect();
-    return rect.left <= x && rect.right >= x && rect.top <= y && rect.bottom >= y;
+    // const rect = this.jObject.get(0).getBoundingClientRect();
+    const c = this.positionCenter();
+    return c.left <= x+10 && c.left >= x-10 && c.top <= y+10 && c.top >= y-10;
   }
 
   remove(){
