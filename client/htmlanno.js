@@ -7,11 +7,14 @@ window.globalEvent = new EventManager();
 const ArrowAnnotation = require("./arrowannotation.js");
 const Arrow = require("./arrow.js");
 const Highlighter = require("./highlighter.js");
+const Circle = require("./circle.js");
+const HighlightLabel = require("./highlightlabel.js");
 
 class Htmlanno{
   constructor(){
     this.setupHtml();
     this.highlighter = new Highlighter();
+    this.highlightlabel = new HighlightLabel();
     this.handleResize();
     this.wrapGlobalEvents();
     this.selectedAnnotation = null;
@@ -38,7 +41,7 @@ class Htmlanno{
 
   setupHtml(){
     const html = `
-      <div id=htmlanno-anotation>
+      <div id="htmlanno-annotation">
       <link rel="stylesheet" href="index.css">
       <svg id="htmlanno-svg-screen"
       visibility="hidden"
@@ -83,13 +86,16 @@ class Htmlanno{
       globalEvent.emit("mouseup", e);
     });
 
+    $(document).on("mousemove", (e)=>{
+      globalEvent.emit("mousemove", e);
+    });
+
     $(window).on("resize", (e)=>{
       globalEvent.emit("resizewindow", e);
     });
   }
 
   handleSelect(e){
-    console.log("hs", e, this.selectedAnnotation);
     if (this.selectedAnnotation === e){
       this.selectedAnnotation.blur();
       this.selectedAnnotation = null;
@@ -107,10 +113,17 @@ class Htmlanno{
 
   handleResize(){
     $('#htmlanno-svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
+    if (Circle.instances){
+      Circle.instances.forEach((cir)=>{
+        cir.resetPosition();
+      });
+      Circle.instances.forEach((cir)=>{
+        cir.reposition();
+      });
+    }
   }
 
   handleKeydown(e){
-    console.log("keyd");
     // esc
     if (e.keyCode === 27) {
       if (this.selectedAnnotation){

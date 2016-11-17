@@ -10,6 +10,7 @@ class Circle{
     Circle.instances.push(this);
     this.id = id;
     this.highlight = highlight;
+    this.size = 10;
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
 
@@ -36,6 +37,15 @@ class Circle{
 
     this.jObject.on("click", (e)=>{
       globalEvent.emit("highlightselect", this.highlight);
+    });
+
+    this.jObject.on("mouseenter", (e)=>{
+      this.highlight.handleHoverIn();
+      e.stopPropagation();
+    });
+
+    this.jObject.on("mouseleave", (e)=>{
+      this.highlight.handleHoverOut();
     });
   }
 
@@ -66,7 +76,7 @@ class Circle{
       const t1 = cir.originalPosition().top;
       const l2 = this.originalPosition().left;
       const t2 = this.originalPosition().top;
-      if (Math.abs(Math.floor(l1-l2)) <= 5 && Math.abs(Math.floor(t1-t2)) <= 5) {
+      if (Math.abs(Math.floor(l1-l2)) <= 3 && Math.abs(Math.floor(t1-t2)) <= 3) {
         n += 1;
       }
     }
@@ -75,7 +85,7 @@ class Circle{
   }
 
   divPosition(){
-    return {left: -5, top: -10 - (this.samePositionCircles() * 12)}
+    return {left: -this.size/2, top: -this.size -5 -(this.samePositionCircles() * 12)}
   }
 
   positionCenter(){
@@ -101,9 +111,22 @@ class Circle{
   }
 
   isHit(x, y){
-    // const rect = this.jObject.get(0).getBoundingClientRect();
     const c = this.positionCenter();
-    return c.left <= x+10 && c.left >= x-10 && c.top <= y+10 && c.top >= y-10;
+    return c.left <= x+this.size && c.left >= x-this.size && c.top <= y+this.size && c.top >= y-this.size;
+  }
+
+  resetPosition(){
+    this.jObject.css("transition", "0.0s");
+    this.jObject.css("left", `0px`);
+    this.jObject.css("top", `0px`);
+    this.basePosition = this.jObject.offset();
+  }
+
+  reposition(){
+    const pos = this.divPosition();
+    this.jObject.css("left", `${pos.left}px`);
+    this.jObject.css("top", `${pos.top}px`);
+    this.jObject.css("transition", "0.2s");
   }
 
   remove(){
@@ -113,6 +136,12 @@ class Circle{
     const idx = Circle.instances.findIndex((e)=>e===this);
     if (idx !== -1){
       Circle.instances.splice(idx, 1);
+      Circle.instances.forEach((cir)=>{
+        cir.resetPosition();
+      });
+      Circle.instances.forEach((cir)=>{
+        cir.reposition();
+      });
     }
   }
 }

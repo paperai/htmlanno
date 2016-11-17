@@ -1,6 +1,7 @@
 const $ = require("jquery");
 const Circle = require("./circle.js");
 const Label = require("./label.js");
+const globalEvent = window.globalEvent;
 
 class Highlight{
   constructor(id, highlighter, selection, elements){
@@ -28,19 +29,22 @@ class Highlight{
   }
 
   handleHoverIn(){
+    globalEvent.emit("highlighthoverin", this);
     this.elements.forEach((e)=>{
       $(e).addClass("htmlanno-border");
     });
+
     if (this.label.content()){
-      this.label.show();
+      // this.label.show();
     }
   }
 
   handleHoverOut(){
+    globalEvent.emit("highlighthoverout", this);
     this.elements.forEach((e)=>{
       $(e).removeClass("htmlanno-border");
     });
-    this.label.hide();
+    // this.label.hide();
   }
 
   addCircle(){
@@ -85,15 +89,12 @@ class Highlight{
   select(){
     this.addClass("htmlanno-highlight-selected");
     this.label.select();
-    // this.label.jObject.focus();
   }
 
   blur(){
     this.removeClass("htmlanno-highlight-selected");
     this.label.blur();
-    // if (!this.label.content()){
     this.label.hide();
-    // }
   }
 
   remove(){

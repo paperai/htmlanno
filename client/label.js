@@ -14,10 +14,9 @@ class Label{
     this.jObject.on('keyup', this.handleInputKeydown.bind(this));
     this.jObject.on('keypress', this.handleInputKeypress.bind(this));
 
+    this.jObject.appendTo($("#htmlanno-annotation"));
     this.element = this.jObject.get(0);
-    document.body.appendChild(this.element);
     this.resizeInput();
-    // this.jObject.focus();
     setTimeout(()=>{this.jObject.focus()}, 1);
   }
 
@@ -65,7 +64,6 @@ class Label{
   }
 
   handleInputKeypress(e) {
-    console.log("keypress");
     // enter
     if (e.keyCode === 13) {
       this.element.blur();

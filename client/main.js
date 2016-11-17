@@ -1,5 +1,6 @@
 const $ = require("jquery");
 const Htmlanno = require("./htmlanno.js");
+window.$ = $;
 
 $(()=>{
   console.log("hello");

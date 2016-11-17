@@ -25,10 +25,28 @@
   right:0;
 }
 
+.htmlanno-highlightlabel{
+  position:absolute;
+}
+.htmlanno-highlightlabel-li{
+  position:absolute;
+  border:0px solid red;
+  border-radius:3px;
+  box-shadow: rgba(113,135,164,0.5) 2px 2px 2px 2px;
+  background-color: white;
+  margin: 0;
+  padding: 0;
+}
+
+.htmlanno-highlightlabel-item{
+  padding: 2px;
+  margin: 0;
+  list-style: none;
+  border: 1px solid #f88;
+}
+
 .htmlanno-circle{
   position:absolute;
-  /* top: -10px; */
-  /* left: -5px; */
   white-space:nowrap;
   width:10px;
   height:10px;
@@ -48,7 +66,7 @@
 }
 
 .htmlanno-circle:hover, .htmlanno-circle-hover {
-  box-shadow: rgba(113,135,164,.65098) 1px 1px 1px 1px;
+  box-shadow: rgba(113,135,164,.6) 1px 1px 1px 1px;
   transition:0.2s;
   transform: scale(2);
 }
