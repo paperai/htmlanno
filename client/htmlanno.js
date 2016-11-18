@@ -14,10 +14,10 @@ class Htmlanno{
   constructor(){
     this.setupHtml();
     this.highlighter = new Highlighter();
-    this.highlightlabel = new HighlightLabel();
     this.handleResize();
     this.wrapGlobalEvents();
     this.selectedAnnotation = null;
+    this.arrowAnnotations = new Set();
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
@@ -26,11 +26,14 @@ class Htmlanno{
     globalEvent.on(this, "mouseup", this.commitSelection.bind(this));
 
     let arrowAnnoId = 1;
+    let arrow = null;
 
     globalEvent.on(this, "dragstart", (data)=>{
-      new ArrowAnnotation(arrowAnnoId, data.circle);
+      arrow = new ArrowAnnotation(arrowAnnoId, data.circle);
     });
     globalEvent.on(this, "arrowannotationconnect", (data)=>{
+      this.arrowAnnotations.add(data);
+      console.log(data.saveData());
       if (this.selectedAnnotation){
         this.selectedAnnotation.blur();
         this.selectedAnnotation = null;
@@ -65,10 +68,11 @@ class Htmlanno{
       </marker>
       </defs>
       </svg>
-      <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;">dddd</span>
+      <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;"></span>
       </div>
       `;
-    document.body.appendChild($(html).get(0));
+
+    $(html).appendTo(document.body);
   }
 
   wrapGlobalEvents(){
@@ -144,6 +148,23 @@ class Htmlanno{
 
   commitSelection(){
     this.highlighter.highlight();
+  }
+
+  saveData(){
+    const data = {};
+    this.highlighter.highlights.forEach((e)=>{
+      data[`span-${e.id}`] = e.saveData();
+    });
+
+    for (let e of this.arrowAnnotations){
+      data[`rel-${e.id}`] = e.saveData();
+    }
+
+    return data;
+  }
+
+  toJson(){
+    return JSON.stringify(this.saveData());
   }
 }
 

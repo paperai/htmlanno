@@ -127,11 +127,21 @@ class ArrowAnnotation{
       this.label.handleHoverIn();
     }
   }
+
   handleHoverOut(e){
     this.arrow.handleHoverOut();
     if (this.label){
       this.label.handleHoverOut();
     }
+  }
+
+  saveData(){
+    return [
+      "arrow",
+      `span-${this.startingCircle.highlight.id}`,
+      `span-${this.enteredCircle.highlight.id}`,
+      this.label.content()
+    ];
   }
 }
 

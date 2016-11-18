@@ -4,11 +4,13 @@ const Label = require("./label.js");
 const globalEvent = window.globalEvent;
 
 class Highlight{
-  constructor(id, highlighter, selection, elements){
+  constructor(id, startOffset, endOffset, text, elements){
     this.id = id;
-    this.highlighter = highlighter;
-    this.selection = selection;
-    this.ranges = selection.getAllRanges();
+    this.startOffset = startOffset;
+    this.endOffset = endOffset;
+    this.text = text;
+    console.log(this.startOffset, this.endOffset);
+
     this.elements = elements;
     this.topElement = elements[0];
 
@@ -104,6 +106,22 @@ class Highlight{
     });
     this.label.remove();
   }
-}
 
+  /*
+  toJson(){
+    return JSON.stringify({
+      id: this.id,
+      type: "span",
+      startOffset: this.startOffset,
+      endOffset: this.endOffset,
+      text: this.text,
+      label: this.label.content()
+    });
+  }
+  */
+
+  saveData(){
+    return [this.startOffset, this.endOffset, this.label.content()];
+  }
+}
 module.exports = Highlight;
