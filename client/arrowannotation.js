@@ -45,6 +45,7 @@ class ArrowAnnotation{
     globalEvent.on(this, "removecircle", (cir)=>{
       if (this.startingCircle === cir || this.endingCircle === cir){
         this.remove();
+        globalEvent.emit("removearrowannotation", this);
       }
     });
   }
@@ -66,6 +67,13 @@ class ArrowAnnotation{
     } else{
       this.arrow.remove();
     }
+  }
+
+  setEndingCircle(cir){
+    this.enteredCircle = cir;
+    this.mouseX = cir.positionCenter().left;
+    this.mouseY = cir.positionCenter().top;
+    this.connect();
   }
 
   positionCenter(){

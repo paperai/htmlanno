@@ -5,19 +5,18 @@ const EventManager = require("./eventmanager");
 window.globalEvent = new EventManager();
 
 const ArrowAnnotation = require("./arrowannotation.js");
-const Arrow = require("./arrow.js");
 const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
-const HighlightLabel = require("./highlightlabel.js");
+const ArrowConnector = require("./arrowconnector.js");
 
 class Htmlanno{
   constructor(){
     this.setupHtml();
     this.highlighter = new Highlighter();
+    this.arrowConnector = new ArrowConnector();
     this.handleResize();
     this.wrapGlobalEvents();
     this.selectedAnnotation = null;
-    this.arrowAnnotations = new Set();
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
@@ -25,21 +24,32 @@ class Htmlanno{
     globalEvent.on(this, "highlightselect", this.handleSelect.bind(this));
     globalEvent.on(this, "mouseup", this.commitSelection.bind(this));
 
-    let arrowAnnoId = 1;
-    let arrow = null;
-
     globalEvent.on(this, "dragstart", (data)=>{
-      arrow = new ArrowAnnotation(arrowAnnoId, data.circle);
+      this.arrowConnector.createDragingArrow(data.circle);
     });
     globalEvent.on(this, "arrowannotationconnect", (data)=>{
-      this.arrowAnnotations.add(data);
-      console.log(data.saveData());
+      this.arrowConnector.add(data);
       if (this.selectedAnnotation){
         this.selectedAnnotation.blur();
         this.selectedAnnotation = null;
       }
-      arrowAnnoId += 1;
     });
+    globalEvent.on(this, "removearrowannotation", (data)=>{
+      this.arrowConnector.removeAnnotation(data);
+    });
+
+    /*
+       setInterval(()=>{
+       localStorage.setItem(this.storageKey(), this.toJson());
+       }, 1 * 1000);
+       setTimeout(()=>{
+       this.loadStorage()
+       }, 1);
+       */
+  }
+
+  storageKey(){
+    return "htmlanno-save-"+document.location.href;
   }
 
   setupHtml(){
@@ -141,6 +151,8 @@ class Htmlanno{
       if (this.selectedAnnotation){
         e.preventDefault();
         this.selectedAnnotation.remove();
+        this.highlighter.removeAnnotation(this.selectedAnnotation);
+        this.arrowConnector.removeAnnotation(this.selectedAnnotation);
         this.selectedAnnotation = null;
       }
     }
@@ -150,21 +162,73 @@ class Htmlanno{
     this.highlighter.highlight();
   }
 
+  loadStorage(){
+    const json = localStorage.getItem(this.storageKey());
+    this.remove();
+
+    if (json){
+      this.fromJson(json);
+    }
+  }
+
+  remove(){
+    this.highlighter.remove();
+    this.arrowConnector.remove();
+  }
+
   saveData(){
     const data = {};
     this.highlighter.highlights.forEach((e)=>{
       data[`span-${e.id}`] = e.saveData();
     });
 
-    for (let e of this.arrowAnnotations){
+    this.arrowConnector.arrowAnnotations.forEach((e)=>{
       data[`rel-${e.id}`] = e.saveData();
-    }
+    });
 
     return data;
   }
 
+  loadData(data){
+    const parseId = (key)=>{
+      const type = key.split(/-/)[0];
+      const id = parseInt(key.split(/-/)[1], 10);
+      return {id: id, type: type};
+    }
+
+    // load spans first
+    for (let key in data){
+      const type = parseId(key).type;
+      const id = parseId(key).id;
+      if (type === "span"){
+        const startOffset = data[key][0];
+        const endOffset = data[key][1];
+        const text = data[key][2];
+        this.highlighter.create(id, startOffset, endOffset, text);
+      }
+    }
+
+    for (let key in data){
+      const type = parseId(key).type;
+      const id = parseId(key).id;
+      if (type === "rel"){
+        const from = parseId(data[key][1]).id;
+        const to = parseId(data[key][2]).id;
+        const text = data[key][3];
+        const startingCircle = this.highlighter.get(from).circle;
+        const endingCircle = this.highlighter.get(to).circle;
+        const arrow = this.arrowConnector.create(id, startingCircle, endingCircle, text);
+        arrow.blur();
+      }
+    }
+  }
+
   toJson(){
     return JSON.stringify(this.saveData());
+  }
+
+  fromJson(json){
+    this.loadData(JSON.parse(json));
   }
 }
 

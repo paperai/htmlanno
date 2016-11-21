@@ -9,24 +9,8 @@ const globalEvent = window.globalEvent;
 
 class Highlighter{
   constructor(){
-    this.highlights = [];
-    this.highlightId = 1;
-  }
-
-  getText(node){
-    let text = "";
-
-    for (let i = 0; i < node.childNodes.length ; i++){
-      const child = node.childNodes[i];
-
-      if (child.nodeName == "#text"){
-        text += child.textContent;
-      } else{
-        text += this.getText(child);
-      }
-    }
-
-    return text;
+    this.highlights = new Map();
+    this.highlighter = rangy.createHighlighter();
   }
 
   nodeFromTextOffset(offset){
@@ -87,44 +71,68 @@ class Highlighter{
     selection.setSingleRange(range);
   }
 
-  highlightRange(startBodyOffset, endBodyOffset){
-    this.selectRange(startBodyOffset, endBodyOffset);
-    this.highlight();
+  maxId(){
+    let maxId = 1;
+    for (let [id, value] of this.highlights) {
+      maxId = Math.max(maxId, id);
+    }
+    return maxId;
   }
 
   highlight(){
-    this.highlighter = rangy.createHighlighter();
-    this.temporaryElements = [];
-    this.highlighter.addClassApplier(rangy.createClassApplier("htmlanno-highlight"+this.highlightId, {
-      ignoreWhiteSpace: true,
-      onElementCreate: (element)=>{this.temporaryElements.push(element)}
-    }));
-
     const selection = rangy.getSelection();
     if (selection.isCollapsed){
       return;
     }
 
-    this.highlighter.highlightSelection("htmlanno-highlight"+this.highlightId, {exclusive: false});
-    if (this.temporaryElements.length > 0){
-      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
-      const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-      const text = selection.getRangeAt(0).toString();
-      const highlight = new Highlight(this.highlightId, startOffset, endOffset, text, this.temporaryElements);
+    const id = this.maxId() + 1;
+    const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
+    const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
+    return this.create(id, startOffset, endOffset, "");
+  }
+
+  create(id, startOffset, endOffset, text){
+    this.selectRange(startOffset, endOffset);
+    const selection = rangy.getSelection();
+    if (selection.isCollapsed){
+      return;
+    }
+
+    const temporaryElements = [];
+    this.highlighter.addClassApplier(rangy.createClassApplier("htmlanno-highlight"+id, {
+      ignoreWhiteSpace: true,
+      onElementCreate: (element)=>{temporaryElements.push(element)}
+    }));
+
+    let highlight = null;
+    this.highlighter.highlightSelection("htmlanno-highlight"+id, {exclusive: false});
+    if (temporaryElements.length > 0){
+      highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
+      highlight.label.setContent(text);
 
       globalEvent.emit("highlightselect", highlight);
-      this.highlights.push(highlight);
-      this.highlightId += 1;
+
+      this.highlights.set(id, highlight);
     }
-    this.temporaryElements = [];
     selection.removeAllRanges();
+
+    return highlight;
+  }
+
+  get(id){
+    return this.highlights.get(id);
   }
 
   remove(){
     this.highlighter.removeAllHighlights();
-    this.highlights.forEach((hl)=>{
+    for (let [id, hl] of this.highlights) {
       hl.remove();
-    });
+    }
+    this.highlights = new Map();
+  }
+
+  removeAnnotation(highlight){
+    this.highlights.delete(highlight.id);
   }
 }
 

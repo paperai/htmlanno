@@ -49,6 +49,11 @@ class Label{
     return this.element.value.trim();
   }
 
+  setContent(text){
+    this.jObject.val(text);
+    this.resizeInput();
+  }
+
   reposition(position){
     this.position = position;
     this.resizeInput();
