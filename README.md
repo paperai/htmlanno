@@ -1,6 +1,7 @@
-# htmlanno
+This is under development...
 
-HTMLをアノテーションするツールです。
+# HTMLAnno
+HTMLAnno is a linguistic annotation tool for html/xml.
 
-## デモ
+## Demo
 https://pdfanno.github.io/htmlanno/journal.pbio.1001745.html
