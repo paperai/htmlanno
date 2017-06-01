@@ -11,7 +11,7 @@ const ArrowConnector = require("./arrowconnector.js");
 
 class Htmlanno{
   constructor(){
-    this.setupHtml();
+    //this.setupHtml();
     this.highlighter = new Highlighter();
     this.arrowConnector = new ArrowConnector();
     this.handleResize();

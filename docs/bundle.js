@@ -44,14 +44,34 @@
 /* 0 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const $ = __webpack_require__(1);
-	const Htmlanno = __webpack_require__(2);
-	window.$ = $;
+	//require("file?name=dist/index.html!./index.html");
+	//require("!style!css!./pdfanno.css");
 	
-	$(()=>{
-	  console.log("hello");
-	  htmlanno = new Htmlanno();
-	  window.htmlanno = htmlanno;
+	/**
+	 * Start PDFAnno Application.
+	 */
+	function startApplication() {
+	    const $ = __webpack_require__(1);
+	    const Htmlanno = __webpack_require__(2);
+	    window.$ = $;
+	    window.htmlanno = new Htmlanno();
+	}
+	
+	/**
+	 *  The entry point.
+	 */
+	window.addEventListener('DOMContentLoaded', e => {
+	
+	    // Delete prev annotations.
+	    //if (location.search.indexOf('debug') === -1) {
+	    //clearAllAnnotations();
+	    //}
+	
+	    // Reset PDFViwer settings.
+	    //resetPDFViewerSettings();
+	
+	    // Start application.
+	    startApplication();
 	});
 
 
@@ -10331,7 +10351,7 @@
 	
 	class Htmlanno{
 	  constructor(){
-	    this.setupHtml();
+	    //this.setupHtml();
 	    this.highlighter = new Highlighter();
 	    this.arrowConnector = new ArrowConnector();
 	    this.handleResize();
