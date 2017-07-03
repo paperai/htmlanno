@@ -116,26 +116,21 @@ class Htmlanno{
 
   handleSelect(data){
     if (this.selectedAnnotation === data.annotation){
-      this.selectedAnnotation.blur();
-      this.selectedAnnotation = null;
+      this.unselectAnnotationTarget();
+      this.unselectRelationTarget();
     } else if (this.relationTarget === data.annotation){
-      this.relationTarget.blur();
-      this.relationTarget = null;
+      this.unselectRelationTarget();
     } else{
       if (undefined != data.event && data.event.ctrlKey){
         this.relationTarget = data.annotation;
+        this.relationTarget.select();
+        this.selectedAnnotation.hideLabel();
       } else{
-        if (this.selectedAnnotation){
-          this.selectedAnnotation.blur();
-          this.selectedAnnotation = null;
-        }
-        if (this.relationTarget){
-          this.relationTarget.blur();
-          this.relationTarget = null;
-        }
+        this.unselectAnnotationTarget();
+        this.unselectRelationTarget();
         if (data.annotation){
           this.selectedAnnotation = data.annotation;
-          this.selectedAnnotation.select();
+          this.selectedAnnotation.selectForEditing();
         }
       }
     }
@@ -177,6 +172,22 @@ class Htmlanno{
   commitSelection(e){
     if (!$(e.target).hasClass("htmlanno-circle")) {
       // TODO:spanボタンを有効化
+      this.unselectAnnotationTarget();
+      this.unselectRelationTarget();
+    }
+  }
+
+  unselectAnnotationTarget(){
+    if (this.selectedAnnotation){
+      this.selectedAnnotation.blur();
+      this.selectedAnnotation = null;
+    }
+  }
+
+  unselectRelationTarget(){
+    if (this.relationTarget){
+      this.relationTarget.blur();
+      this.relationTarget = null;
     }
   }
 
