@@ -110,7 +110,7 @@ class Highlighter{
       highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
       highlight.label.setContent(text);
 
-      globalEvent.emit("highlightselect", highlight);
+      globalEvent.emit("highlightselect", {annotation: highlight});
 
       this.highlights.set(id, highlight);
     }
