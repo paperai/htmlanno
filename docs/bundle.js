@@ -10337,26 +10337,19 @@
 	    this.handleResize();
 	    this.wrapGlobalEvents();
 	    this.selectedAnnotation = null;
+	    this.relationTarget = null;
 	
 	    globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
 	    globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
 	    globalEvent.on(this, "arrowannotationselect", this.handleSelect.bind(this));
 	    globalEvent.on(this, "highlightselect", this.handleSelect.bind(this));
-	    globalEvent.on(this, "mouseup", this.commitSelection.bind(this));
+	    globalEvent.on(this, "commitSelection", this.commitSelection.bind(this));
 	
-	    globalEvent.on(this, "dragstart", (data)=>{
-	      this.arrowConnector.createDragingArrow(data.circle);
-	    });
-	    globalEvent.on(this, "arrowannotationconnect", (data)=>{
-	      this.arrowConnector.add(data);
-	      if (this.selectedAnnotation){
-	        this.selectedAnnotation.blur();
-	        this.selectedAnnotation = null;
-	      }
-	    });
 	    globalEvent.on(this, "removearrowannotation", (data)=>{
 	      this.arrowConnector.removeAnnotation(data);
 	    });
+	    globalEvent.on(this, "addSpan", this.handleAddSpan.bind(this));
+	    globalEvent.on(this, "addRelation", this.handleAddRelation.bind(this));
 	
 	    /*
 	       setInterval(()=>{
@@ -10427,20 +10420,38 @@
 	    $(window).on("resize", (e)=>{
 	      globalEvent.emit("resizewindow", e);
 	    });
+	
+	    $("#parent").on("mouseup", (e)=>{
+	      globalEvent.emit("commitSelection", e);
+	    });
+	
+	    $("#add_span").on("click", (e)=>{
+	      globalEvent.emit("addSpan", e);
+	    });
+	
+	    $("#add_relation").on("click", (e)=>{
+	      globalEvent.emit("addRelation", e);
+	    });
 	  }
 	
-	  handleSelect(e){
-	    if (this.selectedAnnotation === e){
-	      this.selectedAnnotation.blur();
-	      this.selectedAnnotation = null;
+	  handleSelect(data){
+	    if (this.selectedAnnotation === data.annotation){
+	      this.unselectAnnotationTarget();
+	      this.unselectRelationTarget();
+	    } else if (this.relationTarget === data.annotation){
+	      this.unselectRelationTarget();
 	    } else{
-	      if (this.selectedAnnotation){
-	        this.selectedAnnotation.blur();
-	        this.selectedAnnotation = null;
-	      }
-	      if (e){
-	        this.selectedAnnotation = e;
-	        this.selectedAnnotation.select();
+	      if (undefined != data.event && data.event.ctrlKey){
+	        this.relationTarget = data.annotation;
+	        this.relationTarget.select();
+	        this.selectedAnnotation.hideLabel();
+	      } else{
+	        this.unselectAnnotationTarget();
+	        this.unselectRelationTarget();
+	        if (data.annotation){
+	          this.selectedAnnotation = data.annotation;
+	          this.selectedAnnotation.selectForEditing();
+	        }
 	      }
 	    }
 	  }
@@ -10478,8 +10489,38 @@
 	    }
 	  }
 	
-	  commitSelection(){
+	  commitSelection(e){
+	    if (!$(e.target).hasClass("htmlanno-circle")) {
+	      // TODO:spanボタンを有効化
+	      this.unselectAnnotationTarget();
+	      this.unselectRelationTarget();
+	    }
+	  }
+	
+	  unselectAnnotationTarget(){
+	    if (this.selectedAnnotation){
+	      this.selectedAnnotation.blur();
+	      this.selectedAnnotation = null;
+	    }
+	  }
+	
+	  unselectRelationTarget(){
+	    if (this.relationTarget){
+	      this.relationTarget.blur();
+	      this.relationTarget = null;
+	    }
+	  }
+	
+	  handleAddSpan(){
 	    this.highlighter.highlight();
+	    // TODO:spanボタンを無効化;
+	  }
+	
+	  handleAddRelation(){
+	    if (null != this.selectedAnnotation && null != this.relationTarget){
+	      let arrowId = this.arrowConnector.maxId() + 1;
+	      this.arrowConnector.create(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+	    }
 	  }
 	
 	  loadStorage(){
@@ -10949,26 +10990,6 @@
 	    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
 	    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
 	
-	    globalEvent.on(this, "drag", (e)=>{
-	      this.mouseX = e.originalEvent.pageX - 1;
-	      this.mouseY = e.originalEvent.pageY - 1;
-	      this.arrow.point({left: this.mouseX, top: this.mouseY});
-	    });
-	
-	    globalEvent.on(this, "dragenter", (data)=>{
-	      this.enteredCircle = data.circle;
-	      data.circle.jObject.addClass("htmlanno-circle-hover");
-	    });
-	
-	    globalEvent.on(this, "dragleave", (data)=>{
-	      data.circle.jObject.removeClass("htmlanno-circle-hover");
-	      data.circle.jObject.css("transition", "0.1s");
-	    });
-	
-	    globalEvent.on(this, "dragend", (data)=>{
-	      this.connect();
-	    });
-	
 	    globalEvent.on(this, "removecircle", (cir)=>{
 	      if (this.startingCircle === cir || this.endingCircle === cir){
 	        this.remove();
@@ -11437,7 +11458,7 @@
 	      highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
 	      highlight.label.setContent(text);
 	
-	      globalEvent.emit("highlightselect", highlight);
+	      globalEvent.emit("highlightselect", {annotation: highlight});
 	
 	      this.highlights.set(id, highlight);
 	    }
@@ -17409,6 +17430,7 @@
 	    this.elements.forEach((e)=>{
 	      $(e).addClass("htmlanno-border");
 	    });
+	    this.label.show();
 	  }
 	
 	  handleHoverOut(){
@@ -17416,6 +17438,7 @@
 	    this.elements.forEach((e)=>{
 	      $(e).removeClass("htmlanno-border");
 	    });
+	    this.label.hide();
 	  }
 	
 	  addCircle(){
@@ -17459,7 +17482,16 @@
 	
 	  select(){
 	    this.addClass("htmlanno-highlight-selected");
+	    this.label.show();
+	  }
+	
+	  selectForEditing(){
+	    this.select();
 	    this.label.select();
+	  }
+	
+	  hideLabel(){
+	    this.label.blur();
 	  }
 	
 	  blur(){
@@ -17503,29 +17535,8 @@
 	
 	    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
 	
-	    this.jObject.on("dragstart", (e)=>{
-	      globalEvent.emit("dragstart", {event: e, circle: this});
-	
-	      // hide drag image
-	      e.originalEvent.dataTransfer.setDragImage(this.emptyImg(), 0, 0);
-	      e.originalEvent.dataTransfer.setData("text/plain",e.originalEvent.target.id);
-	      e.originalEvent.stopPropagation();
-	    });
-	
-	    this.jObject.on("dragend", (e)=>{
-	      globalEvent.emit("dragend", {event: e});
-	    });
-	
-	    this.jObject.on("dragenter", (e)=>{
-	      globalEvent.emit("dragenter", {event: e, circle: this});
-	    });
-	
-	    this.jObject.on("dragleave", (e)=>{
-	      globalEvent.emit("dragleave", {event: e, circle: this});
-	    });
-	
 	    this.jObject.on("click", (e)=>{
-	      globalEvent.emit("highlightselect", this.highlight);
+	      globalEvent.emit("highlightselect", {event: e, annotation: this.highlight});
 	    });
 	
 	    this.jObject.on("mouseenter", (e)=>{
