@@ -14,29 +14,8 @@ class Circle{
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
 
-    this.jObject.on("dragstart", (e)=>{
-      globalEvent.emit("dragstart", {event: e, circle: this});
-
-      // hide drag image
-      e.originalEvent.dataTransfer.setDragImage(this.emptyImg(), 0, 0);
-      e.originalEvent.dataTransfer.setData("text/plain",e.originalEvent.target.id);
-      e.originalEvent.stopPropagation();
-    });
-
-    this.jObject.on("dragend", (e)=>{
-      globalEvent.emit("dragend", {event: e});
-    });
-
-    this.jObject.on("dragenter", (e)=>{
-      globalEvent.emit("dragenter", {event: e, circle: this});
-    });
-
-    this.jObject.on("dragleave", (e)=>{
-      globalEvent.emit("dragleave", {event: e, circle: this});
-    });
-
     this.jObject.on("click", (e)=>{
-      globalEvent.emit("highlightselect", this.highlight);
+      globalEvent.emit("highlightselect", {event: e, annotation: this.highlight});
     });
 
     this.jObject.on("mouseenter", (e)=>{
