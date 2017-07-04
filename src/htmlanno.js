@@ -1,6 +1,7 @@
 const $ = require("jquery");
 
 const EventManager = require("./eventmanager");
+const TomlTool = require("./tomltool.js");
 
 window.globalEvent = new EventManager();
 
@@ -30,6 +31,7 @@ class Htmlanno{
     });
     globalEvent.on(this, "addSpan", this.handleAddSpan.bind(this));
     globalEvent.on(this, "addRelation", this.handleAddRelation.bind(this));
+    globalEvent.on(this, "exportAnnotation", this.handleExportAnnotation.bind(this));
 
     /*
        setInterval(()=>{
@@ -111,6 +113,10 @@ class Htmlanno{
 
     $("#add_relation").on("click", (e)=>{
       globalEvent.emit("addRelation", e);
+    });
+
+    $("#export").on("click", (e)=>{
+      globalEvent.emit("exportAnnotation", e);
     });
   }
 
@@ -201,6 +207,22 @@ class Htmlanno{
       let arrowId = this.arrowConnector.maxId() + 1;
       this.arrowConnector.create(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
     }
+  }
+
+  handleExportAnnotation(){
+    let annotationMaps = [
+      this.highlighter.highlights,
+      this.arrowConnector.arrowAnnotations
+    ];
+    let data = TomlTool.saveToml(annotationMaps);
+    let blob = new Blob([data.join("\n")]);
+    let blobURL = window.URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    document.body.appendChild(a); // for firefox working correctly.
+    a.download = "export.toml"; // TODO: 仮設定
+    a.href = blobURL;
+    a.click();
+    a.parentNode.removeChild(a);
   }
 
   loadStorage(){
