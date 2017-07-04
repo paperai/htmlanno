@@ -33,6 +33,7 @@ class Highlight{
     this.elements.forEach((e)=>{
       $(e).addClass("htmlanno-border");
     });
+    this.label.show();
   }
 
   handleHoverOut(){
@@ -40,6 +41,7 @@ class Highlight{
     this.elements.forEach((e)=>{
       $(e).removeClass("htmlanno-border");
     });
+    this.label.hide();
   }
 
   addCircle(){
@@ -83,7 +85,16 @@ class Highlight{
 
   select(){
     this.addClass("htmlanno-highlight-selected");
+    this.label.show();
+  }
+
+  selectForEditing(){
+    this.select();
     this.label.select();
+  }
+
+  hideLabel(){
+    this.label.blur();
   }
 
   blur(){

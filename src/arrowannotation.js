@@ -22,26 +22,6 @@ class ArrowAnnotation{
     this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
     this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
 
-    globalEvent.on(this, "drag", (e)=>{
-      this.mouseX = e.originalEvent.pageX - 1;
-      this.mouseY = e.originalEvent.pageY - 1;
-      this.arrow.point({left: this.mouseX, top: this.mouseY});
-    });
-
-    globalEvent.on(this, "dragenter", (data)=>{
-      this.enteredCircle = data.circle;
-      data.circle.jObject.addClass("htmlanno-circle-hover");
-    });
-
-    globalEvent.on(this, "dragleave", (data)=>{
-      data.circle.jObject.removeClass("htmlanno-circle-hover");
-      data.circle.jObject.css("transition", "0.1s");
-    });
-
-    globalEvent.on(this, "dragend", (data)=>{
-      this.connect();
-    });
-
     globalEvent.on(this, "removecircle", (cir)=>{
       if (this.startingCircle === cir || this.endingCircle === cir){
         this.remove();

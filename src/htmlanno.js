@@ -17,26 +17,19 @@ class Htmlanno{
     this.handleResize();
     this.wrapGlobalEvents();
     this.selectedAnnotation = null;
+    this.relationTarget = null;
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
     globalEvent.on(this, "arrowannotationselect", this.handleSelect.bind(this));
     globalEvent.on(this, "highlightselect", this.handleSelect.bind(this));
-    globalEvent.on(this, "mouseup", this.commitSelection.bind(this));
+    globalEvent.on(this, "commitSelection", this.commitSelection.bind(this));
 
-    globalEvent.on(this, "dragstart", (data)=>{
-      this.arrowConnector.createDragingArrow(data.circle);
-    });
-    globalEvent.on(this, "arrowannotationconnect", (data)=>{
-      this.arrowConnector.add(data);
-      if (this.selectedAnnotation){
-        this.selectedAnnotation.blur();
-        this.selectedAnnotation = null;
-      }
-    });
     globalEvent.on(this, "removearrowannotation", (data)=>{
       this.arrowConnector.removeAnnotation(data);
     });
+    globalEvent.on(this, "addSpan", this.handleAddSpan.bind(this));
+    globalEvent.on(this, "addRelation", this.handleAddRelation.bind(this));
 
     /*
        setInterval(()=>{
@@ -107,20 +100,38 @@ class Htmlanno{
     $(window).on("resize", (e)=>{
       globalEvent.emit("resizewindow", e);
     });
+
+    $("#parent").on("mouseup", (e)=>{
+      globalEvent.emit("commitSelection", e);
+    });
+
+    $("#add_span").on("click", (e)=>{
+      globalEvent.emit("addSpan", e);
+    });
+
+    $("#add_relation").on("click", (e)=>{
+      globalEvent.emit("addRelation", e);
+    });
   }
 
-  handleSelect(e){
-    if (this.selectedAnnotation === e){
-      this.selectedAnnotation.blur();
-      this.selectedAnnotation = null;
+  handleSelect(data){
+    if (this.selectedAnnotation === data.annotation){
+      this.unselectAnnotationTarget();
+      this.unselectRelationTarget();
+    } else if (this.relationTarget === data.annotation){
+      this.unselectRelationTarget();
     } else{
-      if (this.selectedAnnotation){
-        this.selectedAnnotation.blur();
-        this.selectedAnnotation = null;
-      }
-      if (e){
-        this.selectedAnnotation = e;
-        this.selectedAnnotation.select();
+      if (undefined != data.event && data.event.ctrlKey){
+        this.relationTarget = data.annotation;
+        this.relationTarget.select();
+        this.selectedAnnotation.hideLabel();
+      } else{
+        this.unselectAnnotationTarget();
+        this.unselectRelationTarget();
+        if (data.annotation){
+          this.selectedAnnotation = data.annotation;
+          this.selectedAnnotation.selectForEditing();
+        }
       }
     }
   }
@@ -158,8 +169,38 @@ class Htmlanno{
     }
   }
 
-  commitSelection(){
+  commitSelection(e){
+    if (!$(e.target).hasClass("htmlanno-circle")) {
+      // TODO:spanボタンを有効化
+      this.unselectAnnotationTarget();
+      this.unselectRelationTarget();
+    }
+  }
+
+  unselectAnnotationTarget(){
+    if (this.selectedAnnotation){
+      this.selectedAnnotation.blur();
+      this.selectedAnnotation = null;
+    }
+  }
+
+  unselectRelationTarget(){
+    if (this.relationTarget){
+      this.relationTarget.blur();
+      this.relationTarget = null;
+    }
+  }
+
+  handleAddSpan(){
     this.highlighter.highlight();
+    // TODO:spanボタンを無効化;
+  }
+
+  handleAddRelation(){
+    if (null != this.selectedAnnotation && null != this.relationTarget){
+      let arrowId = this.arrowConnector.maxId() + 1;
+      this.arrowConnector.create(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+    }
   }
 
   loadStorage(){
