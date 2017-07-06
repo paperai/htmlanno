@@ -131,6 +131,15 @@ class ArrowAnnotation{
       this.label.content()
     ];
   }
+
+  saveToml(){
+    return [
+      'type = "relation"',
+      'dir = "one-way"',
+      `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
+      `label = "${this.label.content()}"`
+    ].join("\n");
+  }
 }
 
 module.exports = ArrowAnnotation;

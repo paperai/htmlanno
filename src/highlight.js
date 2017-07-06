@@ -114,5 +114,14 @@ class Highlight{
   saveData(){
     return [this.startOffset, this.endOffset, this.label.content()];
   }
+
+  saveToml(){
+    return [
+      'type = "span"',
+      `position = [${this.startOffset}, ${this.endOffset}]`,
+      'text = "' + $(this.elements).text() + '"',
+      `label = "${this.label.content()}"`
+    ].join("\n");
+  }
 }
 module.exports = Highlight;
