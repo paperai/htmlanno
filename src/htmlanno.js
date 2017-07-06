@@ -1,10 +1,10 @@
 const $ = require("jquery");
 
 const EventManager = require("./eventmanager");
-const TomlTool = require("./tomltool.js");
 
 window.globalEvent = new EventManager();
 
+const TomlTool = require("./tomltool.js");
 const ArrowAnnotation = require("./arrowannotation.js");
 const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
@@ -32,6 +32,7 @@ class Htmlanno{
     globalEvent.on(this, "addSpan", this.handleAddSpan.bind(this));
     globalEvent.on(this, "addRelation", this.handleAddRelation.bind(this));
     globalEvent.on(this, "exportAnnotation", this.handleExportAnnotation.bind(this));
+    globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
 
     /*
        setInterval(()=>{
@@ -117,6 +118,10 @@ class Htmlanno{
 
     $("#export").on("click", (e)=>{
       globalEvent.emit("exportAnnotation", e);
+    });
+
+    $("#import").on("click", (e)=>{
+      globalEvent.emit("importAnnotation", e);
     });
   }
 
@@ -223,6 +228,11 @@ class Htmlanno{
     a.href = blobURL;
     a.click();
     a.parentNode.removeChild(a);
+  }
+
+  handleImportAnnotation(){
+    let uploaded_files = $("#import_file")[0].files;
+    TomlTool.loadToml(uploaded_files[0], this.highlighter, this.arrowConnector);
   }
 
   loadStorage(){
