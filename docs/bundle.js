@@ -10539,7 +10539,7 @@
 	    let blobURL = window.URL.createObjectURL(blob);
 	    let a = document.createElement('a');
 	    document.body.appendChild(a); // for firefox working correctly.
-	    a.download = "export.toml"; // TODO: 仮設定
+	    a.download = "export.htmlanno"; // TODO: 仮設定
 	    a.href = blobURL;
 	    a.click();
 	    a.parentNode.removeChild(a);
