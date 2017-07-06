@@ -123,5 +123,10 @@ class Highlight{
       `label = "${this.label.content()}"`
     ].join("\n");
   }
+
+  static isMydata(toml){
+    return (undefined != toml && "span" == toml.type);
+  }
 }
+
 module.exports = Highlight;

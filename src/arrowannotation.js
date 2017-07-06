@@ -140,6 +140,10 @@ class ArrowAnnotation{
       `label = "${this.label.content()}"`
     ].join("\n");
   }
+
+  static isMydata(toml){
+    return (undefined != toml && "relation" == toml.type && "one-way" == toml.dir);
+  }
 }
 
 module.exports = ArrowAnnotation;
