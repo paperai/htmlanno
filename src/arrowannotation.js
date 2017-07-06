@@ -133,12 +133,12 @@ class ArrowAnnotation{
   }
 
   saveToml(){
-    return `
-type = "relation"
-dir = "one-way"
-ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]
-label = "${this.label.content()}"
-`;
+    return [
+      'type = "relation"',
+      'dir = "one-way"',
+      `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
+      `label = "${this.label.content()}"`
+    ].join("\n");
   }
 }
 

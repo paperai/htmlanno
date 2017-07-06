@@ -215,7 +215,7 @@ class Htmlanno{
       this.arrowConnector.arrowAnnotations
     ];
     let data = TomlTool.saveToml(annotationMaps);
-    let blob = new Blob([data.join("\n")]);
+    let blob = new Blob(data);
     let blobURL = window.URL.createObjectURL(blob);
     let a = document.createElement('a');
     document.body.appendChild(a); // for firefox working correctly.

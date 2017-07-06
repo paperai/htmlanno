@@ -116,12 +116,12 @@ class Highlight{
   }
 
   saveToml(){
-    return `
-type = "span"
-position = [${this.startOffset}, ${this.endOffset}]
-text = "TODO: 出力"
-label = "${this.label.content()}"
-`;
+    return [
+      'type = "span"',
+      `position = [${this.startOffset}, ${this.endOffset}]`,
+      'text = "' + $(this.elements).text() + '"',
+      `label = "${this.label.content()}"`
+    ].join("\n");
   }
 }
 module.exports = Highlight;
