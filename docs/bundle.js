@@ -10321,13 +10321,14 @@
 	const $ = __webpack_require__(1);
 	
 	const EventManager = __webpack_require__(3);
+	const TomlTool = __webpack_require__(5);
 	
 	window.globalEvent = new EventManager();
 	
-	const ArrowAnnotation = __webpack_require__(5);
-	const Highlighter = __webpack_require__(8);
-	const Circle = __webpack_require__(14);
-	const ArrowConnector = __webpack_require__(15);
+	const ArrowAnnotation = __webpack_require__(6);
+	const Highlighter = __webpack_require__(9);
+	const Circle = __webpack_require__(15);
+	const ArrowConnector = __webpack_require__(16);
 	
 	class Htmlanno{
 	  constructor(){
@@ -10350,6 +10351,7 @@
 	    });
 	    globalEvent.on(this, "addSpan", this.handleAddSpan.bind(this));
 	    globalEvent.on(this, "addRelation", this.handleAddRelation.bind(this));
+	    globalEvent.on(this, "exportAnnotation", this.handleExportAnnotation.bind(this));
 	
 	    /*
 	       setInterval(()=>{
@@ -10431,6 +10433,10 @@
 	
 	    $("#add_relation").on("click", (e)=>{
 	      globalEvent.emit("addRelation", e);
+	    });
+	
+	    $("#export").on("click", (e)=>{
+	      globalEvent.emit("exportAnnotation", e);
 	    });
 	  }
 	
@@ -10521,6 +10527,22 @@
 	      let arrowId = this.arrowConnector.maxId() + 1;
 	      this.arrowConnector.create(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
 	    }
+	  }
+	
+	  handleExportAnnotation(){
+	    let annotationMaps = [
+	      this.highlighter.highlights,
+	      this.arrowConnector.arrowAnnotations
+	    ];
+	    let data = TomlTool.saveToml(annotationMaps);
+	    let blob = new Blob(data);
+	    let blobURL = window.URL.createObjectURL(blob);
+	    let a = document.createElement('a');
+	    document.body.appendChild(a); // for firefox working correctly.
+	    a.download = "export.toml"; // TODO: 仮設定
+	    a.href = blobURL;
+	    a.click();
+	    a.parentNode.removeChild(a);
 	  }
 	
 	  loadStorage(){
@@ -10964,11 +10986,31 @@
 
 /***/ }),
 /* 5 */
+/***/ (function(module, exports) {
+
+	exports.saveToml = (annotationMaps)=>{
+	  let data = ["version = 0.1"];
+	  let counter = 1;
+	  annotationMaps.forEach((annotationMap)=>{
+	    annotationMap.forEach((annotation)=>{
+	      data.push("");
+	      data.push(`[${counter}]`);
+	      data.push(annotation.saveToml());
+	
+	      counter ++;
+	    });
+	  });
+	  return [data.join("\n")];
+	};
+
+
+/***/ }),
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
-	const Label = __webpack_require__(6);
-	const Arrow = __webpack_require__(7);
+	const Label = __webpack_require__(7);
+	const Arrow = __webpack_require__(8);
 	const globalEvent = window.globalEvent;
 	
 	class ArrowAnnotation{
@@ -11099,6 +11141,15 @@
 	      this.label.content()
 	    ];
 	  }
+	
+	  saveToml(){
+	    return [
+	      'type = "relation"',
+	      'dir = "one-way"',
+	      `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
+	      `label = "${this.label.content()}"`
+	    ].join("\n");
+	  }
 	}
 	
 	module.exports = ArrowAnnotation;
@@ -11106,7 +11157,7 @@
 
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
@@ -11233,7 +11284,7 @@
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
@@ -11343,16 +11394,16 @@
 
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
-	const rangy = __webpack_require__(9);
-	__webpack_require__(10);
+	const rangy = __webpack_require__(10);
 	__webpack_require__(11);
 	__webpack_require__(12);
+	__webpack_require__(13);
 	
-	const Highlight = __webpack_require__(13);
+	const Highlight = __webpack_require__(14);
 	const globalEvent = window.globalEvent;
 	
 	class Highlighter{
@@ -11420,7 +11471,7 @@
 	  }
 	
 	  maxId(){
-	    let maxId = 1;
+	    let maxId = 0;
 	    for (let [id, value] of this.highlights) {
 	      maxId = Math.max(maxId, id);
 	    }
@@ -11488,7 +11539,7 @@
 
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -15338,7 +15389,7 @@
 	}, this);
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -15358,7 +15409,7 @@
 	(function(factory, root) {
 	    if (true) {
 	        // AMD. Register as an anonymous module with a dependency on Rangy.
-	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(9)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(10)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	    } else if (typeof module != "undefined" && typeof exports == "object") {
 	        // Node/CommonJS style
 	        module.exports = factory( require("rangy") );
@@ -16447,7 +16498,7 @@
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -16464,7 +16515,7 @@
 	(function(factory, root) {
 	    if (true) {
 	        // AMD. Register as an anonymous module with a dependency on Rangy.
-	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(9)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(10)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	    } else if (typeof module != "undefined" && typeof exports == "object") {
 	        // Node/CommonJS style
 	        module.exports = factory( require("rangy") );
@@ -17073,7 +17124,7 @@
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -17094,7 +17145,7 @@
 	(function(factory, root) {
 	    if (true) {
 	        // AMD. Register as an anonymous module with a dependency on Rangy.
-	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(9)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(10)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	    } else if (typeof module != "undefined" && typeof exports == "object") {
 	        // Node/CommonJS style
 	        module.exports = factory( require("rangy") );
@@ -17392,12 +17443,12 @@
 	}, this);
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
-	const Circle = __webpack_require__(14);
-	const Label = __webpack_require__(6);
+	const Circle = __webpack_require__(15);
+	const Label = __webpack_require__(7);
 	const globalEvent = window.globalEvent;
 	
 	class Highlight{
@@ -17511,12 +17562,21 @@
 	  saveData(){
 	    return [this.startOffset, this.endOffset, this.label.content()];
 	  }
+	
+	  saveToml(){
+	    return [
+	      'type = "span"',
+	      `position = [${this.startOffset}, ${this.endOffset}]`,
+	      'text = "' + $(this.elements).text() + '"',
+	      `label = "${this.label.content()}"`
+	    ].join("\n");
+	  }
 	}
 	module.exports = Highlight;
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
@@ -17650,10 +17710,10 @@
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const ArrowAnnotation = __webpack_require__(5);
+	const ArrowAnnotation = __webpack_require__(6);
 	
 	class ArrowConnector{
 	  constructor(){
@@ -17670,7 +17730,7 @@
 	  }
 	
 	  maxId(){
-	    let maxId = 1;
+	    let maxId = 0;
 	    for (let [id, value] of this.arrowAnnotations) {
 	      maxId = Math.max(maxId, id);
 	    }
