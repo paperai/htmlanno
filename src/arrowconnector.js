@@ -15,7 +15,7 @@ class ArrowConnector{
   }
 
   maxId(){
-    let maxId = 1;
+    let maxId = 0;
     for (let [id, value] of this.arrowAnnotations) {
       maxId = Math.max(maxId, id);
     }
