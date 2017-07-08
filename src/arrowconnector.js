@@ -1,53 +1,56 @@
 const ArrowAnnotation = require("./arrowannotation.js");
 
 class ArrowConnector{
-  constructor(){
-    this.arrowAnnotations = new Map();
+  constructor(annotationSet){
+    this.annotations = annotationSet;
     this.dragingArrow = null;
   }
 
   get(id){
-    this.arrowAnnotations.get(id);
+    this.annotations.get(id);
   }
 
   add(data){
-    this.arrowAnnotations.set(data.id, data);
-  }
-
-  maxId(){
-    let maxId = 0;
-    for (let [id, value] of this.arrowAnnotations) {
-      maxId = Math.max(maxId, id);
-    }
-    return maxId;
+    this.annotations.set(data.getId(), data);
   }
 
   createDragingArrow(startingCircle){
     if (this.dragingArrow){
       this.dragingArrow.remove();
     }
-    const id = this.maxId() + 1;
+    const id = this.annotations.nextId();
     this.dragingArrow = new ArrowAnnotation(id, startingCircle);
     return this.dragingArrow;
   }
 
   create(id, startingCircle, endingCircle, text){
     const arrow = new ArrowAnnotation(id, startingCircle);
-    this.arrowAnnotations.set(id, arrow);
+    this.annotations.set(arrow);
     arrow.setEndingCircle(endingCircle);
     arrow.label.setContent(text);
     return arrow;
   }
 
+  addToml(id, toml){
+    let startAnnotation   = this.annotations.get(parseInt(toml.ids[0]));
+    let enteredAnnotation = this.annotations.get(parseInt(toml.ids[1]));
+    this.create(
+      id,
+      startAnnotation.circle, enteredAnnotation.circle,
+      toml.label
+    );
+  }
+
   remove(){
-    this.arrowAnnotations.forEach((e)=>{
-      e.remove();
+    this.annotations.forEach((annotation, i)=>{
+      if (annotation instanceof ArrowAnnotation) {
+        this.annotations.delete(i);
+      }
     });
-    this.arrowAnnotations = new Map();
   }
 
   removeAnnotation(arrow){
-    this.arrowAnnotations.delete(arrow.id);
+    this.annotations.delete(arrow);
   }
 }
 
