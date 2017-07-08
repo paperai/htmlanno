@@ -8,8 +8,8 @@ const Highlight = require("./highlight.js");
 const globalEvent = window.globalEvent;
 
 class Highlighter{
-  constructor(){
-    this.highlights = new Map();
+  constructor(annotationSet){
+    this.highlights = annotationSet;
     this.highlighter = rangy.createHighlighter();
   }
 
@@ -71,21 +71,13 @@ class Highlighter{
     selection.setSingleRange(range);
   }
 
-  maxId(){
-    let maxId = 0;
-    for (let [id, value] of this.highlights) {
-      maxId = Math.max(maxId, id);
-    }
-    return maxId;
-  }
-
   highlight(){
     const selection = rangy.getSelection();
     if (selection.isCollapsed){
       return;
     }
 
-    const id = this.maxId() + 1;
+    const id = this.highlights.nextId();
     const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
     const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
     return this.create(id, startOffset, endOffset, "");
@@ -112,11 +104,23 @@ class Highlighter{
 
       globalEvent.emit("highlightselect", {annotation: highlight});
 
-      this.highlights.set(id, highlight);
+      // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
+      this.highlights.set(highlight);
     }
     selection.removeAllRanges();
 
     return highlight;
+  }
+
+  addToml(id, toml){
+    this.selectRange(toml.position[0], toml.position[1]);
+    const selection = rangy.getSelection();
+    if (!selection.isCollapsed){
+      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
+      const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
+      let span = this.create(id, startOffset, endOffset, toml.label);
+      span.blur();
+    }
   }
 
   get(id){
@@ -125,14 +129,15 @@ class Highlighter{
 
   remove(){
     this.highlighter.removeAllHighlights();
-    for (let [id, hl] of this.highlights) {
-      hl.remove();
-    }
-    this.highlights = new Map();
+    this.highlights.forEach((annotation, i)=>{
+      if (annotation instanceof Highlight){
+        this.highlights.delete(i);
+      }
+    });
   }
 
   removeAnnotation(highlight){
-    this.highlights.delete(highlight.id);
+    this.highlights.delete(highlight);
   }
 }
 

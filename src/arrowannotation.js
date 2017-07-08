@@ -140,6 +140,24 @@ class ArrowAnnotation{
       `label = "${this.label.content()}"`
     ].join("\n");
   }
+
+  equals(obj){
+    if (undefined == obj || this !== obj) {
+      return false;
+    }
+    else {
+      // TODO: 同一ID、同一のstarting/entering等でチェックするか？
+      return true;
+    }
+  }
+
+  getId(){
+    return this.id;
+  }
+
+  static isMydata(toml){
+    return (undefined != toml && "relation" == toml.type && "one-way" == toml.dir);
+  }
 }
 
 module.exports = ArrowAnnotation;
