@@ -3,17 +3,12 @@ const rangy = require("rangy");
 const Highlight = require("./highlight.js");
 const ArrowAnnotation = require("./arrowannotation.js");
 
-exports.saveToml = (annotationMaps)=>{
+exports.saveToml = (annotationSet)=>{
   let data = ["version = 0.1"];
-  let counter = 1;
-  annotationMaps.forEach((annotationMap)=>{
-    annotationMap.forEach((annotation)=>{
-      data.push("");
-      data.push(`[${counter}]`);
-      data.push(annotation.saveToml());
-
-      counter ++;
-    });
+  annotationSet.forEach((annotation)=>{
+    data.push("");
+    data.push(`[${annotation.getId()}]`);
+    data.push(annotation.saveToml());
   });
   return [data.join("\n")];
 };
@@ -22,30 +17,17 @@ exports.loadToml = (fileBlob, highlighter, arrowConnector)=>{
   let reader = new FileReader();
   reader.onload = ()=>{
     let data = TomlParser.parse(reader.result);
-  // Span.
     for(key in data) {
       if ("version" == key) {
         continue;
       }
-      let table = data[key];
-      if (Highlight.isMydata(table)) {
-        highlighter.selectRange(table.position[0], table.position[1]);
-        let span = highlighter.highlight();
-        span.label.setContent(table.label);
-        span.blur();
+    // Span.
+      if (Highlight.isMydata(data[key])) {
+        highlighter.addToml(key, data[key]);
       }
-    }
-  // ArrowAnnotation(one-way).
-    for(key in data) {
-      if ("version" == key) {
-        continue;
-      }
-      let table = data[key];
-      if (ArrowAnnotation.isMydata(table)) {
-        let arrowId = arrowConnector.maxId() + 1;
-        let startAnnotation = highlighter.get(parseInt(table.ids[0]));
-        let enteredAnnotation = highlighter.get(parseInt(table.ids[1]));
-        arrowConnector.create(arrowId, startAnnotation.circle, enteredAnnotation.circle, table.label);
+    // ArrowAnnotation(one-way).
+      if (ArrowAnnotation.isMydata(data[key])) {
+        arrowConnector.addToml(key, data[key]);
       }
     }
   };
