@@ -9,12 +9,14 @@ const ArrowAnnotation = require("./arrowannotation.js");
 const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
+const AnnotationSet = require("./annotationset.js");
 
 class Htmlanno{
   constructor(){
     this.setupHtml();
-    this.highlighter = new Highlighter();
-    this.arrowConnector = new ArrowConnector();
+    this.annotations = new AnnotationSet();
+    this.highlighter = new Highlighter(this.annotations);
+    this.arrowConnector = new ArrowConnector(this.annotations);
     this.handleResize();
     this.wrapGlobalEvents();
     this.selectedAnnotation = null;
@@ -133,9 +135,11 @@ class Htmlanno{
       this.unselectRelationTarget();
     } else{
       if (undefined != data.event && data.event.ctrlKey){
-        this.relationTarget = data.annotation;
-        this.relationTarget.select();
-        this.selectedAnnotation.hideLabel();
+        if (this.selectedAnnotation){
+          this.relationTarget = data.annotation;
+          this.relationTarget.select();
+          this.selectedAnnotation.hideLabel();
+        }
       } else{
         this.unselectAnnotationTarget();
         this.unselectRelationTarget();
@@ -209,18 +213,13 @@ class Htmlanno{
 
   handleAddRelation(){
     if (null != this.selectedAnnotation && null != this.relationTarget){
-      let arrowId = this.arrowConnector.maxId() + 1;
+      let arrowId = this.annotations.nextId();
       this.arrowConnector.create(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
     }
   }
 
   handleExportAnnotation(){
-    let annotationMaps = [
-      this.highlighter.highlights,
-      this.arrowConnector.arrowAnnotations
-    ];
-    let data = TomlTool.saveToml(annotationMaps);
-    let blob = new Blob(data);
+    let blob = new Blob(TomlTool.saveToml(this.annotations));
     let blobURL = window.URL.createObjectURL(blob);
     let a = document.createElement('a');
     document.body.appendChild(a); // for firefox working correctly.
@@ -235,73 +234,9 @@ class Htmlanno{
     TomlTool.loadToml(uploaded_files[0], this.highlighter, this.arrowConnector);
   }
 
-  loadStorage(){
-    const json = localStorage.getItem(this.storageKey());
-    this.remove();
-
-    if (json){
-      this.fromJson(json);
-    }
-  }
-
   remove(){
     this.highlighter.remove();
     this.arrowConnector.remove();
-  }
-
-  saveData(){
-    const data = {};
-    this.highlighter.highlights.forEach((e)=>{
-      data[`span-${e.id}`] = e.saveData();
-    });
-
-    this.arrowConnector.arrowAnnotations.forEach((e)=>{
-      data[`rel-${e.id}`] = e.saveData();
-    });
-
-    return data;
-  }
-
-  loadData(data){
-    const parseId = (key)=>{
-      const type = key.split(/-/)[0];
-      const id = parseInt(key.split(/-/)[1], 10);
-      return {id: id, type: type};
-    }
-
-    // load spans first
-    for (let key in data){
-      const type = parseId(key).type;
-      const id = parseId(key).id;
-      if (type === "span"){
-        const startOffset = data[key][0];
-        const endOffset = data[key][1];
-        const text = data[key][2];
-        this.highlighter.create(id, startOffset, endOffset, text);
-      }
-    }
-
-    for (let key in data){
-      const type = parseId(key).type;
-      const id = parseId(key).id;
-      if (type === "rel"){
-        const from = parseId(data[key][1]).id;
-        const to = parseId(data[key][2]).id;
-        const text = data[key][3];
-        const startingCircle = this.highlighter.get(from).circle;
-        const endingCircle = this.highlighter.get(to).circle;
-        const arrow = this.arrowConnector.create(id, startingCircle, endingCircle, text);
-        arrow.blur();
-      }
-    }
-  }
-
-  toJson(){
-    return JSON.stringify(this.saveData());
-  }
-
-  fromJson(json){
-    this.loadData(JSON.parse(json));
   }
 }
 
