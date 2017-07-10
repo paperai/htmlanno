@@ -1,17 +1,17 @@
 const ArrowAnnotation = require("./arrowannotation.js");
 
 class ArrowConnector{
-  constructor(annotationSet){
-    this.annotations = annotationSet;
+  constructor(annotationContainer){
+    this.annotations = annotationContainer;
     this.dragingArrow = null;
   }
 
   get(id){
-    this.annotations.get(id);
+    this.annotations.findById(id);
   }
 
   add(data){
-    this.annotations.set(data.getId(), data);
+    this.annotations.add(data);
   }
 
   createDragingArrow(startingCircle){
@@ -25,15 +25,15 @@ class ArrowConnector{
 
   create(id, startingCircle, endingCircle, text){
     const arrow = new ArrowAnnotation(id, startingCircle);
-    this.annotations.set(arrow);
+    this.annotations.add(arrow);
     arrow.setEndingCircle(endingCircle);
     arrow.label.setContent(text);
     return arrow;
   }
 
   addToml(id, toml){
-    let startAnnotation   = this.annotations.get(parseInt(toml.ids[0]));
-    let enteredAnnotation = this.annotations.get(parseInt(toml.ids[1]));
+    let startAnnotation   = this.annotations.findById(parseInt(toml.ids[0]));
+    let enteredAnnotation = this.annotations.findById(parseInt(toml.ids[1]));
     this.create(
       id,
       startAnnotation.circle, enteredAnnotation.circle,
@@ -44,13 +44,13 @@ class ArrowConnector{
   remove(){
     this.annotations.forEach((annotation, i)=>{
       if (annotation instanceof ArrowAnnotation) {
-        this.annotations.delete(i);
+        this.annotations.remove(i);
       }
     });
   }
 
   removeAnnotation(arrow){
-    this.annotations.delete(arrow);
+    this.annotations.remove(arrow);
   }
 }
 

@@ -9,12 +9,12 @@ const ArrowAnnotation = require("./arrowannotation.js");
 const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
-const AnnotationSet = require("./annotationset.js");
+const AnnotationContainer = require("./annotationcontainer.js");
 
 class Htmlanno{
   constructor(){
     this.setupHtml();
-    this.annotations = new AnnotationSet();
+    this.annotations = new AnnotationContainer();
     this.highlighter = new Highlighter(this.annotations);
     this.arrowConnector = new ArrowConnector(this.annotations);
     this.handleResize();

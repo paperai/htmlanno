@@ -8,8 +8,8 @@ const Highlight = require("./highlight.js");
 const globalEvent = window.globalEvent;
 
 class Highlighter{
-  constructor(annotationSet){
-    this.highlights = annotationSet;
+  constructor(annotationContainer){
+    this.highlights = annotationContainer;
     this.highlighter = rangy.createHighlighter();
   }
 
@@ -105,7 +105,7 @@ class Highlighter{
       globalEvent.emit("highlightselect", {annotation: highlight});
 
       // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
-      this.highlights.set(highlight);
+      this.highlights.add(highlight);
     }
     selection.removeAllRanges();
 
@@ -118,26 +118,26 @@ class Highlighter{
     if (!selection.isCollapsed){
       const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
       const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-      let span = this.create(id, startOffset, endOffset, toml.label);
+      let span = this.create(parseInt(id), startOffset, endOffset, toml.label);
       span.blur();
     }
   }
 
   get(id){
-    return this.highlights.get(id);
+    return this.highlights.findById(id);
   }
 
   remove(){
     this.highlighter.removeAllHighlights();
     this.highlights.forEach((annotation, i)=>{
       if (annotation instanceof Highlight){
-        this.highlights.delete(i);
+        this.highlights.remove(i);
       }
     });
   }
 
   removeAnnotation(highlight){
-    this.highlights.delete(highlight);
+    this.highlights.remove(highlight);
   }
 }
 
