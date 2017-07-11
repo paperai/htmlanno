@@ -21882,6 +21882,7 @@
 	    if (!this.isAnnotation(annotation)) {
 	      return false;
 	    }
+	    this.maxId = Math.max(this.maxId, parseInt(annotation.getId()));
 	    this.set.add(annotation);
 	    return true;
 	  }
