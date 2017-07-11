@@ -10329,12 +10329,12 @@
 	const Highlighter = __webpack_require__(15);
 	const Circle = __webpack_require__(11);
 	const ArrowConnector = __webpack_require__(19);
-	const AnnotationSet = __webpack_require__(20);
+	const AnnotationContainer = __webpack_require__(20);
 	
 	class Htmlanno{
 	  constructor(){
 	    this.setupHtml();
-	    this.annotations = new AnnotationSet();
+	    this.annotations = new AnnotationContainer();
 	    this.highlighter = new Highlighter(this.annotations);
 	    this.arrowConnector = new ArrowConnector(this.annotations);
 	    this.handleResize();
@@ -19599,8 +19599,8 @@
 	const globalEvent = window.globalEvent;
 	
 	class Highlighter{
-	  constructor(annotationSet){
-	    this.highlights = annotationSet;
+	  constructor(annotationContainer){
+	    this.highlights = annotationContainer;
 	    this.highlighter = rangy.createHighlighter();
 	  }
 	
@@ -19696,7 +19696,7 @@
 	      globalEvent.emit("highlightselect", {annotation: highlight});
 	
 	      // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
-	      this.highlights.set(highlight);
+	      this.highlights.add(highlight);
 	    }
 	    selection.removeAllRanges();
 	
@@ -19709,26 +19709,26 @@
 	    if (!selection.isCollapsed){
 	      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
 	      const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-	      let span = this.create(id, startOffset, endOffset, toml.label);
+	      let span = this.create(parseInt(id), startOffset, endOffset, toml.label);
 	      span.blur();
 	    }
 	  }
 	
 	  get(id){
-	    return this.highlights.get(id);
+	    return this.highlights.findById(id);
 	  }
 	
 	  remove(){
 	    this.highlighter.removeAllHighlights();
 	    this.highlights.forEach((annotation, i)=>{
 	      if (annotation instanceof Highlight){
-	        this.highlights.delete(i);
+	        this.highlights.remove(i);
 	      }
 	    });
 	  }
 	
 	  removeAnnotation(highlight){
-	    this.highlights.delete(highlight);
+	    this.highlights.remove(highlight);
 	  }
 	}
 	
@@ -21796,17 +21796,17 @@
 	const ArrowAnnotation = __webpack_require__(13);
 	
 	class ArrowConnector{
-	  constructor(annotationSet){
-	    this.annotations = annotationSet;
+	  constructor(annotationContainer){
+	    this.annotations = annotationContainer;
 	    this.dragingArrow = null;
 	  }
 	
 	  get(id){
-	    this.annotations.get(id);
+	    this.annotations.findById(id);
 	  }
 	
 	  add(data){
-	    this.annotations.set(data.getId(), data);
+	    this.annotations.add(data);
 	  }
 	
 	  createDragingArrow(startingCircle){
@@ -21820,15 +21820,15 @@
 	
 	  create(id, startingCircle, endingCircle, text){
 	    const arrow = new ArrowAnnotation(id, startingCircle);
-	    this.annotations.set(arrow);
+	    this.annotations.add(arrow);
 	    arrow.setEndingCircle(endingCircle);
 	    arrow.label.setContent(text);
 	    return arrow;
 	  }
 	
 	  addToml(id, toml){
-	    let startAnnotation   = this.annotations.get(parseInt(toml.ids[0]));
-	    let enteredAnnotation = this.annotations.get(parseInt(toml.ids[1]));
+	    let startAnnotation   = this.annotations.findById(parseInt(toml.ids[0]));
+	    let enteredAnnotation = this.annotations.findById(parseInt(toml.ids[1]));
 	    this.create(
 	      id,
 	      startAnnotation.circle, enteredAnnotation.circle,
@@ -21839,13 +21839,13 @@
 	  remove(){
 	    this.annotations.forEach((annotation, i)=>{
 	      if (annotation instanceof ArrowAnnotation) {
-	        this.annotations.delete(i);
+	        this.annotations.remove(i);
 	      }
 	    });
 	  }
 	
 	  removeAnnotation(arrow){
-	    this.annotations.delete(arrow);
+	    this.annotations.remove(arrow);
 	  }
 	}
 	
@@ -21856,62 +21856,86 @@
 /* 20 */
 /***/ (function(module, exports) {
 
-	class AnnotationSet{
+	class AnnotationContainer{
 	  constructor(){
-	    this.annotations = new Array();
+	    this.set = new Set();
+	    this.maxId = 0;
 	  }
 	
+	  /**
+	   * htmlanno only
+	   */
 	  isAnnotation(obj){
 	    return (undefined != obj.equals && undefined != obj.getId);
 	  }
 	
+	  /**
+	   * Issue a ID for annotation object.
+	   *
+	   * htmlanno only
+	   */
 	  nextId(){
-	    this.annotations.push(undefined);
-	    return this.annotations.length;
+	    return ++this.maxId;
 	  }
 	
-	  set(annotation){
+	  add(annotation){
 	    if (!this.isAnnotation(annotation)) {
 	      return false;
 	    }
-	    for(let i in this.annotations) {
-	      if (undefined != this.annotations[i]) {
-	        if (this.annotations[i].equals(annotation)) {
-	          return false;
-	        }
-	      }
-	    }
-	    // TODO: idが示す位置がundefinedで無い場合どうするか？
-	    this.annotations[annotation.getId() - 1] = annotation;
+	    this.set.add(annotation);
 	    return true;
 	  }
 	
-	  get(id){
-	    return this.annotations[id - 1];
+	  findById(id){
+	    let obj = null;
+	    this.set.forEach((elm)=>{
+	      if (elm.getId() === id) {
+	        obj = elm;
+	      }
+	    });
+	    return obj;
 	  }
 	
 	  // TODO: 排他制御
-	  delete(annotationOrId){
+	  remove(annotationOrId){
 	    let elm = typeof(annotationOrId) === "number" ?
-	      this.get(annotationOrId):
-	      this.get(annotationOrId.getId());
+	      this.findById(annotationOrId):
+	      this.findById(annotationOrId.getId());
 	
 	    if (undefined != elm) {
-	      this.annotations[elm.getId() - 1] = undefined;
-	      return true;
+	      return this.set.delete(elm);
 	    }
 	    return false;
 	  }
 	
+	  /**
+	   * htmlanno only
+	   */
 	  forEach(callback){
-	    for(let i in this.annotations) {
-	      if (undefined != this.annotations[i]) {
-	        callback(this.annotations[i], i);
-	      }
-	    }
+	    this.set.forEach(callback);
+	  }
+	
+	  // TODO: pdfanno only
+	  destroy(){
+	  }
+	
+	  // TODO: pdfanno only
+	  getAllAnnotations(){
+	  }
+	
+	  // TODO: pdfanno only
+	  getSelectedAnnotations(){
+	  }
+	
+	  // TODO: pdfanno only
+	  enableAll(){
+	  }
+	
+	  // TODO: pdfanno only
+	  disableAll(){
 	  }
 	}
-	module.exports = AnnotationSet;
+	module.exports = AnnotationContainer;
 
 
 /***/ })
