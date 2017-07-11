@@ -3,7 +3,7 @@ This is under development...
 # HTMLAnno
 HTMLAnno is a linguistic annotation tool for html/xml.
 
-[Online Demo](https://paperai.github.io/htmlanno/)
+[Online Demo](https://paperai.github.io/htmlanno-dev/)
 
 ## Developer's Guide
 
