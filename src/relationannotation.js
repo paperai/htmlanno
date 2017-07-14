@@ -31,6 +31,18 @@ class RelationAnnotation{
     });
   }
 
+  static createLink(id, startingCircle){
+    return new RelationAnnotation(id, startingCircle, 'link');
+  }
+
+  static createOneway(id, startingCircle){
+    return new RelationAnnotation(id, startingCircle, 'one-way');
+  }
+
+  static createTwoway(id, startingCircle){
+    return new RelationAnnotation(id, startingCircle, 'two-way');
+  }
+
   connect(){
     const cir = this.enteredCircle;
     this.removeDragListener();
@@ -124,19 +136,10 @@ class RelationAnnotation{
     }
   }
 
-  saveData(){
-    return [
-      "arrow",
-      `span-${this.startingCircle.highlight.id}`,
-      `span-${this.enteredCircle.highlight.id}`,
-      this.label.content()
-    ];
-  }
-
   saveToml(){
     return [
       'type = "relation"',
-      'dir = "one-way"',
+      `dir = "${this.direction}"`,
       `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
       `label = "${this.label.content()}"`
     ].join("\n");
@@ -157,9 +160,12 @@ class RelationAnnotation{
   }
 
   static isMydata(toml){
-    return (undefined != toml && "relation" == toml.type && "one-way" == toml.dir);
+    return (
+      undefined !== toml && "relation" === toml.type && 
+      ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
+    );
   }
 }
 
-module.exports = ArrowAnnotation;
+module.exports = RelationAnnotation;
 
