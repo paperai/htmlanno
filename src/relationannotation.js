@@ -3,8 +3,8 @@ const Label = require("./label.js");
 const Arrow = require("./arrow.js");
 const globalEvent = window.globalEvent;
 
-class ArrowAnnotation{
-  constructor(id, startingCircle){
+class RelationAnnotation{
+  constructor(id, startingCircle, direction){
     this.id = id;
     this.startingCircle = startingCircle;
     this.enteredCircle = null;
@@ -13,6 +13,7 @@ class ArrowAnnotation{
     this.mouseX = null;
     this.mouseY = null;
     this.label = null;
+    this.direction = direction;
 
     this.arrow = new Arrow(id, startingCircle.positionCenter());
     this.arrow.appendTo($("#htmlanno-svg-screen"));
