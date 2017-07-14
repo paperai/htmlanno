@@ -1,4 +1,4 @@
-const ArrowAnnotation = require("./arrowannotation.js");
+const RelationAnnotation = require("./relationannotation.js");
 
 class ArrowConnector{
   constructor(annotationContainer){
@@ -14,36 +14,44 @@ class ArrowConnector{
     this.annotations.add(data);
   }
 
-  createDragingArrow(startingCircle){
-    if (this.dragingArrow){
-      this.dragingArrow.remove();
-    }
-    const id = this.annotations.nextId();
-    this.dragingArrow = new ArrowAnnotation(id, startingCircle);
-    return this.dragingArrow;
+  _createRelation(relation, endingCircle, text){
+    this.annotations.add(relation);
+    relation.setEndingCircle(endingCircle);
+    relation.label.setContent(text);
+
+    return relation;
   }
 
-  create(id, startingCircle, endingCircle, text){
-    const arrow = new ArrowAnnotation(id, startingCircle);
-    this.annotations.add(arrow);
-    arrow.setEndingCircle(endingCircle);
-    arrow.label.setContent(text);
-    return arrow;
+  createOnewayRelation(id, startingCircle, endingCircle, text){
+    const relation = RelationAnnotation.createOneway(id, startingCircle);
+
+    return this._createRelation(relation, endingCircle, text);
+  }
+
+  createTwowayRelation(id, startingCircle, endingCircle, text){
+    const relation = RelationAnnotation.createTwoway(id, startingCircle);
+
+    return this._createRelation(relation, endingCircle, text);
+  }
+
+  createLinkRelation(id, startingCircle, endingCircle, text){
+    const relation = RelationAnnotation.createLink(id, startingCircle);
+
+    return this._createRelation(relation, endingCircle, text);
   }
 
   addToml(id, toml){
     let startAnnotation   = this.annotations.findById(parseInt(toml.ids[0]));
     let enteredAnnotation = this.annotations.findById(parseInt(toml.ids[1]));
-    this.create(
-      id,
-      startAnnotation.circle, enteredAnnotation.circle,
-      toml.label
-    );
+
+    const relation =
+      new RelationAnnotation(id, startAnnotation.circle, toml.dir);
+    this._createRelation(relation, enteredAnnotation.circle, toml.label);
   }
 
   remove(){
     this.annotations.forEach((annotation, i)=>{
-      if (annotation instanceof ArrowAnnotation) {
+      if (annotation instanceof RelationAnnotation) {
         this.annotations.remove(i);
       }
     });

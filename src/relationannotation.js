@@ -3,8 +3,8 @@ const Label = require("./label.js");
 const Arrow = require("./arrow.js");
 const globalEvent = window.globalEvent;
 
-class ArrowAnnotation{
-  constructor(id, startingCircle){
+class RelationAnnotation{
+  constructor(id, startingCircle, direction){
     this.id = id;
     this.startingCircle = startingCircle;
     this.enteredCircle = null;
@@ -13,6 +13,7 @@ class ArrowAnnotation{
     this.mouseX = null;
     this.mouseY = null;
     this.label = null;
+    this.direction = direction;
 
     this.arrow = new Arrow(id, startingCircle.positionCenter());
     this.arrow.appendTo($("#htmlanno-svg-screen"));
@@ -28,6 +29,18 @@ class ArrowAnnotation{
         globalEvent.emit("removearrowannotation", this);
       }
     });
+  }
+
+  static createLink(id, startingCircle){
+    return new RelationAnnotation(id, startingCircle, 'link');
+  }
+
+  static createOneway(id, startingCircle){
+    return new RelationAnnotation(id, startingCircle, 'one-way');
+  }
+
+  static createTwoway(id, startingCircle){
+    return new RelationAnnotation(id, startingCircle, 'two-way');
   }
 
   connect(){
@@ -123,19 +136,10 @@ class ArrowAnnotation{
     }
   }
 
-  saveData(){
-    return [
-      "arrow",
-      `span-${this.startingCircle.highlight.id}`,
-      `span-${this.enteredCircle.highlight.id}`,
-      this.label.content()
-    ];
-  }
-
   saveToml(){
     return [
       'type = "relation"',
-      'dir = "one-way"',
+      `dir = "${this.direction}"`,
       `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
       `label = "${this.label.content()}"`
     ].join("\n");
@@ -156,9 +160,12 @@ class ArrowAnnotation{
   }
 
   static isMydata(toml){
-    return (undefined != toml && "relation" == toml.type && "one-way" == toml.dir);
+    return (
+      undefined !== toml && "relation" === toml.type && 
+      ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
+    );
   }
 }
 
-module.exports = ArrowAnnotation;
+module.exports = RelationAnnotation;
 

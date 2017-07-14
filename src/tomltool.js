@@ -1,7 +1,7 @@
 const TomlParser = require("toml");
 const rangy = require("rangy");
 const Highlight = require("./highlight.js");
-const ArrowAnnotation = require("./arrowannotation.js");
+const RelationAnnotation = require("./relationannotation.js");
 
 exports.saveToml = (annotationSet)=>{
   let data = ["version = 0.1"];
@@ -25,8 +25,8 @@ exports.loadToml = (fileBlob, highlighter, arrowConnector)=>{
       if (Highlight.isMydata(data[key])) {
         highlighter.addToml(key, data[key]);
       }
-    // ArrowAnnotation(one-way).
-      if (ArrowAnnotation.isMydata(data[key])) {
+    // Relation(one-way, two-way, or link)
+      if (RelationAnnotation.isMydata(data[key])) {
         arrowConnector.addToml(key, data[key]);
       }
     }

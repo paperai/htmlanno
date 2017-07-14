@@ -5,7 +5,6 @@ const EventManager = require("./eventmanager");
 window.globalEvent = new EventManager();
 
 const TomlTool = require("./tomltool.js");
-const ArrowAnnotation = require("./arrowannotation.js");
 const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
@@ -32,7 +31,9 @@ class Htmlanno{
       this.arrowConnector.removeAnnotation(data);
     });
     globalEvent.on(this, "addSpan", this.handleAddSpan.bind(this));
-    globalEvent.on(this, "addRelation", this.handleAddRelation.bind(this));
+    globalEvent.on(this, "addOnewayRelation", this.handleAddOnewayRelation.bind(this));
+    globalEvent.on(this, "addTwowayRelation", this.handleAddTwowayRelation.bind(this));
+    globalEvent.on(this, "addLinkRelation", this.handleAddLinkRelation.bind(this));
     globalEvent.on(this, "exportAnnotation", this.handleExportAnnotation.bind(this));
     globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
 
@@ -114,8 +115,16 @@ class Htmlanno{
       globalEvent.emit("addSpan", e);
     });
 
-    $("#add_relation").on("click", (e)=>{
-      globalEvent.emit("addRelation", e);
+    $("#add_oneway_relation").on("click", (e)=>{
+      globalEvent.emit("addOnewayRelation", e);
+    });
+
+    $("#add_twoway_relation").on("click", (e)=>{
+      globalEvent.emit("addTwowayRelation", e);
+    });
+
+    $("#add_link_relation").on("click", (e)=>{
+      globalEvent.emit("addLinkRelation", e);
     });
 
     $("#export").on("click", (e)=>{
@@ -211,10 +220,30 @@ class Htmlanno{
     // TODO:spanボタンを無効化;
   }
 
-  handleAddRelation(){
+  handleAddOnewayRelation(){
     if (null != this.selectedAnnotation && null != this.relationTarget){
       let arrowId = this.annotations.nextId();
-      this.arrowConnector.create(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+      this.arrowConnector.createOnewayRelation(
+        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
+      );
+    }
+  }
+
+  handleAddTwowayRelation(){
+    if (null != this.selectedAnnotation && null != this.relationTarget){
+      let arrowId = this.annotations.nextId();
+      this.arrowConnector.createTwowayRelation(
+        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
+      );
+    }
+  }
+
+  handleAddLinkRelation(){
+    if (null != this.selectedAnnotation && null != this.relationTarget){
+      let arrowId = this.annotations.nextId();
+      this.arrowConnector.createLinkRelation(
+        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
+      );
     }
   }
 

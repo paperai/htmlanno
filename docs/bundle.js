@@ -10325,7 +10325,6 @@
 	window.globalEvent = new EventManager();
 	
 	const TomlTool = __webpack_require__(5);
-	const ArrowAnnotation = __webpack_require__(13);
 	const Highlighter = __webpack_require__(15);
 	const Circle = __webpack_require__(11);
 	const ArrowConnector = __webpack_require__(19);
@@ -10352,7 +10351,9 @@
 	      this.arrowConnector.removeAnnotation(data);
 	    });
 	    globalEvent.on(this, "addSpan", this.handleAddSpan.bind(this));
-	    globalEvent.on(this, "addRelation", this.handleAddRelation.bind(this));
+	    globalEvent.on(this, "addOnewayRelation", this.handleAddOnewayRelation.bind(this));
+	    globalEvent.on(this, "addTwowayRelation", this.handleAddTwowayRelation.bind(this));
+	    globalEvent.on(this, "addLinkRelation", this.handleAddLinkRelation.bind(this));
 	    globalEvent.on(this, "exportAnnotation", this.handleExportAnnotation.bind(this));
 	    globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
 	
@@ -10434,8 +10435,16 @@
 	      globalEvent.emit("addSpan", e);
 	    });
 	
-	    $("#add_relation").on("click", (e)=>{
-	      globalEvent.emit("addRelation", e);
+	    $("#add_oneway_relation").on("click", (e)=>{
+	      globalEvent.emit("addOnewayRelation", e);
+	    });
+	
+	    $("#add_twoway_relation").on("click", (e)=>{
+	      globalEvent.emit("addTwowayRelation", e);
+	    });
+	
+	    $("#add_link_relation").on("click", (e)=>{
+	      globalEvent.emit("addLinkRelation", e);
 	    });
 	
 	    $("#export").on("click", (e)=>{
@@ -10531,10 +10540,30 @@
 	    // TODO:spanボタンを無効化;
 	  }
 	
-	  handleAddRelation(){
+	  handleAddOnewayRelation(){
 	    if (null != this.selectedAnnotation && null != this.relationTarget){
 	      let arrowId = this.annotations.nextId();
-	      this.arrowConnector.create(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+	      this.arrowConnector.createOnewayRelation(
+	        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
+	      );
+	    }
+	  }
+	
+	  handleAddTwowayRelation(){
+	    if (null != this.selectedAnnotation && null != this.relationTarget){
+	      let arrowId = this.annotations.nextId();
+	      this.arrowConnector.createTwowayRelation(
+	        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
+	      );
+	    }
+	  }
+	
+	  handleAddLinkRelation(){
+	    if (null != this.selectedAnnotation && null != this.relationTarget){
+	      let arrowId = this.annotations.nextId();
+	      this.arrowConnector.createLinkRelation(
+	        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
+	      );
 	    }
 	  }
 	
@@ -10936,7 +10965,7 @@
 	const TomlParser = __webpack_require__(6);
 	const rangy = __webpack_require__(9);
 	const Highlight = __webpack_require__(10);
-	const ArrowAnnotation = __webpack_require__(13);
+	const RelationAnnotation = __webpack_require__(13);
 	
 	exports.saveToml = (annotationSet)=>{
 	  let data = ["version = 0.1"];
@@ -10960,8 +10989,8 @@
 	      if (Highlight.isMydata(data[key])) {
 	        highlighter.addToml(key, data[key]);
 	      }
-	    // ArrowAnnotation(one-way).
-	      if (ArrowAnnotation.isMydata(data[key])) {
+	    // Relation(one-way, two-way, or link)
+	      if (RelationAnnotation.isMydata(data[key])) {
 	        arrowConnector.addToml(key, data[key]);
 	      }
 	    }
@@ -19009,10 +19038,6 @@
 	    this.label.remove();
 	  }
 	
-	  saveData(){
-	    return [this.startOffset, this.endOffset, this.label.content()];
-	  }
-	
 	  saveToml(){
 	    return [
 	      'type = "span"',
@@ -19314,8 +19339,8 @@
 	const Arrow = __webpack_require__(14);
 	const globalEvent = window.globalEvent;
 	
-	class ArrowAnnotation{
-	  constructor(id, startingCircle){
+	class RelationAnnotation{
+	  constructor(id, startingCircle, direction){
 	    this.id = id;
 	    this.startingCircle = startingCircle;
 	    this.enteredCircle = null;
@@ -19324,6 +19349,7 @@
 	    this.mouseX = null;
 	    this.mouseY = null;
 	    this.label = null;
+	    this.direction = direction;
 	
 	    this.arrow = new Arrow(id, startingCircle.positionCenter());
 	    this.arrow.appendTo($("#htmlanno-svg-screen"));
@@ -19339,6 +19365,18 @@
 	        globalEvent.emit("removearrowannotation", this);
 	      }
 	    });
+	  }
+	
+	  static createLink(id, startingCircle){
+	    return new RelationAnnotation(id, startingCircle, 'link');
+	  }
+	
+	  static createOneway(id, startingCircle){
+	    return new RelationAnnotation(id, startingCircle, 'one-way');
+	  }
+	
+	  static createTwoway(id, startingCircle){
+	    return new RelationAnnotation(id, startingCircle, 'two-way');
 	  }
 	
 	  connect(){
@@ -19434,19 +19472,10 @@
 	    }
 	  }
 	
-	  saveData(){
-	    return [
-	      "arrow",
-	      `span-${this.startingCircle.highlight.id}`,
-	      `span-${this.enteredCircle.highlight.id}`,
-	      this.label.content()
-	    ];
-	  }
-	
 	  saveToml(){
 	    return [
 	      'type = "relation"',
-	      'dir = "one-way"',
+	      `dir = "${this.direction}"`,
 	      `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
 	      `label = "${this.label.content()}"`
 	    ].join("\n");
@@ -19467,11 +19496,14 @@
 	  }
 	
 	  static isMydata(toml){
-	    return (undefined != toml && "relation" == toml.type && "one-way" == toml.dir);
+	    return (
+	      undefined !== toml && "relation" === toml.type && 
+	      ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
+	    );
 	  }
 	}
 	
-	module.exports = ArrowAnnotation;
+	module.exports = RelationAnnotation;
 	
 
 
@@ -21793,7 +21825,7 @@
 /* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const ArrowAnnotation = __webpack_require__(13);
+	const RelationAnnotation = __webpack_require__(13);
 	
 	class ArrowConnector{
 	  constructor(annotationContainer){
@@ -21809,36 +21841,44 @@
 	    this.annotations.add(data);
 	  }
 	
-	  createDragingArrow(startingCircle){
-	    if (this.dragingArrow){
-	      this.dragingArrow.remove();
-	    }
-	    const id = this.annotations.nextId();
-	    this.dragingArrow = new ArrowAnnotation(id, startingCircle);
-	    return this.dragingArrow;
+	  _createRelation(relation, endingCircle, text){
+	    this.annotations.add(relation);
+	    relation.setEndingCircle(endingCircle);
+	    relation.label.setContent(text);
+	
+	    return relation;
 	  }
 	
-	  create(id, startingCircle, endingCircle, text){
-	    const arrow = new ArrowAnnotation(id, startingCircle);
-	    this.annotations.add(arrow);
-	    arrow.setEndingCircle(endingCircle);
-	    arrow.label.setContent(text);
-	    return arrow;
+	  createOnewayRelation(id, startingCircle, endingCircle, text){
+	    const relation = RelationAnnotation.createOneway(id, startingCircle);
+	
+	    return this._createRelation(relation, endingCircle, text);
+	  }
+	
+	  createTwowayRelation(id, startingCircle, endingCircle, text){
+	    const relation = RelationAnnotation.createTwoway(id, startingCircle);
+	
+	    return this._createRelation(relation, endingCircle, text);
+	  }
+	
+	  createLinkRelation(id, startingCircle, endingCircle, text){
+	    const relation = RelationAnnotation.createLink(id, startingCircle);
+	
+	    return this._createRelation(relation, endingCircle, text);
 	  }
 	
 	  addToml(id, toml){
 	    let startAnnotation   = this.annotations.findById(parseInt(toml.ids[0]));
 	    let enteredAnnotation = this.annotations.findById(parseInt(toml.ids[1]));
-	    this.create(
-	      id,
-	      startAnnotation.circle, enteredAnnotation.circle,
-	      toml.label
-	    );
+	
+	    const relation =
+	      new RelationAnnotation(id, startAnnotation.circle, toml.dir);
+	    this._createRelation(relation, enteredAnnotation.circle, toml.label);
 	  }
 	
 	  remove(){
 	    this.annotations.forEach((annotation, i)=>{
-	      if (annotation instanceof ArrowAnnotation) {
+	      if (annotation instanceof RelationAnnotation) {
 	        this.annotations.remove(i);
 	      }
 	    });
