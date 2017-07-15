@@ -19548,27 +19548,6 @@
 	    globalEvent.on(this, "svgupdate", this.retouch.bind(this));
 	  }
 	
-	  _createOnewayArrowHead(){
-	    return $(`
-	        <path
-	        id="${this.domId()}"
-	        class="htmlanno-arrow"
-	        d="M 0,0 C 0,0 0,0 0,0"
-	        marker-end="url(#htmlanno-arrow-head)" />
-	    `);
-	  }
-	
-	  _createTwowayArrowHead(){
-	    return $(`
-	        <path
-	        id="${this.domId()}"
-	        class="htmlanno-arrow"
-	        d="M 0,0 C 0,0 0,0 0,0"
-	        marker-start="url(#htmlanno-arrow-head)"
-	        marker-end="url(#htmlanno-arrow-head)" />
-	    `);
-	  }
-	
 	  _createLinkHead(){
 	    return $(`
 	        <path
@@ -19576,6 +19555,18 @@
 	        class="htmlanno-arrow"
 	        d="M 0,0 C 0,0 0,0 0,0" />
 	    `);
+	  }
+	
+	  _createOnewayArrowHead(){
+	    return this._createLinkHead().attr(
+	      'marker-end', 'url(#htmlanno-arrow-head)'
+	    );
+	  }
+	
+	  _createTwowayArrowHead(){
+	    return this._createOnewayArrowHead().attr(
+	      'marker-start', 'url(#htmlanno-arrow-head)'
+	    );
 	  }
 	
 	  curvePath(fromX, fromY, toX, toY){
