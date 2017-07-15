@@ -1,6 +1,6 @@
 const $ = require("jquery");
 const Label = require("./label.js");
-const Arrow = require("./arrow.js");
+const RenderRelation = require("./renderrelation.js");
 const globalEvent = window.globalEvent;
 
 class RelationAnnotation{
@@ -15,7 +15,7 @@ class RelationAnnotation{
     this.label = null;
     this.direction = direction;
 
-    this.arrow = new Arrow(id, startingCircle.positionCenter());
+    this.arrow = new RenderRelation(id, startingCircle.positionCenter(), direction);
     this.arrow.appendTo($("#htmlanno-svg-screen"));
     this.arrow.on("click", (e)=>{
       globalEvent.emit("arrowannotationselect", this);
