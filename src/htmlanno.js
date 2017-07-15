@@ -70,7 +70,7 @@ class Htmlanno{
       fill="red"
       markerWidth="6"
       markerHeight="6"
-      orient="auto"
+      orient="auto-start-reverse"
       markerUnits="strokeWidth">
       <polyline
       points="0,0 6,3 0,6 0.2,3" />

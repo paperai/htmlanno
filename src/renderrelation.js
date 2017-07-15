@@ -1,19 +1,26 @@
 const $ = require("jquery");
 const globalEvent = window.globalEvent;
 
-class Arrow{
-  constructor(id, position){
+class RenderRelation{
+  constructor(id, position, direction){
     this.id = id;
     this.move(position);
     this.eventHandlers = [];
 
-    this.jObject = $(`
-        <path
-        id="${this.domId()}"
-        class="htmlanno-arrow"
-        d="M 0,0 C 0,0 0,0 0,0"
-        marker-end="url(#htmlanno-arrow-head)" />
-        `);
+    switch(direction){
+      case 'one-way':
+        this.jObject = this._createOnewayArrowHead();
+        break;
+      case 'two-way':
+        this.jObject = this._createTwowayArrowHead();
+        break;
+      case 'link':
+        this.jObject = this._createLinkHead();
+        break;
+      default:
+        console.log('ERROR! Undefined type: ' + type);
+    }
+
     this.jObjectOutline = $(`
         <path
         id="${this.domId()}-outline"
@@ -22,6 +29,27 @@ class Arrow{
         `);
 
     globalEvent.on(this, "svgupdate", this.retouch.bind(this));
+  }
+
+  _createLinkHead(){
+    return $(`
+        <path
+        id="${this.domId()}"
+        class="htmlanno-arrow"
+        d="M 0,0 C 0,0 0,0 0,0" />
+    `);
+  }
+
+  _createOnewayArrowHead(){
+    return this._createLinkHead().attr(
+      'marker-end', 'url(#htmlanno-arrow-head)'
+    );
+  }
+
+  _createTwowayArrowHead(){
+    return this._createOnewayArrowHead().attr(
+      'marker-start', 'url(#htmlanno-arrow-head)'
+    );
   }
 
   curvePath(fromX, fromY, toX, toY){
@@ -101,4 +129,4 @@ class Arrow{
   }
 }
 
-module.exports = Arrow;
+module.exports = RenderRelation;
