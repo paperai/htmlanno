@@ -2,6 +2,9 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
     <script src="bundle.js"></script>
   </head>
 
@@ -19,11 +22,11 @@
       http://www.aozora.gr.jp/cards/000140/card50131.htmlより
     </div>
     <div id="operation">
-      <button type="button" id="add_span">Span</button>
-      <button type="button" id="add_oneway_relation" style="width:9em;">one-way relation</button>
-      <button type="button" id="add_twoway_relation" style="width:9em;">two-way relation</button>
-      <button type="button" id="add_link_relation" style="width:9em;">link relation</button>
-      <button type="button" id="export">Export</button>
+      <button type="button" id="add_span" class="js-tool-btn-span">Span</button>
+      <button type="button" id="add_oneway_relation" class="js-tool-btn-rel" data-type="one-way" style="width:9em;">one-way relation</button>
+      <button type="button" id="add_twoway_relation" class="js-tool-btn-rel" data-type="two-way" style="width:9em;">two-way relation</button>
+      <button type="button" id="add_link_relation" class="js-tool-btn-rel" data-type="link" style="width:9em;">link relation</button>
+      <button type="button" id="downloadButton">Export</button>
       <input type="file" id="import_file" /><button type="button" id="import">Import</button>
     </div>
   </body>

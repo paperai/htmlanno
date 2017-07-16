@@ -5,4 +5,7 @@ module.exports = {
   },
   // Enable sourcemaps for debugging webpack's output.
   devtool: "source-map",
+  externals: {
+    "jquery": "jQuery"
+  },
 };
