@@ -4,6 +4,8 @@ const EventManager = require("./eventmanager");
 
 window.globalEvent = new EventManager();
 
+const AnnoUI = require("anno-ui");
+
 const TomlTool = require("./tomltool.js");
 const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
@@ -17,7 +19,6 @@ class Htmlanno{
     this.highlighter = new Highlighter(this.annotations);
     this.arrowConnector = new ArrowConnector(this.annotations);
     this.handleResize();
-    this.wrapGlobalEvents();
     this.selectedAnnotation = null;
     this.relationTarget = null;
 
@@ -30,12 +31,14 @@ class Htmlanno{
     globalEvent.on(this, "removearrowannotation", (data)=>{
       this.arrowConnector.removeAnnotation(data);
     });
-    globalEvent.on(this, "addSpan", this.handleAddSpan.bind(this));
-    globalEvent.on(this, "addOnewayRelation", this.handleAddOnewayRelation.bind(this));
-    globalEvent.on(this, "addTwowayRelation", this.handleAddTwowayRelation.bind(this));
-    globalEvent.on(this, "addLinkRelation", this.handleAddLinkRelation.bind(this));
-    globalEvent.on(this, "exportAnnotation", this.handleExportAnnotation.bind(this));
+    window.handleAddSpan           = this.handleAddSpan.bind(this);
+    window.handleAddRelation = this.handleAddRelation.bind(this);
+    window.handleExportAnnotation  = this.handleExportAnnotation.bind(this);
+
+    // TODO: この機能のみ AnnoUI.uploadButton はサーバーを呼び出しているので移行保留。 see: anno-ui/src/components/uploadButton/index.js
     globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
+
+    this.wrapGlobalEvents();
 
     /*
        setInterval(()=>{
@@ -85,6 +88,23 @@ class Htmlanno{
   }
 
   wrapGlobalEvents(){
+    AnnoUI.util.setupResizableColumns();
+    AnnoUI.event.setup();
+
+    AnnoUI.annoSpanButton.setup({
+      createSpanAnnotation: window.handleAddSpan
+    });
+
+    AnnoUI.annoRelButton.setup({
+      createRelAnnotation: window.handleAddRelation
+    });
+
+    AnnoUI.downloadButton.setup({
+      getAnnotationTOMLString: window.handleExportAnnotation,
+      getCurrentContentName: ()=>{ return "export.htmlanno"; },
+      unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
+    });
+
     $(document).on("dragover", (e)=>{
       if (e.originalEvent.pageX && e.originalEvent.pageY){
         globalEvent.emit("drag", e);
@@ -111,26 +131,7 @@ class Htmlanno{
       globalEvent.emit("commitSelection", e);
     });
 
-    $("#add_span").on("click", (e)=>{
-      globalEvent.emit("addSpan", e);
-    });
-
-    $("#add_oneway_relation").on("click", (e)=>{
-      globalEvent.emit("addOnewayRelation", e);
-    });
-
-    $("#add_twoway_relation").on("click", (e)=>{
-      globalEvent.emit("addTwowayRelation", e);
-    });
-
-    $("#add_link_relation").on("click", (e)=>{
-      globalEvent.emit("addLinkRelation", e);
-    });
-
-    $("#export").on("click", (e)=>{
-      globalEvent.emit("exportAnnotation", e);
-    });
-
+    // TODO: この機能のみ AnnoUI.uploadButton はサーバーを呼び出しているので移行保留。 see: anno-ui/src/components/uploadButton/index.js
     $("#import").on("click", (e)=>{
       globalEvent.emit("importAnnotation", e);
     });
@@ -220,42 +221,27 @@ class Htmlanno{
     // TODO:spanボタンを無効化;
   }
 
-  handleAddOnewayRelation(){
+  handleAddRelation(direction){
     if (null != this.selectedAnnotation && null != this.relationTarget){
       let arrowId = this.annotations.nextId();
-      this.arrowConnector.createOnewayRelation(
-        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
-      );
-    }
-  }
-
-  handleAddTwowayRelation(){
-    if (null != this.selectedAnnotation && null != this.relationTarget){
-      let arrowId = this.annotations.nextId();
-      this.arrowConnector.createTwowayRelation(
-        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
-      );
-    }
-  }
-
-  handleAddLinkRelation(){
-    if (null != this.selectedAnnotation && null != this.relationTarget){
-      let arrowId = this.annotations.nextId();
-      this.arrowConnector.createLinkRelation(
-        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
-      );
+      switch(direction){
+        case 'one-way':
+          this.arrowConnector.createOnewayRelation(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+          break;
+        case 'two-way':
+          this.arrowConnector.createTwowayRelation(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+          break;
+        case 'link':
+          this.arrowConnector.createLinkRelation(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+          break;
+        default:
+          console.log("ERROR! undefined direction; " + direction);
+      }
     }
   }
 
   handleExportAnnotation(){
-    let blob = new Blob(TomlTool.saveToml(this.annotations));
-    let blobURL = window.URL.createObjectURL(blob);
-    let a = document.createElement('a');
-    document.body.appendChild(a); // for firefox working correctly.
-    a.download = "export.htmlanno"; // TODO: 仮設定
-    a.href = blobURL;
-    a.click();
-    a.parentNode.removeChild(a);
+    return new Promise( (resolve, reject) => { resolve(TomlTool.saveToml(this.annotations)); } );
   }
 
   handleImportAnnotation(){
