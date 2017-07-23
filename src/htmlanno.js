@@ -35,19 +35,11 @@ class Htmlanno{
     window.handleAddRelation = this.handleAddRelation.bind(this);
     window.handleExportAnnotation  = this.handleExportAnnotation.bind(this);
 
-    // TODO: この機能のみ AnnoUI.uploadButton はサーバーを呼び出しているので移行保留。 see: anno-ui/src/components/uploadButton/index.js
+    // HTMLanno独自機能
+    globalEvent.on(this, "uploadFileSelect", this.handleUploadFileSelect.bind(this));
     globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
 
     this.wrapGlobalEvents();
-
-    /*
-       setInterval(()=>{
-       localStorage.setItem(this.storageKey(), this.toJson());
-       }, 1 * 1000);
-       setTimeout(()=>{
-       this.loadStorage()
-       }, 1);
-       */
   }
 
   storageKey(){
@@ -131,9 +123,24 @@ class Htmlanno{
       globalEvent.emit("commitSelection", e);
     });
 
-    // TODO: この機能のみ AnnoUI.uploadButton はサーバーを呼び出しているので移行保留。 see: anno-ui/src/components/uploadButton/index.js
-    $("#import").on("click", (e)=>{
+    // HTMLanno独自機能
+    $("#import_file_view").on("click", (e)=>{
+      globalEvent.emit("uploadFileSelect", e);
+    })
+    // マウスクリック以外の動作は無効化
+    .on("focusin", ()=>{ $("#uploadButton").focus(); })
+    .on("keydown", false)
+    .on("contextmenu", false);
+
+    $("#uploadButton").on("click", (e)=>{
       globalEvent.emit("importAnnotation", e);
+    });
+
+    $("#import_file").change(()=>{
+      let files = $("#import_file")[0].files;
+      if ( undefined != files && 0 < files.length ){
+        $("#import_file_view").val(files[0].name);
+      }
     });
   }
 
@@ -196,7 +203,6 @@ class Htmlanno{
 
   commitSelection(e){
     if (!$(e.target).hasClass("htmlanno-circle")) {
-      // TODO:spanボタンを有効化
       this.unselectAnnotationTarget();
       this.unselectRelationTarget();
     }
@@ -218,7 +224,6 @@ class Htmlanno{
 
   handleAddSpan(){
     this.highlighter.highlight();
-    // TODO:spanボタンを無効化;
   }
 
   handleAddRelation(direction){
@@ -244,9 +249,17 @@ class Htmlanno{
     return new Promise( (resolve, reject) => { resolve(TomlTool.saveToml(this.annotations)); } );
   }
 
+  // htmlAnno独自機能
+  handleUploadFileSelect(){
+    $("#import_file").click();
+  }
+
+  // htmlAnno独自機能
   handleImportAnnotation(){
-    let uploaded_files = $("#import_file")[0].files;
-    TomlTool.loadToml(uploaded_files[0], this.highlighter, this.arrowConnector);
+    let files = $("#import_file")[0].files;
+    if (undefined != files && 0 < files.length) {
+      TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
+    }
   }
 
   remove(){
