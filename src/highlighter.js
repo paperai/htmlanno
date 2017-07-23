@@ -105,7 +105,7 @@ class Highlighter{
     this.highlighter.highlightSelection("htmlanno-highlight"+id, {exclusive: false});
     if (temporaryElements.length > 0){
       highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
-      highlight.label.setContent(text);
+      highlight.setContent(text);
 
       globalEvent.emit("highlightselect", {annotation: highlight});
 

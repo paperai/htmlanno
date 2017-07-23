@@ -18,14 +18,18 @@ class Circle{
       globalEvent.emit("highlightselect", {event: e, annotation: this.highlight});
     });
 
-    this.jObject.on("mouseenter", (e)=>{
-      this.highlight.handleHoverIn();
-      e.stopPropagation();
-    });
+    this.resetHoverEvent();
+  }
 
-    this.jObject.on("mouseleave", (e)=>{
-      this.highlight.handleHoverOut();
-    });
+  disableHoverAction(){
+    this.jObject.off("mouseenter").off("mouseleave");
+  }
+
+  resetHoverEvent(){
+    this.jObject.hover(
+      this.highlight.handleHoverIn.bind(this.highlight),
+      this.highlight.handleHoverOut.bind(this.highlight)
+    );
   }
 
   domId(){

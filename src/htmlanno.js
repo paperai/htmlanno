@@ -20,19 +20,20 @@ class Htmlanno{
     this.arrowConnector = new ArrowConnector(this.annotations);
     this.handleResize();
     this.selectedAnnotation = null;
-    this.relationTarget = null;
+    this.relationTarget     = null;
+    this.selectedRelation   = null;
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
-    globalEvent.on(this, "arrowannotationselect", this.handleSelect.bind(this));
     globalEvent.on(this, "highlightselect", this.handleSelect.bind(this));
     globalEvent.on(this, "commitSelection", this.commitSelection.bind(this));
 
     globalEvent.on(this, "removearrowannotation", (data)=>{
       this.arrowConnector.removeAnnotation(data);
+      this.unselectRelation();
     });
     window.handleAddSpan           = this.handleAddSpan.bind(this);
-    window.handleAddRelation = this.handleAddRelation.bind(this);
+    window.handleAddRelation       = this.handleAddRelation.bind(this);
     window.handleExportAnnotation  = this.handleExportAnnotation.bind(this);
 
     // HTMLanno独自機能
@@ -119,7 +120,7 @@ class Htmlanno{
       globalEvent.emit("resizewindow", e);
     });
 
-    $("#parent").on("mouseup", (e)=>{
+    $("#viewer").on("mouseup", (e)=>{
       globalEvent.emit("commitSelection", e);
     });
 
@@ -191,8 +192,9 @@ class Htmlanno{
 
     // delete or back space
     if (e.keyCode === 46 || e.keyCode == 8) {
-      if (this.selectedAnnotation){
+      if (document.body == e.target && this.selectedAnnotation){
         e.preventDefault();
+        this.selectedAnnotation.hideLabel();
         this.selectedAnnotation.remove();
         this.highlighter.removeAnnotation(this.selectedAnnotation);
         this.arrowConnector.removeAnnotation(this.selectedAnnotation);
@@ -202,9 +204,10 @@ class Htmlanno{
   }
 
   commitSelection(e){
-    if (!$(e.target).hasClass("htmlanno-circle")) {
+    if (!$(e.target).hasClass("htmlanno-circle") && !$(e.target).hasClass("htmlanno-arrow")) {
       this.unselectAnnotationTarget();
       this.unselectRelationTarget();
+      this.unselectRelation();
     }
   }
 
@@ -219,6 +222,13 @@ class Htmlanno{
     if (this.relationTarget){
       this.relationTarget.blur();
       this.relationTarget = null;
+    }
+  }
+
+  unselectRelation(){
+    if (this.selectedRelation){
+      this.selectedRelation.blur();
+      this.selectedRelation = null;
     }
   }
 

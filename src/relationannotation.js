@@ -1,5 +1,5 @@
 const $ = require("jquery");
-const Label = require("./label.js");
+const InputLabel = require("./inputlabel.js");
 const RenderRelation = require("./renderrelation.js");
 const globalEvent = window.globalEvent;
 
@@ -12,16 +12,16 @@ class RelationAnnotation{
 
     this.mouseX = null;
     this.mouseY = null;
-    this.label = null;
+    this.inputLabel = new InputLabel($("#inputLabel")[0]);
+    this.inputLabel.setup(this.endEditLabel.bind(this));
     this.direction = direction;
 
     this.arrow = new RenderRelation(id, startingCircle.positionCenter(), direction);
     this.arrow.appendTo($("#htmlanno-svg-screen"));
     this.arrow.on("click", (e)=>{
-      globalEvent.emit("arrowannotationselect", this);
+      this.startEditLabel();
     });
-    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
-    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
+    this.resetHoverEvent();
 
     globalEvent.on(this, "removecircle", (cir)=>{
       if (this.startingCircle === cir || this.endingCircle === cir){
@@ -29,6 +29,16 @@ class RelationAnnotation{
         globalEvent.emit("removearrowannotation", this);
       }
     });
+  }
+
+  disableHoverAction(){
+    this.arrow.off("mouseenter");
+    this.arrow.off("mouseleave");
+  }
+
+  resetHoverEvent(){
+    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
+    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
   }
 
   static createLink(id, startingCircle){
@@ -51,11 +61,6 @@ class RelationAnnotation{
       this.arrow.point(cir.positionCenter());
       this.endingCircle = cir;
       globalEvent.on(this, "resizewindow", this.reposition.bind(this));
-      this.label = new Label(this.id, this.labelPosition());
-      this.label.jObject.hover(
-          this.handleHoverIn.bind(this),
-          this.handleHoverOut.bind(this)
-          );
       globalEvent.emit("arrowannotationconnect", this);
     } else{
       this.arrow.remove();
@@ -75,10 +80,6 @@ class RelationAnnotation{
     return {left: (p1.left+p2.left)/2, top: (p1.top+p2.top)/2};
   }
 
-  labelPosition(){
-    return {left: this.positionCenter().left, top: this.arrow.halfY};
-  }
-
   reposition(){
     if (this.arrow){
       this.arrow.move(this.startingCircle.positionCenter());
@@ -86,30 +87,21 @@ class RelationAnnotation{
         this.arrow.point(this.endingCircle.positionCenter());
       }
     }
-    if (this.label){
-      this.label.reposition(this.labelPosition());
-    }
   }
 
   select(){
     this.arrow.select();
-    if (this.label){
-      this.label.select();
-    }
+    this.showLabel();
   }
 
   blur(){
     this.arrow.blur();
-    if (this.label){
-      this.label.blur();
-    }
+    this.resetHoverEvent();
+    this.inputLabel.endEdit();
   }
 
   remove(){
     this.arrow.remove();
-    if (this.label){
-      this.label.remove();
-    }
     globalEvent.removeObject(this);
   }
 
@@ -124,16 +116,12 @@ class RelationAnnotation{
 
   handleHoverIn(e){
     this.arrow.handleHoverIn();
-    if (this.label){
-      this.label.handleHoverIn();
-    }
+    this.showLabel();
   }
 
   handleHoverOut(e){
     this.arrow.handleHoverOut();
-    if (this.label){
-      this.label.handleHoverOut();
-    }
+    this.hideLabel();
   }
 
   saveToml(){
@@ -141,7 +129,7 @@ class RelationAnnotation{
       'type = "relation"',
       `dir = "${this.direction}"`,
       `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
-      `label = "${this.label.content()}"`
+      `label = "${this.content()}"`
     ].join("\n");
   }
 
@@ -164,6 +152,32 @@ class RelationAnnotation{
       undefined !== toml && "relation" === toml.type && 
       ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
     );
+  }
+
+  setContent(text){
+    this.arrow.setContent(text);
+  }
+
+  content(){
+    return this.arrow.content();
+  }
+
+  showLabel(){
+    this.inputLabel.show(this.content());
+  }
+
+  hideLabel(){
+    this.inputLabel.disable();
+  }
+
+  startEditLabel(){
+    this.disableHoverAction();
+    this.inputLabel.startEdit(this.content());
+  }
+
+  endEditLabel(value){
+    this.setContent(value);
+    this.resetHoverEvent();
   }
 }
 

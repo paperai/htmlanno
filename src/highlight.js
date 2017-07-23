@@ -1,6 +1,6 @@
 const $ = require("jquery");
 const Circle = require("./circle.js");
-const Label = require("./label.js");
+const InputLabel = require("./inputlabel.js");
 const globalEvent = window.globalEvent;
 
 class Highlight{
@@ -14,18 +14,23 @@ class Highlight{
 
     this.addCircle();
     this.setClass();
+    this.resetHoverEvent();
+
+    this.inputLabel = new InputLabel($("#inputLabel")[0]);
+    this.inputLabel.setup(this.endEditLabel.bind(this));
+  }
+
+  disableHoverAction(){
+    $(`.${this.getClassName()}`).off("mouseenter").off("mouseleave");
+    this.circle.disableHoverAction();
+  }
+
+  resetHoverEvent(){
     $(`.${this.getClassName()}`).hover(
         this.handleHoverIn.bind(this),
         this.handleHoverOut.bind(this)
         );
-
-    this.label = new Label("hlabel-" + this.id, this.labelPosition());
-  }
-
-  labelPosition(){
-    const position = this.circle.positionCenter();
-    position.top -= 34;
-    return position;
+    this.circle.resetHoverEvent();
   }
 
   handleHoverIn(){
@@ -33,7 +38,7 @@ class Highlight{
     this.elements.forEach((e)=>{
       $(e).addClass("htmlanno-border");
     });
-    this.label.show();
+    this.showLabel();
   }
 
   handleHoverOut(){
@@ -41,7 +46,7 @@ class Highlight{
     this.elements.forEach((e)=>{
       $(e).removeClass("htmlanno-border");
     });
-    this.label.hide();
+    this.hideLabel();
   }
 
   addCircle(){
@@ -85,22 +90,17 @@ class Highlight{
 
   select(){
     this.addClass("htmlanno-highlight-selected");
-    this.label.show();
+    this.showLabel();
   }
 
   selectForEditing(){
     this.select();
-    this.label.select();
-  }
-
-  hideLabel(){
-    this.label.blur();
+    this.startEditLabel();
   }
 
   blur(){
     this.removeClass("htmlanno-highlight-selected");
-    this.label.blur();
-    this.label.hide();
+    this.hideLabel();
   }
 
   remove(){
@@ -108,11 +108,6 @@ class Highlight{
     $(`.${this.getClassName()}`).each(function() {
       $(this).replaceWith(this.childNodes);
     });
-    this.label.remove();
-  }
-
-  saveData(){
-    return [this.startOffset, this.endOffset, this.label.content()];
   }
 
   saveToml(){
@@ -120,7 +115,7 @@ class Highlight{
       'type = "span"',
       `position = [${this.startOffset}, ${this.endOffset}]`,
       'text = "' + $(this.elements).text() + '"',
-      `label = "${this.label.content()}"`
+      `label = "${this.content()}"`
     ].join("\n");
   }
 
@@ -140,6 +135,32 @@ class Highlight{
 
   static isMydata(toml){
     return (undefined != toml && "span" == toml.type);
+  }
+
+  setContent(text){
+    $(`.${this.getClassName()}`).data('label', text);
+  }
+
+  content(){
+    return $(`.${this.getClassName()}`).data('label');
+  }
+
+  showLabel(){
+    this.inputLabel.show(this.content());
+  }
+
+  hideLabel(){
+    this.inputLabel.disable();
+  }
+
+  startEditLabel(){
+    this.disableHoverAction();
+    this.inputLabel.startEdit(this.content());
+  }
+
+  endEditLabel(value){
+    this.setContent(value);
+    this.resetHoverEvent();
   }
 }
 

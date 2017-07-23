@@ -87,34 +87,27 @@
 	    this.arrowConnector = new ArrowConnector(this.annotations);
 	    this.handleResize();
 	    this.selectedAnnotation = null;
-	    this.relationTarget = null;
+	    this.relationTarget     = null;
+	    this.selectedRelation   = null;
 	
 	    globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
 	    globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
-	    globalEvent.on(this, "arrowannotationselect", this.handleSelect.bind(this));
 	    globalEvent.on(this, "highlightselect", this.handleSelect.bind(this));
 	    globalEvent.on(this, "commitSelection", this.commitSelection.bind(this));
 	
 	    globalEvent.on(this, "removearrowannotation", (data)=>{
 	      this.arrowConnector.removeAnnotation(data);
+	      this.unselectRelation();
 	    });
 	    window.handleAddSpan           = this.handleAddSpan.bind(this);
-	    window.handleAddRelation = this.handleAddRelation.bind(this);
+	    window.handleAddRelation       = this.handleAddRelation.bind(this);
 	    window.handleExportAnnotation  = this.handleExportAnnotation.bind(this);
 	
-	    // TODO: この機能のみ AnnoUI.uploadButton はサーバーを呼び出しているので移行保留。 see: anno-ui/src/components/uploadButton/index.js
+	    // HTMLanno独自機能
+	    globalEvent.on(this, "uploadFileSelect", this.handleUploadFileSelect.bind(this));
 	    globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
 	
 	    this.wrapGlobalEvents();
-	
-	    /*
-	       setInterval(()=>{
-	       localStorage.setItem(this.storageKey(), this.toJson());
-	       }, 1 * 1000);
-	       setTimeout(()=>{
-	       this.loadStorage()
-	       }, 1);
-	       */
 	  }
 	
 	  storageKey(){
@@ -194,13 +187,28 @@
 	      globalEvent.emit("resizewindow", e);
 	    });
 	
-	    $("#parent").on("mouseup", (e)=>{
+	    $("#viewer").on("mouseup", (e)=>{
 	      globalEvent.emit("commitSelection", e);
 	    });
 	
-	    // TODO: この機能のみ AnnoUI.uploadButton はサーバーを呼び出しているので移行保留。 see: anno-ui/src/components/uploadButton/index.js
-	    $("#import").on("click", (e)=>{
+	    // HTMLanno独自機能
+	    $("#import_file_view").on("click", (e)=>{
+	      globalEvent.emit("uploadFileSelect", e);
+	    })
+	    // マウスクリック以外の動作は無効化
+	    .on("focusin", ()=>{ $("#uploadButton").focus(); })
+	    .on("keydown", false)
+	    .on("contextmenu", false);
+	
+	    $("#uploadButton").on("click", (e)=>{
 	      globalEvent.emit("importAnnotation", e);
+	    });
+	
+	    $("#import_file").change(()=>{
+	      let files = $("#import_file")[0].files;
+	      if ( undefined != files && 0 < files.length ){
+	        $("#import_file_view").val(files[0].name);
+	      }
 	    });
 	  }
 	
@@ -251,8 +259,9 @@
 	
 	    // delete or back space
 	    if (e.keyCode === 46 || e.keyCode == 8) {
-	      if (this.selectedAnnotation){
+	      if (document.body == e.target && this.selectedAnnotation){
 	        e.preventDefault();
+	        this.selectedAnnotation.hideLabel();
 	        this.selectedAnnotation.remove();
 	        this.highlighter.removeAnnotation(this.selectedAnnotation);
 	        this.arrowConnector.removeAnnotation(this.selectedAnnotation);
@@ -262,10 +271,10 @@
 	  }
 	
 	  commitSelection(e){
-	    if (!$(e.target).hasClass("htmlanno-circle")) {
-	      // TODO:spanボタンを有効化
+	    if (!$(e.target).hasClass("htmlanno-circle") && !$(e.target).hasClass("htmlanno-arrow")) {
 	      this.unselectAnnotationTarget();
 	      this.unselectRelationTarget();
+	      this.unselectRelation();
 	    }
 	  }
 	
@@ -283,9 +292,15 @@
 	    }
 	  }
 	
+	  unselectRelation(){
+	    if (this.selectedRelation){
+	      this.selectedRelation.blur();
+	      this.selectedRelation = null;
+	    }
+	  }
+	
 	  handleAddSpan(){
 	    this.highlighter.highlight();
-	    // TODO:spanボタンを無効化;
 	  }
 	
 	  handleAddRelation(direction){
@@ -311,9 +326,17 @@
 	    return new Promise( (resolve, reject) => { resolve(TomlTool.saveToml(this.annotations)); } );
 	  }
 	
+	  // htmlAnno独自機能
+	  handleUploadFileSelect(){
+	    $("#import_file").click();
+	  }
+	
+	  // htmlAnno独自機能
 	  handleImportAnnotation(){
-	    let uploaded_files = $("#import_file")[0].files;
-	    TomlTool.loadToml(uploaded_files[0], this.highlighter, this.arrowConnector);
+	    let files = $("#import_file")[0].files;
+	    if (undefined != files && 0 < files.length) {
+	      TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
+	    }
 	  }
 	
 	  remove(){
@@ -10577,7 +10600,7 @@
 
 	const $ = __webpack_require__(1);
 	const Circle = __webpack_require__(12);
-	const Label = __webpack_require__(13);
+	const InputLabel = __webpack_require__(13);
 	const globalEvent = window.globalEvent;
 	
 	class Highlight{
@@ -10591,18 +10614,23 @@
 	
 	    this.addCircle();
 	    this.setClass();
+	    this.resetHoverEvent();
+	
+	    this.inputLabel = new InputLabel($("#inputLabel")[0]);
+	    this.inputLabel.setup(this.endEditLabel.bind(this));
+	  }
+	
+	  disableHoverAction(){
+	    $(`.${this.getClassName()}`).off("mouseenter").off("mouseleave");
+	    this.circle.disableHoverAction();
+	  }
+	
+	  resetHoverEvent(){
 	    $(`.${this.getClassName()}`).hover(
 	        this.handleHoverIn.bind(this),
 	        this.handleHoverOut.bind(this)
 	        );
-	
-	    this.label = new Label("hlabel-" + this.id, this.labelPosition());
-	  }
-	
-	  labelPosition(){
-	    const position = this.circle.positionCenter();
-	    position.top -= 34;
-	    return position;
+	    this.circle.resetHoverEvent();
 	  }
 	
 	  handleHoverIn(){
@@ -10610,7 +10638,7 @@
 	    this.elements.forEach((e)=>{
 	      $(e).addClass("htmlanno-border");
 	    });
-	    this.label.show();
+	    this.showLabel();
 	  }
 	
 	  handleHoverOut(){
@@ -10618,7 +10646,7 @@
 	    this.elements.forEach((e)=>{
 	      $(e).removeClass("htmlanno-border");
 	    });
-	    this.label.hide();
+	    this.hideLabel();
 	  }
 	
 	  addCircle(){
@@ -10662,22 +10690,17 @@
 	
 	  select(){
 	    this.addClass("htmlanno-highlight-selected");
-	    this.label.show();
+	    this.showLabel();
 	  }
 	
 	  selectForEditing(){
 	    this.select();
-	    this.label.select();
-	  }
-	
-	  hideLabel(){
-	    this.label.blur();
+	    this.startEditLabel();
 	  }
 	
 	  blur(){
 	    this.removeClass("htmlanno-highlight-selected");
-	    this.label.blur();
-	    this.label.hide();
+	    this.hideLabel();
 	  }
 	
 	  remove(){
@@ -10685,11 +10708,6 @@
 	    $(`.${this.getClassName()}`).each(function() {
 	      $(this).replaceWith(this.childNodes);
 	    });
-	    this.label.remove();
-	  }
-	
-	  saveData(){
-	    return [this.startOffset, this.endOffset, this.label.content()];
 	  }
 	
 	  saveToml(){
@@ -10697,7 +10715,7 @@
 	      'type = "span"',
 	      `position = [${this.startOffset}, ${this.endOffset}]`,
 	      'text = "' + $(this.elements).text() + '"',
-	      `label = "${this.label.content()}"`
+	      `label = "${this.content()}"`
 	    ].join("\n");
 	  }
 	
@@ -10717,6 +10735,32 @@
 	
 	  static isMydata(toml){
 	    return (undefined != toml && "span" == toml.type);
+	  }
+	
+	  setContent(text){
+	    $(`.${this.getClassName()}`).data('label', text);
+	  }
+	
+	  content(){
+	    return $(`.${this.getClassName()}`).data('label');
+	  }
+	
+	  showLabel(){
+	    this.inputLabel.show(this.content());
+	  }
+	
+	  hideLabel(){
+	    this.inputLabel.disable();
+	  }
+	
+	  startEditLabel(){
+	    this.disableHoverAction();
+	    this.inputLabel.startEdit(this.content());
+	  }
+	
+	  endEditLabel(value){
+	    this.setContent(value);
+	    this.resetHoverEvent();
 	  }
 	}
 	
@@ -10747,14 +10791,18 @@
 	      globalEvent.emit("highlightselect", {event: e, annotation: this.highlight});
 	    });
 	
-	    this.jObject.on("mouseenter", (e)=>{
-	      this.highlight.handleHoverIn();
-	      e.stopPropagation();
-	    });
+	    this.resetHoverEvent();
+	  }
 	
-	    this.jObject.on("mouseleave", (e)=>{
-	      this.highlight.handleHoverOut();
-	    });
+	  disableHoverAction(){
+	    this.jObject.off("mouseenter").off("mouseleave");
+	  }
+	
+	  resetHoverEvent(){
+	    this.jObject.hover(
+	      this.highlight.handleHoverIn.bind(this.highlight),
+	      this.highlight.handleHoverOut.bind(this.highlight)
+	    );
 	  }
 	
 	  domId(){
@@ -10859,129 +10907,50 @@
 
 /***/ }),
 /* 13 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-	const $ = __webpack_require__(1);
-	const globalEvent = window.globalEvent;
-	
-	class Label{
-	  constructor(id, position){
-	    this.id = id;
-	    this.position = position;
-	    this.selected = false;
-	
-	    this.jObject = $(`<input id="label-${this.id}" placeholder="Enter text" class="htmlanno-label" type="text">
-	        `);
-	    this.jObject.on('blur', this.handleInputBlur.bind(this));
-	    this.jObject.on('keydown', this.handleInputKeydown.bind(this));
-	    this.jObject.on('keyup', this.handleInputKeydown.bind(this));
-	    this.jObject.on('keypress', this.handleInputKeypress.bind(this));
-	
-	    this.jObject.appendTo($("#htmlanno-annotation"));
-	    this.element = this.jObject.get(0);
-	    this.resizeInput();
-	    setTimeout(()=>{this.jObject.focus()}, 1);
+	class LabelInput{
+	  constructor(inputObject){
+	    this.inputObject = inputObject;
+	    this.callback = undefined;
 	  }
 	
-	  resizeInput(){
-	    const content = this.content();
-	    if (content !== ""){
-	      $("#ruler").text(content);
-	      const width = $("#ruler").width() + 8;
-	      this.jObject.css("width", width + "px");
-	      let left = (this.position.left - width/2);
-	      this.jObject.css("left", left + "px");
-	      this.jObject.css("top",  `${this.position.top}px`);
-	    } else{
-	      this.jObject.css("width",  "100px");
-	      this.jObject.css("left", `${this.position.left-50}px`);
-	      this.jObject.css("top",  `${this.position.top}px`);
-	    }
+	  setup(callback){
+	    this.callback = callback;
 	  }
 	
-	  commitText(){
-	    const content = this.content();
-	    if (content !== ""){
-	      this.resizeInput();
-	    } else{
-	      this.hide();
-	    }
+	  enable(){
+	    $(this.inputObject)
+	      .on("focusout", this.endEdit.bind(this))
+	      .on("blur", this.endEdit.bind(this))
+	      .removeAttr("disabled");
 	  }
 	
-	  content(){
-	    return this.element.value.trim();
+	  disable(){
+	    $(this.inputObject)
+	      .off("focusout")
+	      .off("blur")
+	      .attr("disabled", "disabled")
+	      .blur()
+	      .val("");
 	  }
 	
-	  setContent(text){
-	    this.jObject.val(text);
-	    this.resizeInput();
+	  startEdit(value){
+	    this.show(value);
+	    this.enable();
 	  }
 	
-	  reposition(position){
-	    this.position = position;
-	    this.resizeInput();
+	  endEdit(){
+	    let value = $(this.inputObject).val();
+	    this.disable();
+	    this.callback(value);
 	  }
 	
-	  handleInputBlur() {
-	    this.commitText();
-	  }
-	
-	  handleInputKeydown(e) {
-	    this.resizeInput();
-	    e.stopPropagation();
-	  }
-	
-	  handleInputKeypress(e) {
-	    // enter
-	    if (e.keyCode === 13) {
-	      this.element.blur();
-	    }
-	    // esc
-	    if (e.keyCode === 27) {
-	    }
-	  }
-	
-	  handleHoverIn(e){
-	    if (this.content()){
-	      this.jObject.addClass("htmlanno-label-hover");
-	    }
-	  }
-	  handleHoverOut(e){
-	    this.jObject.removeClass("htmlanno-label-hover");
-	  }
-	
-	  show(){
-	    this.jObject.show();
-	  }
-	
-	  hide(){
-	    if (!this.selected){
-	      this.jObject.hide();
-	    }
-	  }
-	
-	  select(){
-	    this.selected = true;
-	    this.jObject.addClass("htmlanno-label-selected");
-	    this.show();
-	  }
-	
-	  blur(){
-	    this.jObject.removeClass("htmlanno-label-selected");
-	    this.selected = false;
-	    if (this.content()){
-	      this.show();
-	    } else{
-	      this.hide();
-	    }
-	  }
-	
-	  remove(){
-	    this.jObject.remove();
+	  show(value){
+	    $(this.inputObject).val(value);
 	  }
 	}
-	
-	module.exports = Label;
+	module.exports = LabelInput;
 
 
 /***/ }),
@@ -10989,7 +10958,7 @@
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
-	const Label = __webpack_require__(13);
+	const InputLabel = __webpack_require__(13);
 	const RenderRelation = __webpack_require__(15);
 	const globalEvent = window.globalEvent;
 	
@@ -11002,16 +10971,16 @@
 	
 	    this.mouseX = null;
 	    this.mouseY = null;
-	    this.label = null;
+	    this.inputLabel = new InputLabel($("#inputLabel")[0]);
+	    this.inputLabel.setup(this.endEditLabel.bind(this));
 	    this.direction = direction;
 	
 	    this.arrow = new RenderRelation(id, startingCircle.positionCenter(), direction);
 	    this.arrow.appendTo($("#htmlanno-svg-screen"));
 	    this.arrow.on("click", (e)=>{
-	      globalEvent.emit("arrowannotationselect", this);
+	      this.startEditLabel();
 	    });
-	    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
-	    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
+	    this.resetHoverEvent();
 	
 	    globalEvent.on(this, "removecircle", (cir)=>{
 	      if (this.startingCircle === cir || this.endingCircle === cir){
@@ -11019,6 +10988,16 @@
 	        globalEvent.emit("removearrowannotation", this);
 	      }
 	    });
+	  }
+	
+	  disableHoverAction(){
+	    this.arrow.off("mouseenter");
+	    this.arrow.off("mouseleave");
+	  }
+	
+	  resetHoverEvent(){
+	    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
+	    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
 	  }
 	
 	  static createLink(id, startingCircle){
@@ -11041,11 +11020,6 @@
 	      this.arrow.point(cir.positionCenter());
 	      this.endingCircle = cir;
 	      globalEvent.on(this, "resizewindow", this.reposition.bind(this));
-	      this.label = new Label(this.id, this.labelPosition());
-	      this.label.jObject.hover(
-	          this.handleHoverIn.bind(this),
-	          this.handleHoverOut.bind(this)
-	          );
 	      globalEvent.emit("arrowannotationconnect", this);
 	    } else{
 	      this.arrow.remove();
@@ -11065,10 +11039,6 @@
 	    return {left: (p1.left+p2.left)/2, top: (p1.top+p2.top)/2};
 	  }
 	
-	  labelPosition(){
-	    return {left: this.positionCenter().left, top: this.arrow.halfY};
-	  }
-	
 	  reposition(){
 	    if (this.arrow){
 	      this.arrow.move(this.startingCircle.positionCenter());
@@ -11076,30 +11046,21 @@
 	        this.arrow.point(this.endingCircle.positionCenter());
 	      }
 	    }
-	    if (this.label){
-	      this.label.reposition(this.labelPosition());
-	    }
 	  }
 	
 	  select(){
 	    this.arrow.select();
-	    if (this.label){
-	      this.label.select();
-	    }
+	    this.showLabel();
 	  }
 	
 	  blur(){
 	    this.arrow.blur();
-	    if (this.label){
-	      this.label.blur();
-	    }
+	    this.resetHoverEvent();
+	    this.inputLabel.endEdit();
 	  }
 	
 	  remove(){
 	    this.arrow.remove();
-	    if (this.label){
-	      this.label.remove();
-	    }
 	    globalEvent.removeObject(this);
 	  }
 	
@@ -11114,16 +11075,12 @@
 	
 	  handleHoverIn(e){
 	    this.arrow.handleHoverIn();
-	    if (this.label){
-	      this.label.handleHoverIn();
-	    }
+	    this.showLabel();
 	  }
 	
 	  handleHoverOut(e){
 	    this.arrow.handleHoverOut();
-	    if (this.label){
-	      this.label.handleHoverOut();
-	    }
+	    this.hideLabel();
 	  }
 	
 	  saveToml(){
@@ -11131,7 +11088,7 @@
 	      'type = "relation"',
 	      `dir = "${this.direction}"`,
 	      `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
-	      `label = "${this.label.content()}"`
+	      `label = "${this.content()}"`
 	    ].join("\n");
 	  }
 	
@@ -11154,6 +11111,32 @@
 	      undefined !== toml && "relation" === toml.type && 
 	      ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
 	    );
+	  }
+	
+	  setContent(text){
+	    this.arrow.setContent(text);
+	  }
+	
+	  content(){
+	    return this.arrow.content();
+	  }
+	
+	  showLabel(){
+	    this.inputLabel.show(this.content());
+	  }
+	
+	  hideLabel(){
+	    this.inputLabel.disable();
+	  }
+	
+	  startEditLabel(){
+	    this.disableHoverAction();
+	    this.inputLabel.startEdit(this.content());
+	  }
+	
+	  endEditLabel(value){
+	    this.setContent(value);
+	    this.resetHoverEvent();
 	  }
 	}
 	
@@ -11236,6 +11219,13 @@
 	    this.jObject.on(name, handler);
 	  }
 	
+	  off(name){
+	    this.eventHandlers = this.eventHandlers.filter((eh)=>{
+	      return (name != eh.name);
+	    });
+	    this.jObject.off(name);
+	  }
+	
 	  domId(){
 	    return "arrow-" + this.id;
 	  }
@@ -11294,6 +11284,14 @@
 	  handleHoverOut(e){
 	    this.jObject.removeClass("htmlanno-arrow-hover");
 	  }
+	
+	  setContent(value){
+	    this.jObject.data('label', value);
+	  }
+	
+	  content(){
+	    return this.jObject.data('label');
+	  }
 	}
 	
 	module.exports = RenderRelation;
@@ -11318,8 +11316,13 @@
 	    this.highlighter = rangy.createHighlighter();
 	  }
 	
+	  // 定数扱い
+	  get BASE_NODE(){
+	    return document.getElementById("viewer");
+	  }
+	
 	  nodeFromTextOffset(offset){
-	    return this.nodeFromTextOffset_(document.body, offset);
+	    return this.nodeFromTextOffset_(this.BASE_NODE, offset);
 	  }
 	
 	  nodeFromTextOffset_(node, offset){
@@ -11348,7 +11351,7 @@
 	  }
 	
 	  textOffsetFromNode_(node, offset){
-	    if (node.nodeName == "BODY"){
+	    if (node.id == this.BASE_NODE.id){
 	      return offset;
 	    }
 	
@@ -11405,7 +11408,7 @@
 	    this.highlighter.highlightSelection("htmlanno-highlight"+id, {exclusive: false});
 	    if (temporaryElements.length > 0){
 	      highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
-	      highlight.label.setContent(text);
+	      highlight.setContent(text);
 	
 	      globalEvent.emit("highlightselect", {annotation: highlight});
 	
@@ -13526,7 +13529,7 @@
 	  _createRelation(relation, endingCircle, text){
 	    this.annotations.add(relation);
 	    relation.setEndingCircle(endingCircle);
-	    relation.label.setContent(text);
+	    relation.setContent(text);
 	
 	    return relation;
 	  }

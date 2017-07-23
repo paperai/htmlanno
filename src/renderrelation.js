@@ -69,6 +69,13 @@ class RenderRelation{
     this.jObject.on(name, handler);
   }
 
+  off(name){
+    this.eventHandlers = this.eventHandlers.filter((eh)=>{
+      return (name != eh.name);
+    });
+    this.jObject.off(name);
+  }
+
   domId(){
     return "arrow-" + this.id;
   }
@@ -126,6 +133,14 @@ class RenderRelation{
 
   handleHoverOut(e){
     this.jObject.removeClass("htmlanno-arrow-hover");
+  }
+
+  setContent(value){
+    this.jObject.data('label', value);
+  }
+
+  content(){
+    return this.jObject.data('label');
   }
 }
 
