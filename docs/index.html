@@ -33,7 +33,7 @@
               <i class="fa fa-download"></i>
             </a>
             <div class="input-group">
-              <input type="text" id="import_file_view" class="form-control" disabled="disabled" placeholder="Choose your files" />
+              <input type="text" id="import_file_view" class="form-control" placeholder="Choose your files" />
               <input type="file" id="import_file" class="hidden" />
               <span class="input-group-btn">
                 <a id="uploadButton" class="btn btn-default" href="#" title="Import">
@@ -46,9 +46,9 @@
 
         <!-- Annotation Tools -->
         <div class="row">
-          <div id="tools" class="col-md-3 col-sm-3 col-xs-3" style="padding-left: 0; padding-right: 0;">
-            <div style="padding-left: 15px; padding-right: 15px;">
-              <div class="btn-toolbar" role="toolbar" style="margin-top: 20px">
+          <div id="tools" class="col-md-3 col-sm-3 col-xs-3">
+            <div class="row">
+              <div class="btn-toolbar col-md-12" role="toolbar">
                 <div class="btn-group" role="group">
                   <a class="btn btn-default js-tool-btn-span" href="#" data-type="span" title="span" id="add_span">
                     <i class="fa fa-pencil fa-2x"></i>
@@ -64,36 +64,37 @@
                   </a>
                 </div>
               </div>
-              <div>
-                <h3>Label</h3>
+            </div>
+            <div class="row">
+              <h3 class="col-md-12">Label</h3>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
                 <div class="input-group form-control">
-                  <input list=labels class="form-control" id="inputLabel" disabled>
+                  <input list="labels" class="form-control" id="inputLabel" disabled="disabled" />
                   <datalist id=labels><!-- Added by JS. --></datalist>
                 </div>
               </div>
             </div>
           </div>
-
-          <div id="viewerWrapper" class="col-md-9 col-sm-9 col-xs-9" style="padding-left: 0; padding-right: 0;">
-            <div style="padding-right: 15px;">
-              <div id="viewer" class="viewer">
-    <div id="parent">
-      <div id="text1">
-        GARETH AND LYNETTE.
-        ゲーレスとリネツトの卷
-        　It was in the old days of England, when instead of one King, there were many, who divided the country between them, and constantly made war upon each other, to increase their possessions.
-      </div>
-      <div id="text2">
-        （譯）之<span></span>（れは英吉利の昔しの話（it was in the old days of England）、國に一王の今とは違ひwhen instead of one king）國土を分つ數多の君々あつて（there were many, who divided the country between them）、己が領地を擴めやうと（to increase their possessions）干戈を交えぬ日はなかつた（constantly made war upon each other）。
-      </div>
-      <hr>
-      http://www.aozora.gr.jp/cards/000140/card50131.htmlより
-    </div>
+          <div id="viewerWrapper" class="col-md-9 col-sm-9 col-xs-9">
+            <div id="viewer" class="viewer">
+              <div id="parent">
+                <div id="text1">
+                  GARETH AND LYNETTE.
+                  ゲーレスとリネツトの卷
+                　It was in the old days of England, when instead of one King, there were many, who divided the country between them, and constantly made war upon each other, to increase their possessions.
+                </div>
+                <div id="text2">
+                 （譯）之<span></span>（れは英吉利の昔しの話（it was in the old days of England）、國に一王の今とは違ひwhen instead of one king）國土を分つ數多の君々あつて（there were many, who divided the country between them）、己が領地を擴めやうと（to increase their possessions）干戈を交えぬ日はなかつた（constantly made war upon each other）。
+                </div>
+                <hr>
+                http://www.aozora.gr.jp/cards/000140/card50131.htmlより
               </div>
             </div>
           </div>
         </div>
       </div>
-    <div>
+    </div>
   </body>
 </html>
