@@ -13,8 +13,13 @@ class Highlighter{
     this.highlighter = rangy.createHighlighter();
   }
 
+  // 定数扱い
+  get BASE_NODE(){
+    return document.getElementById("viewer");
+  }
+
   nodeFromTextOffset(offset){
-    return this.nodeFromTextOffset_(document.body, offset);
+    return this.nodeFromTextOffset_(this.BASE_NODE, offset);
   }
 
   nodeFromTextOffset_(node, offset){
@@ -43,7 +48,7 @@ class Highlighter{
   }
 
   textOffsetFromNode_(node, offset){
-    if (node.nodeName == "BODY"){
+    if (node.id == this.BASE_NODE.id){
       return offset;
     }
 
