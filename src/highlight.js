@@ -1,6 +1,5 @@
 const $ = require("jquery");
 const Circle = require("./circle.js");
-const InputLabel = require("./inputlabel.js");
 const globalEvent = window.globalEvent;
 
 class Highlight{
@@ -14,39 +13,24 @@ class Highlight{
 
     this.addCircle();
     this.setClass();
-    this.resetHoverEvent();
-
-    this.inputLabel = new InputLabel($("#inputLabel")[0]);
-    this.inputLabel.setup(this.endEditLabel.bind(this));
-  }
-
-  disableHoverAction(){
-    $(`.${this.getClassName()}`).off("mouseenter").off("mouseleave");
-    this.circle.disableHoverAction();
-  }
-
-  resetHoverEvent(){
     $(`.${this.getClassName()}`).hover(
         this.handleHoverIn.bind(this),
         this.handleHoverOut.bind(this)
-        );
-    this.circle.resetHoverEvent();
+    );
   }
 
-  handleHoverIn(){
-    globalEvent.emit("highlighthoverin", this);
+  handleHoverIn(e){
     this.elements.forEach((e)=>{
       $(e).addClass("htmlanno-border");
     });
-    this.showLabel();
+    globalEvent.emit("annotationhoverin", this);
   }
 
-  handleHoverOut(){
-    globalEvent.emit("highlighthoverout", this);
+  handleHoverOut(e){
     this.elements.forEach((e)=>{
       $(e).removeClass("htmlanno-border");
     });
-    this.hideLabel();
+    globalEvent.emit("annotationhoverout", this);
   }
 
   addCircle(){
@@ -88,14 +72,11 @@ class Highlight{
     });
   }
 
-  select(){
+  select(showOnly){
     this.addClass("htmlanno-highlight-selected");
-    this.showLabel();
-  }
-
-  selectForEditing(){
-    this.select();
-    this.startEditLabel();
+    if (undefined == showOnly || !showOnly){
+      globalEvent.emit("editlabel", {target: this});
+    }
   }
 
   blur(){
@@ -104,6 +85,7 @@ class Highlight{
   }
 
   remove(){
+    this.blur();
     this.circle.remove();
     $(`.${this.getClassName()}`).each(function() {
       $(this).replaceWith(this.childNodes);
@@ -146,21 +128,11 @@ class Highlight{
   }
 
   showLabel(){
-    this.inputLabel.show(this.content());
+    globaleEvent.emit("showlabel", {target: this});
   }
 
   hideLabel(){
-    this.inputLabel.disable();
-  }
-
-  startEditLabel(){
-    this.disableHoverAction();
-    this.inputLabel.startEdit(this.content());
-  }
-
-  endEditLabel(value){
-    this.setContent(value);
-    this.resetHoverEvent();
+    globalEvent.emit("clearlabel");
   }
 }
 

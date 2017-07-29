@@ -27,9 +27,19 @@ class Circle{
 
   resetHoverEvent(){
     this.jObject.hover(
-      this.highlight.handleHoverIn.bind(this.highlight),
-      this.highlight.handleHoverOut.bind(this.highlight)
+      this.handleHoverIn.bind(this),
+      this.handleHoverOut.bind(this)
     );
+  }
+
+  handleHoverIn(e){
+    e.stopPropagation();
+    globalEvent.emit("annotationhoverin", this.highlight);
+  }
+
+  handleHoverOut(e){
+    e.stopPropagation();
+    globalEvent.emit("annotationhoverout", this.highlight);
   }
 
   domId(){

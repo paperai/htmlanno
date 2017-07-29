@@ -11,6 +11,7 @@ const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
 const AnnotationContainer = require("./annotationcontainer.js");
+const InputLabel = require("./inputlabel");
 
 class Htmlanno{
   constructor(){
@@ -18,15 +19,25 @@ class Htmlanno{
     this.annotations = new AnnotationContainer();
     this.highlighter = new Highlighter(this.annotations);
     this.arrowConnector = new ArrowConnector(this.annotations);
+    this.inputLabel = new InputLabel($("#inputLabel"));
     this.handleResize();
-    this.selectedAnnotation = null;
-    this.relationTarget     = null;
+    this.selectedHighlights = [];
     this.selectedRelation   = null;
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
-    globalEvent.on(this, "highlightselect", this.handleSelect.bind(this));
-    globalEvent.on(this, "commitSelection", this.commitSelection.bind(this));
+    globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
+    globalEvent.on(this, "annotationhoverin",
+      this.handleAnnotationHoverIn.bind(this));
+    globalEvent.on(this, "annotationhoverout",
+      this.handleAnnotationHoverOut.bind(this));
+    globalEvent.on(this, "highlightselect",
+      this.handleHighlightSelect.bind(this));
+    globalEvent.on(this, "relationselect",
+      this.handleRelationSelect.bind(this));
+    globalEvent.on(this, "showlabel", this.showLabel.bind(this));
+    globalEvent.on(this, "clearlabel", this.clearLabel.bind(this));
+    globalEvent.on(this, "editlabel", this.editLabel.bind(this));
 
     globalEvent.on(this, "removearrowannotation", (data)=>{
       this.arrowConnector.removeAnnotation(data);
@@ -107,21 +118,21 @@ class Htmlanno{
     $(document).on("keydown", (e)=>{
       globalEvent.emit("keydown", e);
     });
-
-    $(document).on("mouseup", (e)=>{
-      globalEvent.emit("mouseup", e);
-    });
-
+/* TODO: 最終的に削除
     $(document).on("mousemove", (e)=>{
       globalEvent.emit("mousemove", e);
     });
 
+    $(document).on("mouseup", (e)=>{
+      globalEvent.emit("mouseup", e);
+    });
+*/
     $(window).on("resize", (e)=>{
       globalEvent.emit("resizewindow", e);
     });
 
     $("#viewer").on("mouseup", (e)=>{
-      globalEvent.emit("commitSelection", e);
+      globalEvent.emit("mouseup", e);
     });
 
     // HTMLanno独自機能
@@ -145,28 +156,37 @@ class Htmlanno{
     });
   }
 
-  handleSelect(data){
-    if (this.selectedAnnotation === data.annotation){
-      this.unselectAnnotationTarget();
-      this.unselectRelationTarget();
-    } else if (this.relationTarget === data.annotation){
-      this.unselectRelationTarget();
-    } else{
-      if (undefined != data.event && data.event.ctrlKey){
-        if (this.selectedAnnotation){
-          this.relationTarget = data.annotation;
-          this.relationTarget.select();
-          this.selectedAnnotation.hideLabel();
-        }
+  handleHighlightSelect(data){
+    this.inputLabel.endEdit();
+    this.unselectRelation();
+
+    if (!this.unselectHighlight(data.annotation)){
+    // Now selected highlight is not already selected.
+      if (0 == this.selectedHighlights.length){
+      // First selection.
+        this.selectedHighlights.push(data.annotation);
+        data.annotation.select();
       } else{
-        this.unselectAnnotationTarget();
-        this.unselectRelationTarget();
-        if (data.annotation){
-          this.selectedAnnotation = data.annotation;
-          this.selectedAnnotation.selectForEditing();
+        if (undefined != data.event && data.event.ctrlKey) {
+        // multi selection.
+          this.selectedHighlights.push(data.annotation);
+          data.annotation.select(true);
+        } else{
+        // New selection, unselect all old selection.
+          this.unselectHighlight();
+          this.selectedHighlights.push(data.annotation);
+          data.annotation.select();
         }
       }
     }
+  }
+
+  handleRelationSelect(data){
+    this.inputLabel.endEdit();
+    this.unselectRelation();
+    this.unselectHighlight();
+    this.selectedRelation = data.annotation;
+    data.annotation.select();
   }
 
   handleResize(){
@@ -182,47 +202,87 @@ class Htmlanno{
   }
 
   handleKeydown(e){
-    // esc
-    if (e.keyCode === 27) {
-      if (this.selectedAnnotation){
-        this.selectedAnnotation.blur();
-        this.selectedAnnotation = null;
+    if (0 != this.selectedHighlights.length){
+      let lastSelected =
+        this.selectedHighlights[this.selectedHighlights.length - 1];
+      // esc
+      if (e.keyCode === 27) {
+        this.inputLabel.endEdit();
+        this.unselectHighlight(lastSelected);
       }
-    }
 
-    // delete or back space
-    if (e.keyCode === 46 || e.keyCode == 8) {
-      if (document.body == e.target && this.selectedAnnotation){
-        e.preventDefault();
-        this.selectedAnnotation.hideLabel();
-        this.selectedAnnotation.remove();
-        this.highlighter.removeAnnotation(this.selectedAnnotation);
-        this.arrowConnector.removeAnnotation(this.selectedAnnotation);
-        this.selectedAnnotation = null;
+      // delete or back space
+      if (e.keyCode === 46 || e.keyCode == 8) {
+        if (document.body == e.target){
+          e.preventDefault();
+          this.inputLabel.endEdit();
+          lastSelected.remove();
+          this.highlighter.removeAnnotation(lastSelected);
+          this.unselectHighlight(lastSelected);
+        }
+      }
+    } else if (null != this.selectedRelation){
+      // esc
+      if (e.keyCode == 27) {
+        this.inputLabel.endEdit();
+        this.unselectRelation();
+      }
+
+      // delete or back space
+      if (e.keyCode === 46 || e.keyCode == 8) {
+        if (document.body == e.target){
+          e.preventDefault();
+          this.inputLabel.endEdit();
+          this.selectedRelation.remove();
+          this.arrowConnector.removeAnnotation(this.selectedRelation);
+          this.unselectRelation();
+        }
       }
     }
   }
 
-  commitSelection(e){
-    if (!$(e.target).hasClass("htmlanno-circle") && !$(e.target).hasClass("htmlanno-arrow")) {
-      this.unselectAnnotationTarget();
-      this.unselectRelationTarget();
+  handleMouseUp(e){
+    this.inputLabel.endEdit();
+
+    if (
+      !$(e.target).hasClass("htmlanno-circle") &&
+      !$(e.target).hasClass("htmlanno-arrow")
+    ) {
       this.unselectRelation();
+      this.unselectHighlight();
     }
+    // else ... maybe fire an event from annotation or relation.
   }
 
-  unselectAnnotationTarget(){
-    if (this.selectedAnnotation){
-      this.selectedAnnotation.blur();
-      this.selectedAnnotation = null;
+  // Unselect the selected highlight(s).
+  //
+  // When call with index, unselect a highlight that is specified by index.
+  // And after, if selected index exists yet, start it's label edit.
+  // When call without index, unselect all highlights.
+  unselectHighlight(target){
+    if (undefined == target){
+      this.selectedHighlights.forEach((highlight)=>{
+        highlight.blur();
+      });
+      this.selectedHighlights = [];
+    } else if ('number' === typeof(target)) {
+      while(target < this.selectedHighlights.length){
+        this.selectedHighlights.pop().blur();
+      }
+      if (0 != this.selectedHighlights.length){
+        this.selectedHighlights[this.selectedHighlights.length - 1].select();
+      }
+    } else{
+      let index = this.selectedHighlights.findIndex((elm)=>{
+        return elm === target;
+      });
+      if (-1 == index){
+        return false;
+      } else{
+        this.unselectHighlight(index);
+      }
     }
-  }
-
-  unselectRelationTarget(){
-    if (this.relationTarget){
-      this.relationTarget.blur();
-      this.relationTarget = null;
-    }
+    return true;
   }
 
   unselectRelation(){
@@ -232,22 +292,68 @@ class Htmlanno{
     }
   }
 
+  // Annotation (highliht and relation) hover in.
+  handleAnnotationHoverIn(annotation){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.show(annotation.content());
+    }
+  }
+
+  // Annotation (highliht and relation) hover out.
+  handleAnnotationHoverOut(annotation){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.clear();
+    } 
+  }
+
+  showLabel(e){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.show(e.target.content());
+    }
+  }
+
+  clearLabel(){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.clear();
+    }
+  }
+
+  editLabel(e){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.startEdit(
+        e.target.content(), e.target.setContent.bind(e.target)
+      );
+    }
+  }
+
   handleAddSpan(){
     this.highlighter.highlight();
   }
 
   handleAddRelation(direction){
-    if (null != this.selectedAnnotation && null != this.relationTarget){
+    if (2 == this.selectedHighlights.length){
       let arrowId = this.annotations.nextId();
+      let from = this.selectedHighlights[0];
+      let to   = this.selectedHighlights[1];
+      let created = null;
       switch(direction){
         case 'one-way':
-          this.arrowConnector.createOnewayRelation(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+          created = this.arrowConnector.createOnewayRelation(arrowId, from.circle, to.circle, "");
+          this.unselectHighlight();
+          this.selectedRelation = created;
+          created.select();
           break;
         case 'two-way':
-          this.arrowConnector.createTwowayRelation(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+          created = this.arrowConnector.createTwowayRelation(arrowId, from.circle, to.circle, "");
+          this.unselectHighlight();
+          this.selectedRelation = created;
+          created.select();
           break;
         case 'link':
-          this.arrowConnector.createLinkRelation(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+          created = this.arrowConnector.createLinkRelation(arrowId, from.circle, to.circle, "");
+          this.unselectHighlight();
+          this.selectedRelation = created;
+          created.select();
           break;
         default:
           console.log("ERROR! undefined direction; " + direction);

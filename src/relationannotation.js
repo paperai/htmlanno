@@ -1,5 +1,4 @@
 const $ = require("jquery");
-const InputLabel = require("./inputlabel.js");
 const RenderRelation = require("./renderrelation.js");
 const globalEvent = window.globalEvent;
 
@@ -12,16 +11,15 @@ class RelationAnnotation{
 
     this.mouseX = null;
     this.mouseY = null;
-    this.inputLabel = new InputLabel($("#inputLabel")[0]);
-    this.inputLabel.setup(this.endEditLabel.bind(this));
     this.direction = direction;
 
     this.arrow = new RenderRelation(id, startingCircle.positionCenter(), direction);
     this.arrow.appendTo($("#htmlanno-svg-screen"));
     this.arrow.on("click", (e)=>{
-      this.startEditLabel();
+      globalEvent.emit("relationselect", {event: e, annotation: this});
     });
-    this.resetHoverEvent();
+    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
+    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
 
     globalEvent.on(this, "removecircle", (cir)=>{
       if (this.startingCircle === cir || this.endingCircle === cir){
@@ -29,16 +27,6 @@ class RelationAnnotation{
         globalEvent.emit("removearrowannotation", this);
       }
     });
-  }
-
-  disableHoverAction(){
-    this.arrow.off("mouseenter");
-    this.arrow.off("mouseleave");
-  }
-
-  resetHoverEvent(){
-    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
-    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
   }
 
   static createLink(id, startingCircle){
@@ -91,13 +79,11 @@ class RelationAnnotation{
 
   select(){
     this.arrow.select();
-    this.showLabel();
+    globalEvent.emit("editlabel", {target: this});
   }
 
   blur(){
     this.arrow.blur();
-    this.resetHoverEvent();
-    this.inputLabel.endEdit();
   }
 
   remove(){
@@ -116,12 +102,12 @@ class RelationAnnotation{
 
   handleHoverIn(e){
     this.arrow.handleHoverIn();
-    this.showLabel();
+    globalEvent.emit("annotationhoverin", this);
   }
 
   handleHoverOut(e){
     this.arrow.handleHoverOut();
-    this.hideLabel();
+    globalEvent.emit("annotationhoverout", this);
   }
 
   saveToml(){
@@ -160,24 +146,6 @@ class RelationAnnotation{
 
   content(){
     return this.arrow.content();
-  }
-
-  showLabel(){
-    this.inputLabel.show(this.content());
-  }
-
-  hideLabel(){
-    this.inputLabel.disable();
-  }
-
-  startEditLabel(){
-    this.disableHoverAction();
-    this.inputLabel.startEdit(this.content());
-  }
-
-  endEditLabel(value){
-    this.setContent(value);
-    this.resetHoverEvent();
   }
 }
 

@@ -107,7 +107,7 @@ class Highlighter{
       highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
       highlight.setContent(text);
 
-      globalEvent.emit("highlightselect", {annotation: highlight});
+      globalEvent.emit("highlightselect", {event: undefined, annotation: highlight});
 
       // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
       this.highlights.add(highlight);
