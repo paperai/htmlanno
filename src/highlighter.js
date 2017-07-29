@@ -13,8 +13,13 @@ class Highlighter{
     this.highlighter = rangy.createHighlighter();
   }
 
+  // 定数扱い
+  get BASE_NODE(){
+    return document.getElementById("viewer");
+  }
+
   nodeFromTextOffset(offset){
-    return this.nodeFromTextOffset_(document.body, offset);
+    return this.nodeFromTextOffset_(this.BASE_NODE, offset);
   }
 
   nodeFromTextOffset_(node, offset){
@@ -43,7 +48,7 @@ class Highlighter{
   }
 
   textOffsetFromNode_(node, offset){
-    if (node.nodeName == "BODY"){
+    if (node.id == this.BASE_NODE.id){
       return offset;
     }
 
@@ -100,9 +105,9 @@ class Highlighter{
     this.highlighter.highlightSelection("htmlanno-highlight"+id, {exclusive: false});
     if (temporaryElements.length > 0){
       highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
-      highlight.label.setContent(text);
+      highlight.setContent(text);
 
-      globalEvent.emit("highlightselect", {annotation: highlight});
+      globalEvent.emit("highlightselect", {event: undefined, annotation: highlight});
 
       // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
       this.highlights.add(highlight);

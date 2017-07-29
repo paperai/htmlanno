@@ -1,6 +1,5 @@
 const $ = require("jquery");
 const Circle = require("./circle.js");
-const Label = require("./label.js");
 const globalEvent = window.globalEvent;
 
 class Highlight{
@@ -17,31 +16,21 @@ class Highlight{
     $(`.${this.getClassName()}`).hover(
         this.handleHoverIn.bind(this),
         this.handleHoverOut.bind(this)
-        );
-
-    this.label = new Label("hlabel-" + this.id, this.labelPosition());
+    );
   }
 
-  labelPosition(){
-    const position = this.circle.positionCenter();
-    position.top -= 34;
-    return position;
-  }
-
-  handleHoverIn(){
-    globalEvent.emit("highlighthoverin", this);
+  handleHoverIn(e){
     this.elements.forEach((e)=>{
       $(e).addClass("htmlanno-border");
     });
-    this.label.show();
+    globalEvent.emit("annotationhoverin", this);
   }
 
-  handleHoverOut(){
-    globalEvent.emit("highlighthoverout", this);
+  handleHoverOut(e){
     this.elements.forEach((e)=>{
       $(e).removeClass("htmlanno-border");
     });
-    this.label.hide();
+    globalEvent.emit("annotationhoverout", this);
   }
 
   addCircle(){
@@ -83,36 +72,24 @@ class Highlight{
     });
   }
 
-  select(){
+  select(showOnly){
     this.addClass("htmlanno-highlight-selected");
-    this.label.show();
-  }
-
-  selectForEditing(){
-    this.select();
-    this.label.select();
-  }
-
-  hideLabel(){
-    this.label.blur();
+    if (undefined == showOnly || !showOnly){
+      globalEvent.emit("editlabel", {target: this});
+    }
   }
 
   blur(){
     this.removeClass("htmlanno-highlight-selected");
-    this.label.blur();
-    this.label.hide();
+    this.hideLabel();
   }
 
   remove(){
+    this.blur();
     this.circle.remove();
     $(`.${this.getClassName()}`).each(function() {
       $(this).replaceWith(this.childNodes);
     });
-    this.label.remove();
-  }
-
-  saveData(){
-    return [this.startOffset, this.endOffset, this.label.content()];
   }
 
   saveToml(){
@@ -120,7 +97,7 @@ class Highlight{
       'type = "span"',
       `position = [${this.startOffset}, ${this.endOffset}]`,
       'text = "' + $(this.elements).text() + '"',
-      `label = "${this.label.content()}"`
+      `label = "${this.content()}"`
     ].join("\n");
   }
 
@@ -140,6 +117,22 @@ class Highlight{
 
   static isMydata(toml){
     return (undefined != toml && "span" == toml.type);
+  }
+
+  setContent(text){
+    $(`.${this.getClassName()}`).data('label', text);
+  }
+
+  content(){
+    return $(`.${this.getClassName()}`).data('label');
+  }
+
+  showLabel(){
+    globaleEvent.emit("showlabel", {target: this});
+  }
+
+  hideLabel(){
+    globalEvent.emit("clearlabel");
   }
 }
 

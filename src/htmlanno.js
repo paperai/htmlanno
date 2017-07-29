@@ -4,11 +4,14 @@ const EventManager = require("./eventmanager");
 
 window.globalEvent = new EventManager();
 
+const AnnoUI = require("anno-ui");
+
 const TomlTool = require("./tomltool.js");
 const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
 const AnnotationContainer = require("./annotationcontainer.js");
+const InputLabel = require("./inputlabel");
 
 class Htmlanno{
   constructor(){
@@ -16,35 +19,39 @@ class Htmlanno{
     this.annotations = new AnnotationContainer();
     this.highlighter = new Highlighter(this.annotations);
     this.arrowConnector = new ArrowConnector(this.annotations);
+    this.inputLabel = new InputLabel($("#inputLabel"));
     this.handleResize();
-    this.wrapGlobalEvents();
-    this.selectedAnnotation = null;
-    this.relationTarget = null;
+    this.selectedHighlights = [];
+    this.selectedRelation   = null;
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
-    globalEvent.on(this, "arrowannotationselect", this.handleSelect.bind(this));
-    globalEvent.on(this, "highlightselect", this.handleSelect.bind(this));
-    globalEvent.on(this, "commitSelection", this.commitSelection.bind(this));
+    globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
+    globalEvent.on(this, "annotationhoverin",
+      this.handleAnnotationHoverIn.bind(this));
+    globalEvent.on(this, "annotationhoverout",
+      this.handleAnnotationHoverOut.bind(this));
+    globalEvent.on(this, "highlightselect",
+      this.handleHighlightSelect.bind(this));
+    globalEvent.on(this, "relationselect",
+      this.handleRelationSelect.bind(this));
+    globalEvent.on(this, "showlabel", this.showLabel.bind(this));
+    globalEvent.on(this, "clearlabel", this.clearLabel.bind(this));
+    globalEvent.on(this, "editlabel", this.editLabel.bind(this));
 
     globalEvent.on(this, "removearrowannotation", (data)=>{
       this.arrowConnector.removeAnnotation(data);
+      this.unselectRelation();
     });
-    globalEvent.on(this, "addSpan", this.handleAddSpan.bind(this));
-    globalEvent.on(this, "addOnewayRelation", this.handleAddOnewayRelation.bind(this));
-    globalEvent.on(this, "addTwowayRelation", this.handleAddTwowayRelation.bind(this));
-    globalEvent.on(this, "addLinkRelation", this.handleAddLinkRelation.bind(this));
-    globalEvent.on(this, "exportAnnotation", this.handleExportAnnotation.bind(this));
+    window.handleAddSpan           = this.handleAddSpan.bind(this);
+    window.handleAddRelation       = this.handleAddRelation.bind(this);
+    window.handleExportAnnotation  = this.handleExportAnnotation.bind(this);
+
+    // HTMLanno独自機能
+    globalEvent.on(this, "uploadFileSelect", this.handleUploadFileSelect.bind(this));
     globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
 
-    /*
-       setInterval(()=>{
-       localStorage.setItem(this.storageKey(), this.toJson());
-       }, 1 * 1000);
-       setTimeout(()=>{
-       this.loadStorage()
-       }, 1);
-       */
+    this.wrapGlobalEvents();
   }
 
   storageKey(){
@@ -85,6 +92,23 @@ class Htmlanno{
   }
 
   wrapGlobalEvents(){
+    AnnoUI.util.setupResizableColumns();
+    AnnoUI.event.setup();
+
+    AnnoUI.annoSpanButton.setup({
+      createSpanAnnotation: window.handleAddSpan
+    });
+
+    AnnoUI.annoRelButton.setup({
+      createRelAnnotation: window.handleAddRelation
+    });
+
+    AnnoUI.downloadButton.setup({
+      getAnnotationTOMLString: window.handleExportAnnotation,
+      getCurrentContentName: ()=>{ return "export.htmlanno"; },
+      unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
+    });
+
     $(document).on("dragover", (e)=>{
       if (e.originalEvent.pageX && e.originalEvent.pageY){
         globalEvent.emit("drag", e);
@@ -94,70 +118,75 @@ class Htmlanno{
     $(document).on("keydown", (e)=>{
       globalEvent.emit("keydown", e);
     });
-
-    $(document).on("mouseup", (e)=>{
-      globalEvent.emit("mouseup", e);
-    });
-
+/* TODO: 最終的に削除
     $(document).on("mousemove", (e)=>{
       globalEvent.emit("mousemove", e);
     });
 
+    $(document).on("mouseup", (e)=>{
+      globalEvent.emit("mouseup", e);
+    });
+*/
     $(window).on("resize", (e)=>{
       globalEvent.emit("resizewindow", e);
     });
 
-    $("#parent").on("mouseup", (e)=>{
-      globalEvent.emit("commitSelection", e);
+    $("#viewer").on("mouseup", (e)=>{
+      globalEvent.emit("mouseup", e);
     });
 
-    $("#add_span").on("click", (e)=>{
-      globalEvent.emit("addSpan", e);
-    });
+    // HTMLanno独自機能
+    $("#import_file_view").on("click", (e)=>{
+      globalEvent.emit("uploadFileSelect", e);
+    })
+    // マウスクリック以外の動作は無効化
+    .on("focusin", ()=>{ $("#uploadButton").focus(); })
+    .on("keydown", false)
+    .on("contextmenu", false);
 
-    $("#add_oneway_relation").on("click", (e)=>{
-      globalEvent.emit("addOnewayRelation", e);
-    });
-
-    $("#add_twoway_relation").on("click", (e)=>{
-      globalEvent.emit("addTwowayRelation", e);
-    });
-
-    $("#add_link_relation").on("click", (e)=>{
-      globalEvent.emit("addLinkRelation", e);
-    });
-
-    $("#export").on("click", (e)=>{
-      globalEvent.emit("exportAnnotation", e);
-    });
-
-    $("#import").on("click", (e)=>{
+    $("#uploadButton").on("click", (e)=>{
       globalEvent.emit("importAnnotation", e);
+    });
+
+    $("#import_file").change(()=>{
+      let files = $("#import_file")[0].files;
+      if ( undefined != files && 0 < files.length ){
+        $("#import_file_view").val(files[0].name);
+      }
     });
   }
 
-  handleSelect(data){
-    if (this.selectedAnnotation === data.annotation){
-      this.unselectAnnotationTarget();
-      this.unselectRelationTarget();
-    } else if (this.relationTarget === data.annotation){
-      this.unselectRelationTarget();
-    } else{
-      if (undefined != data.event && data.event.ctrlKey){
-        if (this.selectedAnnotation){
-          this.relationTarget = data.annotation;
-          this.relationTarget.select();
-          this.selectedAnnotation.hideLabel();
-        }
+  handleHighlightSelect(data){
+    this.inputLabel.endEdit();
+    this.unselectRelation();
+
+    if (!this.unselectHighlight(data.annotation)){
+    // Now selected highlight is not already selected.
+      if (0 == this.selectedHighlights.length){
+      // First selection.
+        this.selectedHighlights.push(data.annotation);
+        data.annotation.select();
       } else{
-        this.unselectAnnotationTarget();
-        this.unselectRelationTarget();
-        if (data.annotation){
-          this.selectedAnnotation = data.annotation;
-          this.selectedAnnotation.selectForEditing();
+        if (undefined != data.event && data.event.ctrlKey) {
+        // multi selection.
+          this.selectedHighlights.push(data.annotation);
+          data.annotation.select(true);
+        } else{
+        // New selection, unselect all old selection.
+          this.unselectHighlight();
+          this.selectedHighlights.push(data.annotation);
+          data.annotation.select();
         }
       }
     }
+  }
+
+  handleRelationSelect(data){
+    this.inputLabel.endEdit();
+    this.unselectRelation();
+    this.unselectHighlight();
+    this.selectedRelation = data.annotation;
+    data.annotation.select();
   }
 
   handleResize(){
@@ -173,94 +202,180 @@ class Htmlanno{
   }
 
   handleKeydown(e){
-    // esc
-    if (e.keyCode === 27) {
-      if (this.selectedAnnotation){
-        this.selectedAnnotation.blur();
-        this.selectedAnnotation = null;
+    if (0 != this.selectedHighlights.length){
+      let lastSelected =
+        this.selectedHighlights[this.selectedHighlights.length - 1];
+      // esc
+      if (e.keyCode === 27) {
+        this.inputLabel.endEdit();
+        this.unselectHighlight(lastSelected);
+      }
+
+      // delete or back space
+      if (e.keyCode === 46 || e.keyCode == 8) {
+        if (document.body == e.target){
+          e.preventDefault();
+          this.inputLabel.endEdit();
+          lastSelected.remove();
+          this.highlighter.removeAnnotation(lastSelected);
+          this.unselectHighlight(lastSelected);
+        }
+      }
+    } else if (null != this.selectedRelation){
+      // esc
+      if (e.keyCode == 27) {
+        this.inputLabel.endEdit();
+        this.unselectRelation();
+      }
+
+      // delete or back space
+      if (e.keyCode === 46 || e.keyCode == 8) {
+        if (document.body == e.target){
+          e.preventDefault();
+          this.inputLabel.endEdit();
+          this.selectedRelation.remove();
+          this.arrowConnector.removeAnnotation(this.selectedRelation);
+          this.unselectRelation();
+        }
       }
     }
+  }
 
-    // delete or back space
-    if (e.keyCode === 46 || e.keyCode == 8) {
-      if (this.selectedAnnotation){
-        e.preventDefault();
-        this.selectedAnnotation.remove();
-        this.highlighter.removeAnnotation(this.selectedAnnotation);
-        this.arrowConnector.removeAnnotation(this.selectedAnnotation);
-        this.selectedAnnotation = null;
+  handleMouseUp(e){
+    this.inputLabel.endEdit();
+
+    if (
+      !$(e.target).hasClass("htmlanno-circle") &&
+      !$(e.target).hasClass("htmlanno-arrow")
+    ) {
+      this.unselectRelation();
+      this.unselectHighlight();
+    }
+    // else ... maybe fire an event from annotation or relation.
+  }
+
+  // Unselect the selected highlight(s).
+  //
+  // When call with index, unselect a highlight that is specified by index.
+  // And after, if selected index exists yet, start it's label edit.
+  // When call without index, unselect all highlights.
+  unselectHighlight(target){
+    if (undefined == target){
+      this.selectedHighlights.forEach((highlight)=>{
+        highlight.blur();
+      });
+      this.selectedHighlights = [];
+    } else if ('number' === typeof(target)) {
+      while(target < this.selectedHighlights.length){
+        this.selectedHighlights.pop().blur();
+      }
+      if (0 != this.selectedHighlights.length){
+        this.selectedHighlights[this.selectedHighlights.length - 1].select();
+      }
+    } else{
+      let index = this.selectedHighlights.findIndex((elm)=>{
+        return elm === target;
+      });
+      if (-1 == index){
+        return false;
+      } else{
+        this.unselectHighlight(index);
       }
     }
+    return true;
   }
 
-  commitSelection(e){
-    if (!$(e.target).hasClass("htmlanno-circle")) {
-      // TODO:spanボタンを有効化
-      this.unselectAnnotationTarget();
-      this.unselectRelationTarget();
+  unselectRelation(){
+    if (this.selectedRelation){
+      this.selectedRelation.blur();
+      this.selectedRelation = null;
     }
   }
 
-  unselectAnnotationTarget(){
-    if (this.selectedAnnotation){
-      this.selectedAnnotation.blur();
-      this.selectedAnnotation = null;
+  // Annotation (highliht and relation) hover in.
+  handleAnnotationHoverIn(annotation){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.show(annotation.content());
     }
   }
 
-  unselectRelationTarget(){
-    if (this.relationTarget){
-      this.relationTarget.blur();
-      this.relationTarget = null;
+  // Annotation (highliht and relation) hover out.
+  handleAnnotationHoverOut(annotation){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.clear();
+    } 
+  }
+
+  showLabel(e){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.show(e.target.content());
+    }
+  }
+
+  clearLabel(){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.clear();
+    }
+  }
+
+  editLabel(e){
+    if (!this.inputLabel.editing()){
+      this.inputLabel.startEdit(
+        e.target.content(), e.target.setContent.bind(e.target)
+      );
     }
   }
 
   handleAddSpan(){
     this.highlighter.highlight();
-    // TODO:spanボタンを無効化;
   }
 
-  handleAddOnewayRelation(){
-    if (null != this.selectedAnnotation && null != this.relationTarget){
+  handleAddRelation(direction){
+    if (2 == this.selectedHighlights.length){
       let arrowId = this.annotations.nextId();
-      this.arrowConnector.createOnewayRelation(
-        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
-      );
-    }
-  }
-
-  handleAddTwowayRelation(){
-    if (null != this.selectedAnnotation && null != this.relationTarget){
-      let arrowId = this.annotations.nextId();
-      this.arrowConnector.createTwowayRelation(
-        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
-      );
-    }
-  }
-
-  handleAddLinkRelation(){
-    if (null != this.selectedAnnotation && null != this.relationTarget){
-      let arrowId = this.annotations.nextId();
-      this.arrowConnector.createLinkRelation(
-        arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, ""
-      );
+      let from = this.selectedHighlights[0];
+      let to   = this.selectedHighlights[1];
+      let created = null;
+      switch(direction){
+        case 'one-way':
+          created = this.arrowConnector.createOnewayRelation(arrowId, from.circle, to.circle, "");
+          this.unselectHighlight();
+          this.selectedRelation = created;
+          created.select();
+          break;
+        case 'two-way':
+          created = this.arrowConnector.createTwowayRelation(arrowId, from.circle, to.circle, "");
+          this.unselectHighlight();
+          this.selectedRelation = created;
+          created.select();
+          break;
+        case 'link':
+          created = this.arrowConnector.createLinkRelation(arrowId, from.circle, to.circle, "");
+          this.unselectHighlight();
+          this.selectedRelation = created;
+          created.select();
+          break;
+        default:
+          console.log("ERROR! undefined direction; " + direction);
+      }
     }
   }
 
   handleExportAnnotation(){
-    let blob = new Blob(TomlTool.saveToml(this.annotations));
-    let blobURL = window.URL.createObjectURL(blob);
-    let a = document.createElement('a');
-    document.body.appendChild(a); // for firefox working correctly.
-    a.download = "export.htmlanno"; // TODO: 仮設定
-    a.href = blobURL;
-    a.click();
-    a.parentNode.removeChild(a);
+    return new Promise( (resolve, reject) => { resolve(TomlTool.saveToml(this.annotations)); } );
   }
 
+  // htmlAnno独自機能
+  handleUploadFileSelect(){
+    $("#import_file").click();
+  }
+
+  // htmlAnno独自機能
   handleImportAnnotation(){
-    let uploaded_files = $("#import_file")[0].files;
-    TomlTool.loadToml(uploaded_files[0], this.highlighter, this.arrowConnector);
+    let files = $("#import_file")[0].files;
+    if (undefined != files && 0 < files.length) {
+      TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
+    }
   }
 
   remove(){

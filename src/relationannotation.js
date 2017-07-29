@@ -1,5 +1,4 @@
 const $ = require("jquery");
-const Label = require("./label.js");
 const RenderRelation = require("./renderrelation.js");
 const globalEvent = window.globalEvent;
 
@@ -12,13 +11,12 @@ class RelationAnnotation{
 
     this.mouseX = null;
     this.mouseY = null;
-    this.label = null;
     this.direction = direction;
 
     this.arrow = new RenderRelation(id, startingCircle.positionCenter(), direction);
     this.arrow.appendTo($("#htmlanno-svg-screen"));
     this.arrow.on("click", (e)=>{
-      globalEvent.emit("arrowannotationselect", this);
+      globalEvent.emit("relationselect", {event: e, annotation: this});
     });
     this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
     this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
@@ -51,11 +49,6 @@ class RelationAnnotation{
       this.arrow.point(cir.positionCenter());
       this.endingCircle = cir;
       globalEvent.on(this, "resizewindow", this.reposition.bind(this));
-      this.label = new Label(this.id, this.labelPosition());
-      this.label.jObject.hover(
-          this.handleHoverIn.bind(this),
-          this.handleHoverOut.bind(this)
-          );
       globalEvent.emit("arrowannotationconnect", this);
     } else{
       this.arrow.remove();
@@ -75,10 +68,6 @@ class RelationAnnotation{
     return {left: (p1.left+p2.left)/2, top: (p1.top+p2.top)/2};
   }
 
-  labelPosition(){
-    return {left: this.positionCenter().left, top: this.arrow.halfY};
-  }
-
   reposition(){
     if (this.arrow){
       this.arrow.move(this.startingCircle.positionCenter());
@@ -86,30 +75,19 @@ class RelationAnnotation{
         this.arrow.point(this.endingCircle.positionCenter());
       }
     }
-    if (this.label){
-      this.label.reposition(this.labelPosition());
-    }
   }
 
   select(){
     this.arrow.select();
-    if (this.label){
-      this.label.select();
-    }
+    globalEvent.emit("editlabel", {target: this});
   }
 
   blur(){
     this.arrow.blur();
-    if (this.label){
-      this.label.blur();
-    }
   }
 
   remove(){
     this.arrow.remove();
-    if (this.label){
-      this.label.remove();
-    }
     globalEvent.removeObject(this);
   }
 
@@ -124,16 +102,12 @@ class RelationAnnotation{
 
   handleHoverIn(e){
     this.arrow.handleHoverIn();
-    if (this.label){
-      this.label.handleHoverIn();
-    }
+    globalEvent.emit("annotationhoverin", this);
   }
 
   handleHoverOut(e){
     this.arrow.handleHoverOut();
-    if (this.label){
-      this.label.handleHoverOut();
-    }
+    globalEvent.emit("annotationhoverout", this);
   }
 
   saveToml(){
@@ -141,7 +115,7 @@ class RelationAnnotation{
       'type = "relation"',
       `dir = "${this.direction}"`,
       `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
-      `label = "${this.label.content()}"`
+      `label = "${this.content()}"`
     ].join("\n");
   }
 
@@ -164,6 +138,14 @@ class RelationAnnotation{
       undefined !== toml && "relation" === toml.type && 
       ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
     );
+  }
+
+  setContent(text){
+    this.arrow.setContent(text);
+  }
+
+  content(){
+    return this.arrow.content();
   }
 }
 

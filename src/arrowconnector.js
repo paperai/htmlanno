@@ -17,7 +17,7 @@ class ArrowConnector{
   _createRelation(relation, endingCircle, text){
     this.annotations.add(relation);
     relation.setEndingCircle(endingCircle);
-    relation.label.setContent(text);
+    relation.setContent(text);
 
     return relation;
   }

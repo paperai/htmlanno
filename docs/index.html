@@ -2,29 +2,99 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8">
+    <title>HTMLAnno</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
     <script src="bundle.js"></script>
   </head>
-
   <body>
-    <div id="parent">
-      <div id="text1">
-        GARETH AND LYNETTE.
-        ゲーレスとリネツトの卷
-        　It was in the old days of England, when instead of one King, there were many, who divided the country between them, and constantly made war upon each other, to increase their possessions.
+    <nav class="navbar navbar-inverse">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">HTMLAnno</a>
+        </div>
+        <ul class="nav navbar-nav">
+          <li><a href="https://paperai.github.io/htmlanno/">Home</a></li>
+          <li><a href="https://github.com/paperai/htmlanno">Github</a></li>
+        </ul>
       </div>
-      <div id="text2">
-        （譯）之<span></span>（れは英吉利の昔しの話（it was in the old days of England）、國に一王の今とは違ひwhen instead of one king）國土を分つ數多の君々あつて（there were many, who divided the country between them）、己が領地を擴めやうと（to increase their possessions）干戈を交えぬ日はなかつた（constantly made war upon each other）。
+    </nav>
+    <div class="main">
+      <div class="container-fluid">
+        <div class="row anno-ui u-mb-10">
+          <div class="col-md-12 form-inline">
+            <a id="downloadButton" class="btn btn-default" href="#" title="Export">
+              <i class="fa fa-download"></i>
+            </a>
+            <div class="input-group">
+              <input type="text" id="import_file_view" class="form-control" placeholder="Choose your files" />
+              <input type="file" id="import_file" class="hidden" />
+              <span class="input-group-btn">
+                <a id="uploadButton" class="btn btn-default" href="#" title="Import">
+                  <i class="fa fa-upload"></i>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Annotation Tools -->
+        <div class="row">
+          <div id="tools" class="col-md-3 col-sm-3 col-xs-3">
+            <div class="row">
+              <div class="btn-toolbar col-md-12" role="toolbar">
+                <div class="btn-group" role="group">
+                  <a class="btn btn-default js-tool-btn-span" href="#" data-type="span" title="span" id="add_span">
+                    <i class="fa fa-pencil fa-2x"></i>
+                  </a>
+                  <a class="btn btn-default js-tool-btn-rel" href="#" data-type="one-way" title="one-way relation" id="add_oneway_relation">
+                    <i class="fa fa-long-arrow-right fa-2x"></i>
+                 </a>
+                  <a class="btn btn-default js-tool-btn-rel" href="#" data-type="two-way" title="two-way relation" id="add_twoway_relation">
+                    <i class="fa fa-arrows-h fa-2x"></i>
+                  </a>
+                  <a class="btn btn-default js-tool-btn-rel" href="#" data-type="link" title="link relation" id="add_link_relation">
+                    <i class="fa fa-minus fa-2x"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <h3 class="col-md-12">Label</h3>
+            </div>
+            <div class="row">
+              <div class="col-md-12">
+                <div class="input-group form-control">
+                  <input list="labels" class="form-control" id="inputLabel" disabled="disabled" />
+                  <datalist id=labels><!-- Added by JS. --></datalist>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="viewerWrapper" class="col-md-9 col-sm-9 col-xs-9">
+            <div id="viewer" class="viewer">
+              <div id="parent">
+                <div id="text1">
+                  GARETH AND LYNETTE.
+                  ゲーレスとリネツトの卷
+                　It was in the old days of England, when instead of one King, there were many, who divided the country between them, and constantly made war upon each other, to increase their possessions.
+                </div>
+                <div id="text2">
+                 （譯）之<span></span>（れは英吉利の昔しの話（it was in the old days of England）、國に一王の今とは違ひwhen instead of one king）國土を分つ數多の君々あつて（there were many, who divided the country between them）、己が領地を擴めやうと（to increase their possessions）干戈を交えぬ日はなかつた（constantly made war upon each other）。
+                </div>
+                <hr>
+                http://www.aozora.gr.jp/cards/000140/card50131.htmlより
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <hr>
-      http://www.aozora.gr.jp/cards/000140/card50131.htmlより
-    </div>
-    <div id="operation">
-      <button type="button" id="add_span">Span</button>
-      <button type="button" id="add_oneway_relation" style="width:9em;">one-way relation</button>
-      <button type="button" id="add_twoway_relation" style="width:9em;">two-way relation</button>
-      <button type="button" id="add_link_relation" style="width:9em;">link relation</button>
-      <button type="button" id="export">Export</button>
-      <input type="file" id="import_file" /><button type="button" id="import">Import</button>
     </div>
   </body>
 </html>
