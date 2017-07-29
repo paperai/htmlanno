@@ -74,10 +74,11 @@
 	const AnnoUI = __webpack_require__(5);
 	
 	const TomlTool = __webpack_require__(6);
-	const Highlighter = __webpack_require__(16);
+	const Highlighter = __webpack_require__(15);
 	const Circle = __webpack_require__(12);
-	const ArrowConnector = __webpack_require__(20);
-	const AnnotationContainer = __webpack_require__(21);
+	const ArrowConnector = __webpack_require__(19);
+	const AnnotationContainer = __webpack_require__(20);
+	const InputLabel = __webpack_require__(21);
 	
 	class Htmlanno{
 	  constructor(){
@@ -85,15 +86,25 @@
 	    this.annotations = new AnnotationContainer();
 	    this.highlighter = new Highlighter(this.annotations);
 	    this.arrowConnector = new ArrowConnector(this.annotations);
+	    this.inputLabel = new InputLabel($("#inputLabel"));
 	    this.handleResize();
-	    this.selectedAnnotation = null;
-	    this.relationTarget     = null;
+	    this.selectedHighlights = [];
 	    this.selectedRelation   = null;
 	
 	    globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
 	    globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
-	    globalEvent.on(this, "highlightselect", this.handleSelect.bind(this));
-	    globalEvent.on(this, "commitSelection", this.commitSelection.bind(this));
+	    globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
+	    globalEvent.on(this, "annotationhoverin",
+	      this.handleAnnotationHoverIn.bind(this));
+	    globalEvent.on(this, "annotationhoverout",
+	      this.handleAnnotationHoverOut.bind(this));
+	    globalEvent.on(this, "highlightselect",
+	      this.handleHighlightSelect.bind(this));
+	    globalEvent.on(this, "relationselect",
+	      this.handleRelationSelect.bind(this));
+	    globalEvent.on(this, "showlabel", this.showLabel.bind(this));
+	    globalEvent.on(this, "clearlabel", this.clearLabel.bind(this));
+	    globalEvent.on(this, "editlabel", this.editLabel.bind(this));
 	
 	    globalEvent.on(this, "removearrowannotation", (data)=>{
 	      this.arrowConnector.removeAnnotation(data);
@@ -174,21 +185,21 @@
 	    $(document).on("keydown", (e)=>{
 	      globalEvent.emit("keydown", e);
 	    });
-	
-	    $(document).on("mouseup", (e)=>{
-	      globalEvent.emit("mouseup", e);
-	    });
-	
+	/* TODO: 最終的に削除
 	    $(document).on("mousemove", (e)=>{
 	      globalEvent.emit("mousemove", e);
 	    });
 	
+	    $(document).on("mouseup", (e)=>{
+	      globalEvent.emit("mouseup", e);
+	    });
+	*/
 	    $(window).on("resize", (e)=>{
 	      globalEvent.emit("resizewindow", e);
 	    });
 	
 	    $("#viewer").on("mouseup", (e)=>{
-	      globalEvent.emit("commitSelection", e);
+	      globalEvent.emit("mouseup", e);
 	    });
 	
 	    // HTMLanno独自機能
@@ -212,28 +223,37 @@
 	    });
 	  }
 	
-	  handleSelect(data){
-	    if (this.selectedAnnotation === data.annotation){
-	      this.unselectAnnotationTarget();
-	      this.unselectRelationTarget();
-	    } else if (this.relationTarget === data.annotation){
-	      this.unselectRelationTarget();
-	    } else{
-	      if (undefined != data.event && data.event.ctrlKey){
-	        if (this.selectedAnnotation){
-	          this.relationTarget = data.annotation;
-	          this.relationTarget.select();
-	          this.selectedAnnotation.hideLabel();
-	        }
+	  handleHighlightSelect(data){
+	    this.inputLabel.endEdit();
+	    this.unselectRelation();
+	
+	    if (!this.unselectHighlight(data.annotation)){
+	    // Now selected highlight is not already selected.
+	      if (0 == this.selectedHighlights.length){
+	      // First selection.
+	        this.selectedHighlights.push(data.annotation);
+	        data.annotation.select();
 	      } else{
-	        this.unselectAnnotationTarget();
-	        this.unselectRelationTarget();
-	        if (data.annotation){
-	          this.selectedAnnotation = data.annotation;
-	          this.selectedAnnotation.selectForEditing();
+	        if (undefined != data.event && data.event.ctrlKey) {
+	        // multi selection.
+	          this.selectedHighlights.push(data.annotation);
+	          data.annotation.select(true);
+	        } else{
+	        // New selection, unselect all old selection.
+	          this.unselectHighlight();
+	          this.selectedHighlights.push(data.annotation);
+	          data.annotation.select();
 	        }
 	      }
 	    }
+	  }
+	
+	  handleRelationSelect(data){
+	    this.inputLabel.endEdit();
+	    this.unselectRelation();
+	    this.unselectHighlight();
+	    this.selectedRelation = data.annotation;
+	    data.annotation.select();
 	  }
 	
 	  handleResize(){
@@ -249,47 +269,87 @@
 	  }
 	
 	  handleKeydown(e){
-	    // esc
-	    if (e.keyCode === 27) {
-	      if (this.selectedAnnotation){
-	        this.selectedAnnotation.blur();
-	        this.selectedAnnotation = null;
+	    if (0 != this.selectedHighlights.length){
+	      let lastSelected =
+	        this.selectedHighlights[this.selectedHighlights.length - 1];
+	      // esc
+	      if (e.keyCode === 27) {
+	        this.inputLabel.endEdit();
+	        this.unselectHighlight(lastSelected);
 	      }
-	    }
 	
-	    // delete or back space
-	    if (e.keyCode === 46 || e.keyCode == 8) {
-	      if (document.body == e.target && this.selectedAnnotation){
-	        e.preventDefault();
-	        this.selectedAnnotation.hideLabel();
-	        this.selectedAnnotation.remove();
-	        this.highlighter.removeAnnotation(this.selectedAnnotation);
-	        this.arrowConnector.removeAnnotation(this.selectedAnnotation);
-	        this.selectedAnnotation = null;
+	      // delete or back space
+	      if (e.keyCode === 46 || e.keyCode == 8) {
+	        if (document.body == e.target){
+	          e.preventDefault();
+	          this.inputLabel.endEdit();
+	          lastSelected.remove();
+	          this.highlighter.removeAnnotation(lastSelected);
+	          this.unselectHighlight(lastSelected);
+	        }
+	      }
+	    } else if (null != this.selectedRelation){
+	      // esc
+	      if (e.keyCode == 27) {
+	        this.inputLabel.endEdit();
+	        this.unselectRelation();
+	      }
+	
+	      // delete or back space
+	      if (e.keyCode === 46 || e.keyCode == 8) {
+	        if (document.body == e.target){
+	          e.preventDefault();
+	          this.inputLabel.endEdit();
+	          this.selectedRelation.remove();
+	          this.arrowConnector.removeAnnotation(this.selectedRelation);
+	          this.unselectRelation();
+	        }
 	      }
 	    }
 	  }
 	
-	  commitSelection(e){
-	    if (!$(e.target).hasClass("htmlanno-circle") && !$(e.target).hasClass("htmlanno-arrow")) {
-	      this.unselectAnnotationTarget();
-	      this.unselectRelationTarget();
+	  handleMouseUp(e){
+	    this.inputLabel.endEdit();
+	
+	    if (
+	      !$(e.target).hasClass("htmlanno-circle") &&
+	      !$(e.target).hasClass("htmlanno-arrow")
+	    ) {
 	      this.unselectRelation();
+	      this.unselectHighlight();
 	    }
+	    // else ... maybe fire an event from annotation or relation.
 	  }
 	
-	  unselectAnnotationTarget(){
-	    if (this.selectedAnnotation){
-	      this.selectedAnnotation.blur();
-	      this.selectedAnnotation = null;
+	  // Unselect the selected highlight(s).
+	  //
+	  // When call with index, unselect a highlight that is specified by index.
+	  // And after, if selected index exists yet, start it's label edit.
+	  // When call without index, unselect all highlights.
+	  unselectHighlight(target){
+	    if (undefined == target){
+	      this.selectedHighlights.forEach((highlight)=>{
+	        highlight.blur();
+	      });
+	      this.selectedHighlights = [];
+	    } else if ('number' === typeof(target)) {
+	      while(target < this.selectedHighlights.length){
+	        this.selectedHighlights.pop().blur();
+	      }
+	      if (0 != this.selectedHighlights.length){
+	        this.selectedHighlights[this.selectedHighlights.length - 1].select();
+	      }
+	    } else{
+	      let index = this.selectedHighlights.findIndex((elm)=>{
+	        return elm === target;
+	      });
+	      if (-1 == index){
+	        return false;
+	      } else{
+	        this.unselectHighlight(index);
+	      }
 	    }
-	  }
-	
-	  unselectRelationTarget(){
-	    if (this.relationTarget){
-	      this.relationTarget.blur();
-	      this.relationTarget = null;
-	    }
+	    return true;
 	  }
 	
 	  unselectRelation(){
@@ -299,22 +359,68 @@
 	    }
 	  }
 	
+	  // Annotation (highliht and relation) hover in.
+	  handleAnnotationHoverIn(annotation){
+	    if (!this.inputLabel.editing()){
+	      this.inputLabel.show(annotation.content());
+	    }
+	  }
+	
+	  // Annotation (highliht and relation) hover out.
+	  handleAnnotationHoverOut(annotation){
+	    if (!this.inputLabel.editing()){
+	      this.inputLabel.clear();
+	    } 
+	  }
+	
+	  showLabel(e){
+	    if (!this.inputLabel.editing()){
+	      this.inputLabel.show(e.target.content());
+	    }
+	  }
+	
+	  clearLabel(){
+	    if (!this.inputLabel.editing()){
+	      this.inputLabel.clear();
+	    }
+	  }
+	
+	  editLabel(e){
+	    if (!this.inputLabel.editing()){
+	      this.inputLabel.startEdit(
+	        e.target.content(), e.target.setContent.bind(e.target)
+	      );
+	    }
+	  }
+	
 	  handleAddSpan(){
 	    this.highlighter.highlight();
 	  }
 	
 	  handleAddRelation(direction){
-	    if (null != this.selectedAnnotation && null != this.relationTarget){
+	    if (2 == this.selectedHighlights.length){
 	      let arrowId = this.annotations.nextId();
+	      let from = this.selectedHighlights[0];
+	      let to   = this.selectedHighlights[1];
+	      let created = null;
 	      switch(direction){
 	        case 'one-way':
-	          this.arrowConnector.createOnewayRelation(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+	          created = this.arrowConnector.createOnewayRelation(arrowId, from.circle, to.circle, "");
+	          this.unselectHighlight();
+	          this.selectedRelation = created;
+	          created.select();
 	          break;
 	        case 'two-way':
-	          this.arrowConnector.createTwowayRelation(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+	          created = this.arrowConnector.createTwowayRelation(arrowId, from.circle, to.circle, "");
+	          this.unselectHighlight();
+	          this.selectedRelation = created;
+	          created.select();
 	          break;
 	        case 'link':
-	          this.arrowConnector.createLinkRelation(arrowId, this.selectedAnnotation.circle, this.relationTarget.circle, "");
+	          created = this.arrowConnector.createLinkRelation(arrowId, from.circle, to.circle, "");
+	          this.unselectHighlight();
+	          this.selectedRelation = created;
+	          created.select();
 	          break;
 	        default:
 	          console.log("ERROR! undefined direction; " + direction);
@@ -2638,7 +2744,7 @@
 	const TomlParser = __webpack_require__(7);
 	const rangy = __webpack_require__(10);
 	const Highlight = __webpack_require__(11);
-	const RelationAnnotation = __webpack_require__(14);
+	const RelationAnnotation = __webpack_require__(13);
 	
 	exports.saveToml = (annotationSet)=>{
 	  let data = ["version = 0.1"];
@@ -10600,7 +10706,6 @@
 
 	const $ = __webpack_require__(1);
 	const Circle = __webpack_require__(12);
-	const InputLabel = __webpack_require__(13);
 	const globalEvent = window.globalEvent;
 	
 	class Highlight{
@@ -10614,39 +10719,24 @@
 	
 	    this.addCircle();
 	    this.setClass();
-	    this.resetHoverEvent();
-	
-	    this.inputLabel = new InputLabel($("#inputLabel")[0]);
-	    this.inputLabel.setup(this.endEditLabel.bind(this));
-	  }
-	
-	  disableHoverAction(){
-	    $(`.${this.getClassName()}`).off("mouseenter").off("mouseleave");
-	    this.circle.disableHoverAction();
-	  }
-	
-	  resetHoverEvent(){
 	    $(`.${this.getClassName()}`).hover(
 	        this.handleHoverIn.bind(this),
 	        this.handleHoverOut.bind(this)
-	        );
-	    this.circle.resetHoverEvent();
+	    );
 	  }
 	
-	  handleHoverIn(){
-	    globalEvent.emit("highlighthoverin", this);
+	  handleHoverIn(e){
 	    this.elements.forEach((e)=>{
 	      $(e).addClass("htmlanno-border");
 	    });
-	    this.showLabel();
+	    globalEvent.emit("annotationhoverin", this);
 	  }
 	
-	  handleHoverOut(){
-	    globalEvent.emit("highlighthoverout", this);
+	  handleHoverOut(e){
 	    this.elements.forEach((e)=>{
 	      $(e).removeClass("htmlanno-border");
 	    });
-	    this.hideLabel();
+	    globalEvent.emit("annotationhoverout", this);
 	  }
 	
 	  addCircle(){
@@ -10688,14 +10778,11 @@
 	    });
 	  }
 	
-	  select(){
+	  select(showOnly){
 	    this.addClass("htmlanno-highlight-selected");
-	    this.showLabel();
-	  }
-	
-	  selectForEditing(){
-	    this.select();
-	    this.startEditLabel();
+	    if (undefined == showOnly || !showOnly){
+	      globalEvent.emit("editlabel", {target: this});
+	    }
 	  }
 	
 	  blur(){
@@ -10704,6 +10791,7 @@
 	  }
 	
 	  remove(){
+	    this.blur();
 	    this.circle.remove();
 	    $(`.${this.getClassName()}`).each(function() {
 	      $(this).replaceWith(this.childNodes);
@@ -10746,21 +10834,11 @@
 	  }
 	
 	  showLabel(){
-	    this.inputLabel.show(this.content());
+	    globaleEvent.emit("showlabel", {target: this});
 	  }
 	
 	  hideLabel(){
-	    this.inputLabel.disable();
-	  }
-	
-	  startEditLabel(){
-	    this.disableHoverAction();
-	    this.inputLabel.startEdit(this.content());
-	  }
-	
-	  endEditLabel(value){
-	    this.setContent(value);
-	    this.resetHoverEvent();
+	    globalEvent.emit("clearlabel");
 	  }
 	}
 	
@@ -10800,9 +10878,19 @@
 	
 	  resetHoverEvent(){
 	    this.jObject.hover(
-	      this.highlight.handleHoverIn.bind(this.highlight),
-	      this.highlight.handleHoverOut.bind(this.highlight)
+	      this.handleHoverIn.bind(this),
+	      this.handleHoverOut.bind(this)
 	    );
+	  }
+	
+	  handleHoverIn(e){
+	    e.stopPropagation();
+	    globalEvent.emit("annotationhoverin", this.highlight);
+	  }
+	
+	  handleHoverOut(e){
+	    e.stopPropagation();
+	    globalEvent.emit("annotationhoverout", this.highlight);
 	  }
 	
 	  domId(){
@@ -10907,59 +10995,10 @@
 
 /***/ }),
 /* 13 */
-/***/ (function(module, exports) {
-
-	class LabelInput{
-	  constructor(inputObject){
-	    this.inputObject = inputObject;
-	    this.callback = undefined;
-	  }
-	
-	  setup(callback){
-	    this.callback = callback;
-	  }
-	
-	  enable(){
-	    $(this.inputObject)
-	      .on("focusout", this.endEdit.bind(this))
-	      .on("blur", this.endEdit.bind(this))
-	      .removeAttr("disabled");
-	  }
-	
-	  disable(){
-	    $(this.inputObject)
-	      .off("focusout")
-	      .off("blur")
-	      .attr("disabled", "disabled")
-	      .blur()
-	      .val("");
-	  }
-	
-	  startEdit(value){
-	    this.show(value);
-	    this.enable();
-	  }
-	
-	  endEdit(){
-	    let value = $(this.inputObject).val();
-	    this.disable();
-	    this.callback(value);
-	  }
-	
-	  show(value){
-	    $(this.inputObject).val(value);
-	  }
-	}
-	module.exports = LabelInput;
-
-
-/***/ }),
-/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
-	const InputLabel = __webpack_require__(13);
-	const RenderRelation = __webpack_require__(15);
+	const RenderRelation = __webpack_require__(14);
 	const globalEvent = window.globalEvent;
 	
 	class RelationAnnotation{
@@ -10971,16 +11010,15 @@
 	
 	    this.mouseX = null;
 	    this.mouseY = null;
-	    this.inputLabel = new InputLabel($("#inputLabel")[0]);
-	    this.inputLabel.setup(this.endEditLabel.bind(this));
 	    this.direction = direction;
 	
 	    this.arrow = new RenderRelation(id, startingCircle.positionCenter(), direction);
 	    this.arrow.appendTo($("#htmlanno-svg-screen"));
 	    this.arrow.on("click", (e)=>{
-	      this.startEditLabel();
+	      globalEvent.emit("relationselect", {event: e, annotation: this});
 	    });
-	    this.resetHoverEvent();
+	    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
+	    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
 	
 	    globalEvent.on(this, "removecircle", (cir)=>{
 	      if (this.startingCircle === cir || this.endingCircle === cir){
@@ -10988,16 +11026,6 @@
 	        globalEvent.emit("removearrowannotation", this);
 	      }
 	    });
-	  }
-	
-	  disableHoverAction(){
-	    this.arrow.off("mouseenter");
-	    this.arrow.off("mouseleave");
-	  }
-	
-	  resetHoverEvent(){
-	    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
-	    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
 	  }
 	
 	  static createLink(id, startingCircle){
@@ -11050,13 +11078,11 @@
 	
 	  select(){
 	    this.arrow.select();
-	    this.showLabel();
+	    globalEvent.emit("editlabel", {target: this});
 	  }
 	
 	  blur(){
 	    this.arrow.blur();
-	    this.resetHoverEvent();
-	    this.inputLabel.endEdit();
 	  }
 	
 	  remove(){
@@ -11075,12 +11101,12 @@
 	
 	  handleHoverIn(e){
 	    this.arrow.handleHoverIn();
-	    this.showLabel();
+	    globalEvent.emit("annotationhoverin", this);
 	  }
 	
 	  handleHoverOut(e){
 	    this.arrow.handleHoverOut();
-	    this.hideLabel();
+	    globalEvent.emit("annotationhoverout", this);
 	  }
 	
 	  saveToml(){
@@ -11120,24 +11146,6 @@
 	  content(){
 	    return this.arrow.content();
 	  }
-	
-	  showLabel(){
-	    this.inputLabel.show(this.content());
-	  }
-	
-	  hideLabel(){
-	    this.inputLabel.disable();
-	  }
-	
-	  startEditLabel(){
-	    this.disableHoverAction();
-	    this.inputLabel.startEdit(this.content());
-	  }
-	
-	  endEditLabel(value){
-	    this.setContent(value);
-	    this.resetHoverEvent();
-	  }
 	}
 	
 	module.exports = RelationAnnotation;
@@ -11145,7 +11153,7 @@
 
 
 /***/ }),
-/* 15 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
@@ -11298,14 +11306,14 @@
 
 
 /***/ }),
-/* 16 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
 	const rangy = __webpack_require__(10);
+	__webpack_require__(16);
 	__webpack_require__(17);
 	__webpack_require__(18);
-	__webpack_require__(19);
 	
 	const Highlight = __webpack_require__(11);
 	const globalEvent = window.globalEvent;
@@ -11410,7 +11418,7 @@
 	      highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
 	      highlight.setContent(text);
 	
-	      globalEvent.emit("highlightselect", {annotation: highlight});
+	      globalEvent.emit("highlightselect", {event: undefined, annotation: highlight});
 	
 	      // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
 	      this.highlights.add(highlight);
@@ -11453,7 +11461,7 @@
 
 
 /***/ }),
-/* 17 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -12562,7 +12570,7 @@
 
 
 /***/ }),
-/* 18 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -13188,7 +13196,7 @@
 
 
 /***/ }),
-/* 19 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -13507,10 +13515,10 @@
 	}, this);
 
 /***/ }),
-/* 20 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const RelationAnnotation = __webpack_require__(14);
+	const RelationAnnotation = __webpack_require__(13);
 	
 	class ArrowConnector{
 	  constructor(annotationContainer){
@@ -13578,7 +13586,7 @@
 
 
 /***/ }),
-/* 21 */
+/* 20 */
 /***/ (function(module, exports) {
 
 	class AnnotationContainer{
@@ -13662,6 +13670,67 @@
 	  }
 	}
 	module.exports = AnnotationContainer;
+
+
+/***/ }),
+/* 21 */
+/***/ (function(module, exports) {
+
+	class InputLabel{
+	  constructor(inputObject){
+	    this.inputObject = inputObject;
+	    this.endEditingListener = undefined;
+	    this._editing = false;
+	  }
+	
+	  enable(){
+	    $(this.inputObject)
+	      .on("focusout", this.endEdit.bind(this))
+	      .on("blur", this.endEdit.bind(this))
+	      .removeAttr("disabled");
+	  }
+	
+	  disable(){
+	    $(this.inputObject)
+	      .off("focusout")
+	      .off("blur")
+	      .attr("disabled", "disabled")
+	      .blur()
+	      .val("");
+	  }
+	
+	  startEdit(value, endEditingListener){
+	    this.endEditingListener = endEditingListener;
+	    this._editing = true;
+	    this.show(value);
+	    this.enable();
+	  }
+	
+	  endEdit(){
+	    if (this._editing){
+	      let value = $(this.inputObject).val();
+	      this.disable();
+	      this._editing = false;
+	      if (this.endEditingListener) {
+	        this.endEditingListener(value);
+	        this.endEditingListender = null;
+	      }
+	    }
+	  }
+	
+	  show(value){
+	    $(this.inputObject).val(value);
+	  }
+	
+	  clear(){
+	    $(this.inputObject).val("");
+	  }
+	
+	  editing(){
+	    return this._editing;
+	  }
+	}
+	module.exports = InputLabel;
 
 
 /***/ })
