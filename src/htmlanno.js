@@ -43,9 +43,6 @@ class Htmlanno{
       this.arrowConnector.removeAnnotation(data);
       this.unselectRelation();
     });
-    window.handleAddSpan           = this.handleAddSpan.bind(this);
-    window.handleAddRelation       = this.handleAddRelation.bind(this);
-    window.handleExportAnnotation  = this.handleExportAnnotation.bind(this);
 
     // HTMLanno独自機能
     globalEvent.on(this, "uploadFileSelect", this.handleUploadFileSelect.bind(this));
@@ -96,15 +93,15 @@ class Htmlanno{
     AnnoUI.event.setup();
 
     AnnoUI.annoSpanButton.setup({
-      createSpanAnnotation: window.handleAddSpan
+      createSpanAnnotation: this.handleAddSpan.bind(this)
     });
 
     AnnoUI.annoRelButton.setup({
-      createRelAnnotation: window.handleAddRelation
+      createRelAnnotation: this.handleAddRelation.bind(this)
     });
 
     AnnoUI.downloadButton.setup({
-      getAnnotationTOMLString: window.handleExportAnnotation,
+      getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
       getCurrentContentName: ()=>{ return "export.htmlanno"; },
       unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
     });
@@ -118,15 +115,6 @@ class Htmlanno{
     $(document).on("keydown", (e)=>{
       globalEvent.emit("keydown", e);
     });
-/* TODO: 最終的に削除
-    $(document).on("mousemove", (e)=>{
-      globalEvent.emit("mousemove", e);
-    });
-
-    $(document).on("mouseup", (e)=>{
-      globalEvent.emit("mouseup", e);
-    });
-*/
     $(window).on("resize", (e)=>{
       globalEvent.emit("resizewindow", e);
     });
@@ -276,17 +264,13 @@ class Htmlanno{
       let index = this.selectedHighlights.findIndex((elm)=>{
         return elm === target;
       });
-      if (-1 == index){
-        return false;
-      } else{
-        this.unselectHighlight(index);
-      }
+      return -1 == index ? false : this.unselectHighlight(index);
     }
     return true;
   }
 
   unselectRelation(){
-    if (this.selectedRelation){
+    if (null != this.selectedRelation){
       this.selectedRelation.blur();
       this.selectedRelation = null;
     }
@@ -294,16 +278,12 @@ class Htmlanno{
 
   // Annotation (highliht and relation) hover in.
   handleAnnotationHoverIn(annotation){
-    if (!this.inputLabel.editing()){
-      this.inputLabel.show(annotation.content());
-    }
+    this.showLabel({target: annotation});
   }
 
   // Annotation (highliht and relation) hover out.
   handleAnnotationHoverOut(annotation){
-    if (!this.inputLabel.editing()){
-      this.inputLabel.clear();
-    } 
+    this.clearLabel({target:annotation});
   }
 
   showLabel(e){
@@ -332,32 +312,14 @@ class Htmlanno{
 
   handleAddRelation(direction){
     if (2 == this.selectedHighlights.length){
-      let arrowId = this.annotations.nextId();
-      let from = this.selectedHighlights[0];
-      let to   = this.selectedHighlights[1];
-      let created = null;
-      switch(direction){
-        case 'one-way':
-          created = this.arrowConnector.createOnewayRelation(arrowId, from.circle, to.circle, "");
-          this.unselectHighlight();
-          this.selectedRelation = created;
-          created.select();
-          break;
-        case 'two-way':
-          created = this.arrowConnector.createTwowayRelation(arrowId, from.circle, to.circle, "");
-          this.unselectHighlight();
-          this.selectedRelation = created;
-          created.select();
-          break;
-        case 'link':
-          created = this.arrowConnector.createLinkRelation(arrowId, from.circle, to.circle, "");
-          this.unselectHighlight();
-          this.selectedRelation = created;
-          created.select();
-          break;
-        default:
-          console.log("ERROR! undefined direction; " + direction);
-      }
+      this.selectedRelation = this.arrowConnector.createRelation(
+        this.annotations.nextId(),
+        this.selectedHighlights[0].circle,
+        this.selectedHighlights[1].circle,
+        direction, ""
+      );
+      this.unselectHighlight();
+      this.selectedRelation.select();
     }
   }
 
