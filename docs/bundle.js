@@ -110,9 +110,6 @@
 	      this.arrowConnector.removeAnnotation(data);
 	      this.unselectRelation();
 	    });
-	    window.handleAddSpan           = this.handleAddSpan.bind(this);
-	    window.handleAddRelation       = this.handleAddRelation.bind(this);
-	    window.handleExportAnnotation  = this.handleExportAnnotation.bind(this);
 	
 	    // HTMLanno独自機能
 	    globalEvent.on(this, "uploadFileSelect", this.handleUploadFileSelect.bind(this));
@@ -163,15 +160,15 @@
 	    AnnoUI.event.setup();
 	
 	    AnnoUI.annoSpanButton.setup({
-	      createSpanAnnotation: window.handleAddSpan
+	      createSpanAnnotation: this.handleAddSpan.bind(this)
 	    });
 	
 	    AnnoUI.annoRelButton.setup({
-	      createRelAnnotation: window.handleAddRelation
+	      createRelAnnotation: this.handleAddRelation.bind(this)
 	    });
 	
 	    AnnoUI.downloadButton.setup({
-	      getAnnotationTOMLString: window.handleExportAnnotation,
+	      getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
 	      getCurrentContentName: ()=>{ return "export.htmlanno"; },
 	      unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
 	    });
@@ -185,15 +182,6 @@
 	    $(document).on("keydown", (e)=>{
 	      globalEvent.emit("keydown", e);
 	    });
-	/* TODO: 最終的に削除
-	    $(document).on("mousemove", (e)=>{
-	      globalEvent.emit("mousemove", e);
-	    });
-	
-	    $(document).on("mouseup", (e)=>{
-	      globalEvent.emit("mouseup", e);
-	    });
-	*/
 	    $(window).on("resize", (e)=>{
 	      globalEvent.emit("resizewindow", e);
 	    });
@@ -343,17 +331,13 @@
 	      let index = this.selectedHighlights.findIndex((elm)=>{
 	        return elm === target;
 	      });
-	      if (-1 == index){
-	        return false;
-	      } else{
-	        this.unselectHighlight(index);
-	      }
+	      return -1 == index ? false : this.unselectHighlight(index);
 	    }
 	    return true;
 	  }
 	
 	  unselectRelation(){
-	    if (this.selectedRelation){
+	    if (null != this.selectedRelation){
 	      this.selectedRelation.blur();
 	      this.selectedRelation = null;
 	    }
@@ -361,16 +345,12 @@
 	
 	  // Annotation (highliht and relation) hover in.
 	  handleAnnotationHoverIn(annotation){
-	    if (!this.inputLabel.editing()){
-	      this.inputLabel.show(annotation.content());
-	    }
+	    this.showLabel({target: annotation});
 	  }
 	
 	  // Annotation (highliht and relation) hover out.
 	  handleAnnotationHoverOut(annotation){
-	    if (!this.inputLabel.editing()){
-	      this.inputLabel.clear();
-	    } 
+	    this.clearLabel({target:annotation});
 	  }
 	
 	  showLabel(e){
@@ -399,32 +379,14 @@
 	
 	  handleAddRelation(direction){
 	    if (2 == this.selectedHighlights.length){
-	      let arrowId = this.annotations.nextId();
-	      let from = this.selectedHighlights[0];
-	      let to   = this.selectedHighlights[1];
-	      let created = null;
-	      switch(direction){
-	        case 'one-way':
-	          created = this.arrowConnector.createOnewayRelation(arrowId, from.circle, to.circle, "");
-	          this.unselectHighlight();
-	          this.selectedRelation = created;
-	          created.select();
-	          break;
-	        case 'two-way':
-	          created = this.arrowConnector.createTwowayRelation(arrowId, from.circle, to.circle, "");
-	          this.unselectHighlight();
-	          this.selectedRelation = created;
-	          created.select();
-	          break;
-	        case 'link':
-	          created = this.arrowConnector.createLinkRelation(arrowId, from.circle, to.circle, "");
-	          this.unselectHighlight();
-	          this.selectedRelation = created;
-	          created.select();
-	          break;
-	        default:
-	          console.log("ERROR! undefined direction; " + direction);
-	      }
+	      this.selectedRelation = this.arrowConnector.createRelation(
+	        this.annotations.nextId(),
+	        this.selectedHighlights[0].circle,
+	        this.selectedHighlights[1].circle,
+	        direction, ""
+	      );
+	      this.unselectHighlight();
+	      this.selectedRelation.select();
 	    }
 	  }
 	
@@ -10826,11 +10788,11 @@
 	  }
 	
 	  setContent(text){
-	    $(`.${this.getClassName()}`).data('label', text);
+	    $(`.${this.getClassName()}`)[0].setAttribute('data-label', text);
 	  }
 	
 	  content(){
-	    return $(`.${this.getClassName()}`).data('label');
+	    return $(`.${this.getClassName()}`)[0].getAttribute('data-label');
 	  }
 	
 	  showLabel(){
@@ -11002,14 +10964,11 @@
 	const globalEvent = window.globalEvent;
 	
 	class RelationAnnotation{
-	  constructor(id, startingCircle, direction){
+	  constructor(id, startingCircle, endingCircle, direction){
 	    this.id = id;
 	    this.startingCircle = startingCircle;
-	    this.enteredCircle = null;
-	    this.endingCircle = null;
+	    this.endingCircle = endingCircle;
 	
-	    this.mouseX = null;
-	    this.mouseY = null;
 	    this.direction = direction;
 	
 	    this.arrow = new RenderRelation(id, startingCircle.positionCenter(), direction);
@@ -11026,44 +10985,14 @@
 	        globalEvent.emit("removearrowannotation", this);
 	      }
 	    });
-	  }
-	
-	  static createLink(id, startingCircle){
-	    return new RelationAnnotation(id, startingCircle, 'link');
-	  }
-	
-	  static createOneway(id, startingCircle){
-	    return new RelationAnnotation(id, startingCircle, 'one-way');
-	  }
-	
-	  static createTwoway(id, startingCircle){
-	    return new RelationAnnotation(id, startingCircle, 'two-way');
-	  }
-	
-	  connect(){
-	    const cir = this.enteredCircle;
-	    this.removeDragListener();
-	
-	    if (cir && this.startingCircle !== cir && cir.isHit(this.mouseX, this.mouseY)){
-	      this.arrow.point(cir.positionCenter());
-	      this.endingCircle = cir;
-	      globalEvent.on(this, "resizewindow", this.reposition.bind(this));
-	      globalEvent.emit("arrowannotationconnect", this);
-	    } else{
-	      this.arrow.remove();
-	    }
-	  }
-	
-	  setEndingCircle(cir){
-	    this.enteredCircle = cir;
-	    this.mouseX = cir.positionCenter().left;
-	    this.mouseY = cir.positionCenter().top;
-	    this.connect();
+	    this.arrow.point(this.endingCircle.positionCenter());
+	    globalEvent.on(this, "resizewindow", this.reposition.bind(this));
+	    globalEvent.emit("arrowannotationconnect", this);
 	  }
 	
 	  positionCenter(){
 	    const p1 = this.startingCircle.positionCenter();
-	    const p2 = this.enteredCircle.positionCenter();
+	    const p2 = this.endingCircle.positionCenter();
 	    return {left: (p1.left+p2.left)/2, top: (p1.top+p2.top)/2};
 	  }
 	
@@ -11090,15 +11019,6 @@
 	    globalEvent.removeObject(this);
 	  }
 	
-	  removeDragListener(){
-	    const map = globalEvent.eventMap(this);
-	    for (var [event, handler] of map){
-	      if (event !== "removecircle"){
-	        globalEvent.removeListenerForObject(this, event);
-	      }
-	    }
-	  }
-	
 	  handleHoverIn(e){
 	    this.arrow.handleHoverIn();
 	    globalEvent.emit("annotationhoverin", this);
@@ -11113,7 +11033,7 @@
 	    return [
 	      'type = "relation"',
 	      `dir = "${this.direction}"`,
-	      `ids = ["${this.startingCircle.highlight.id}", "${this.enteredCircle.highlight.id}"]`,
+	      `ids = ["${this.startingCircle.highlight.id}", "${this.endingCircle.highlight.id}"]`,
 	      `label = "${this.content()}"`
 	    ].join("\n");
 	  }
@@ -11294,11 +11214,11 @@
 	  }
 	
 	  setContent(value){
-	    this.jObject.data('label', value);
+	    this.jObject[0].setAttribute('data-label', value);
 	  }
 	
 	  content(){
-	    return this.jObject.data('label');
+	    return this.jObject[0].getAttribute('data-label');
 	  }
 	}
 	
@@ -13523,7 +13443,6 @@
 	class ArrowConnector{
 	  constructor(annotationContainer){
 	    this.annotations = annotationContainer;
-	    this.dragingArrow = null;
 	  }
 	
 	  get(id){
@@ -13534,39 +13453,21 @@
 	    this.annotations.add(data);
 	  }
 	
-	  _createRelation(relation, endingCircle, text){
+	  createRelation(id, startingCircle, endingCircle, direction, text){
+	    let relation = new RelationAnnotation(id, startingCircle, endingCircle, direction);
 	    this.annotations.add(relation);
-	    relation.setEndingCircle(endingCircle);
 	    relation.setContent(text);
 	
 	    return relation;
 	  }
 	
-	  createOnewayRelation(id, startingCircle, endingCircle, text){
-	    const relation = RelationAnnotation.createOneway(id, startingCircle);
-	
-	    return this._createRelation(relation, endingCircle, text);
-	  }
-	
-	  createTwowayRelation(id, startingCircle, endingCircle, text){
-	    const relation = RelationAnnotation.createTwoway(id, startingCircle);
-	
-	    return this._createRelation(relation, endingCircle, text);
-	  }
-	
-	  createLinkRelation(id, startingCircle, endingCircle, text){
-	    const relation = RelationAnnotation.createLink(id, startingCircle);
-	
-	    return this._createRelation(relation, endingCircle, text);
-	  }
-	
 	  addToml(id, toml){
-	    let startAnnotation   = this.annotations.findById(parseInt(toml.ids[0]));
-	    let enteredAnnotation = this.annotations.findById(parseInt(toml.ids[1]));
-	
-	    const relation =
-	      new RelationAnnotation(id, startAnnotation.circle, toml.dir);
-	    this._createRelation(relation, enteredAnnotation.circle, toml.label);
+	    this.createRelation(
+	      id,
+	      this.annotations.findById(parseInt(toml.ids[0])).circle,
+	      this.annotations.findById(parseInt(toml.ids[1])).circle,
+	      toml.dir, toml.label
+	    );
 	  }
 	
 	  remove(){
@@ -13713,7 +13614,7 @@
 	      this._editing = false;
 	      if (this.endEditingListener) {
 	        this.endEditingListener(value);
-	        this.endEditingListender = null;
+	        this.endEditingListener = null;
 	      }
 	    }
 	  }
