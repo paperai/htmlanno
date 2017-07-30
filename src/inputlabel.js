@@ -35,7 +35,7 @@ class InputLabel{
       this._editing = false;
       if (this.endEditingListener) {
         this.endEditingListener(value);
-        this.endEditingListender = null;
+        this.endEditingListener = null;
       }
     }
   }
