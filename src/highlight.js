@@ -120,11 +120,11 @@ class Highlight{
   }
 
   setContent(text){
-    $(`.${this.getClassName()}`).data('label', text);
+    $(`.${this.getClassName()}`)[0].setAttribute('data-label', text);
   }
 
   content(){
-    return $(`.${this.getClassName()}`).data('label');
+    return $(`.${this.getClassName()}`)[0].getAttribute('data-label');
   }
 
   showLabel(){

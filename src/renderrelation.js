@@ -136,11 +136,11 @@ class RenderRelation{
   }
 
   setContent(value){
-    this.jObject.data('label', value);
+    this.jObject[0].setAttribute('data-label', value);
   }
 
   content(){
-    return this.jObject.data('label');
+    return this.jObject[0].getAttribute('data-label');
   }
 }
 
