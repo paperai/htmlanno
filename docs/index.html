@@ -17,7 +17,7 @@
     <nav class="navbar navbar-inverse">
       <div class="container-fluid">
         <div class="navbar-header">
-          <a class="navbar-brand" href="#">HTMLAnno</a>
+          <a class="navbar-brand" href="#">HTMLAnno・文字化けテスト</a>
         </div>
         <ul class="nav navbar-nav">
           <li><a href="https://paperai.github.io/htmlanno/">Home</a></li>
@@ -39,6 +39,12 @@
                 <a id="uploadButton" class="btn btn-default" href="#" title="Import">
                   <i class="fa fa-upload"></i>
                 </a>
+              </span>
+            </div>
+            <div class="input-group">
+              <input type="url" id="annotation_url" class="form-control" placeholder="Input URL" />
+              <span class="input-group-btn">
+                <a class="btn btn-default" id="load_from_url" href="#">Load HTML</a>
               </span>
             </div>
           </div>
@@ -78,20 +84,8 @@
             </div>
           </div>
           <div id="viewerWrapper" class="col-md-9 col-sm-9 col-xs-9">
-            <div id="viewer" class="viewer">
-              <div id="parent">
-                <div id="text1">
-                  GARETH AND LYNETTE.
-                  ゲーレスとリネツトの卷
-                　It was in the old days of England, when instead of one King, there were many, who divided the country between them, and constantly made war upon each other, to increase their possessions.
-                </div>
-                <div id="text2">
-                 （譯）之<span></span>（れは英吉利の昔しの話（it was in the old days of England）、國に一王の今とは違ひwhen instead of one king）國土を分つ數多の君々あつて（there were many, who divided the country between them）、己が領地を擴めやうと（to increase their possessions）干戈を交えぬ日はなかつた（constantly made war upon each other）。
-                </div>
-                <hr>
-                http://www.aozora.gr.jp/cards/000140/card50131.htmlより
-              </div>
-            </div>
+            <iframe id="viewer" class="viewer" style="width: 100%">
+            </frame>
           </div>
         </div>
       </div>

@@ -13,7 +13,7 @@ class Highlight{
 
     this.addCircle();
     this.setClass();
-    $(`.${this.getClassName()}`).hover(
+    $(`.${this.getClassName()}`, document.getElementById("viewer").contentWindow.document.body).hover(
         this.handleHoverIn.bind(this),
         this.handleHoverOut.bind(this)
     );
@@ -87,7 +87,7 @@ class Highlight{
   remove(){
     this.blur();
     this.circle.remove();
-    $(`.${this.getClassName()}`).each(function() {
+    $(`.${this.getClassName()}`, document.getElementById("viewer").contentWindow.document.body).each(function() {
       $(this).replaceWith(this.childNodes);
     });
   }
@@ -120,11 +120,11 @@ class Highlight{
   }
 
   setContent(text){
-    $(`.${this.getClassName()}`)[0].setAttribute('data-label', text);
+    $(`.${this.getClassName()}`, document.getElementById("viewer").contentWindow.document.body)[0].setAttribute('data-label', text);
   }
 
   content(){
-    return $(`.${this.getClassName()}`)[0].getAttribute('data-label');
+    return $(`.${this.getClassName()}`, document.getElementById("viewer").contentWindow.document.body)[0].getAttribute('data-label');
   }
 
   showLabel(){

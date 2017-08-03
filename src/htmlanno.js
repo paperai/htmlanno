@@ -119,9 +119,11 @@ class Htmlanno{
       globalEvent.emit("resizewindow", e);
     });
 
+/*
     $("#viewer").on("mouseup", (e)=>{
       globalEvent.emit("mouseup", e);
     });
+*/
 
     // HTMLanno独自機能
     $("#import_file_view").on("click", (e)=>{
@@ -142,6 +144,25 @@ class Htmlanno{
         $("#import_file_view").val(files[0].name);
       }
     });
+
+    $("#load_from_url").on("click", (e)=>{
+      let url = $("#annotation_url").val();
+      if ( undefined != url && "" != url){
+        $("#viewer").on("load", this.overrideIframeEvents.bind(this));
+        
+        $("#viewer")[0].contentWindow.location.replace(url);
+      }
+    });
+  }
+
+  overrideIframeEvents(){
+    let iframeBody = $("body", $("#viewer")[0].contentWindow.document);
+    iframeBody.find("a").on("click", false);
+
+    $(iframeBody).on("mouseup", (e)=>{
+      globalEvent.emit("mouseup", e);
+    });
+    this.highlighter = new Highlighter(this.annotations);
   }
 
   handleHighlightSelect(data){
@@ -230,6 +251,7 @@ class Htmlanno{
   }
 
   handleMouseUp(e){
+console.log("mouse up");
     this.inputLabel.endEdit();
 
     if (

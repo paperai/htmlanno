@@ -10,12 +10,18 @@ const globalEvent = window.globalEvent;
 class Highlighter{
   constructor(annotationContainer){
     this.highlights = annotationContainer;
-    this.highlighter = rangy.createHighlighter();
+    this.highlighter = rangy.createHighlighter(this.BASE_DOCUMENT);
   }
 
   // 定数扱い
-  get BASE_NODE(){
+  get BASE_IFRAME(){
     return document.getElementById("viewer");
+  }
+  get BASE_DOCUMENT(){
+    return this.BASE_IFRAME.contentWindow.document;
+  }
+  get BASE_NODE(){
+    return this.BASE_DOCUMENT.body;
   }
 
   nodeFromTextOffset(offset){
@@ -69,15 +75,15 @@ class Highlighter{
 
     const start = this.nodeFromTextOffset(startBodyOffset);
     const end = this.nodeFromTextOffset(endBodyOffset);
-    const selection = rangy.getSelection();
-    const range = rangy.createRange();
+    const selection = rangy.getSelection(this.BASE_IFRAME);
+    const range = rangy.createRange(this.BASE_DOCUMENT);
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
     selection.setSingleRange(range);
   }
 
   highlight(){
-    const selection = rangy.getSelection();
+    const selection = rangy.getSelection(this.BASE_IFRAME);
     if (selection.isCollapsed){
       return;
     }
@@ -90,7 +96,7 @@ class Highlighter{
 
   create(id, startOffset, endOffset, text){
     this.selectRange(startOffset, endOffset);
-    const selection = rangy.getSelection();
+    const selection = rangy.getSelection(this.BASE_IFRAME);
     if (selection.isCollapsed){
       return;
     }
@@ -119,7 +125,7 @@ class Highlighter{
 
   addToml(id, toml){
     this.selectRange(toml.position[0], toml.position[1]);
-    const selection = rangy.getSelection();
+    const selection = rangy.getSelection(this.BASE_IFRAME);
     if (!selection.isCollapsed){
       const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
       const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;

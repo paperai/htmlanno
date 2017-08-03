@@ -186,9 +186,11 @@
 	      globalEvent.emit("resizewindow", e);
 	    });
 	
+	/*
 	    $("#viewer").on("mouseup", (e)=>{
 	      globalEvent.emit("mouseup", e);
 	    });
+	*/
 	
 	    // HTMLanno独自機能
 	    $("#import_file_view").on("click", (e)=>{
@@ -209,6 +211,25 @@
 	        $("#import_file_view").val(files[0].name);
 	      }
 	    });
+	
+	    $("#load_from_url").on("click", (e)=>{
+	      let url = $("#annotation_url").val();
+	      if ( undefined != url && "" != url){
+	        $("#viewer").on("load", this.overrideIframeEvents.bind(this));
+	        
+	        $("#viewer")[0].contentWindow.location.replace(url);
+	      }
+	    });
+	  }
+	
+	  overrideIframeEvents(){
+	    let iframeBody = $("body", $("#viewer")[0].contentWindow.document);
+	    iframeBody.find("a").on("click", false);
+	
+	    $(iframeBody).on("mouseup", (e)=>{
+	      globalEvent.emit("mouseup", e);
+	    });
+	    this.highlighter = new Highlighter(this.annotations);
 	  }
 	
 	  handleHighlightSelect(data){
@@ -297,6 +318,7 @@
 	  }
 	
 	  handleMouseUp(e){
+	console.log("mouse up");
 	    this.inputLabel.endEdit();
 	
 	    if (
@@ -10681,7 +10703,7 @@
 	
 	    this.addCircle();
 	    this.setClass();
-	    $(`.${this.getClassName()}`).hover(
+	    $(`.${this.getClassName()}`, document.getElementById("viewer").contentWindow.document.body).hover(
 	        this.handleHoverIn.bind(this),
 	        this.handleHoverOut.bind(this)
 	    );
@@ -10755,7 +10777,7 @@
 	  remove(){
 	    this.blur();
 	    this.circle.remove();
-	    $(`.${this.getClassName()}`).each(function() {
+	    $(`.${this.getClassName()}`, document.getElementById("viewer").contentWindow.document.body).each(function() {
 	      $(this).replaceWith(this.childNodes);
 	    });
 	  }
@@ -10788,11 +10810,11 @@
 	  }
 	
 	  setContent(text){
-	    $(`.${this.getClassName()}`)[0].setAttribute('data-label', text);
+	    $(`.${this.getClassName()}`, document.getElementById("viewer").contentWindow.document.body)[0].setAttribute('data-label', text);
 	  }
 	
 	  content(){
-	    return $(`.${this.getClassName()}`)[0].getAttribute('data-label');
+	    return $(`.${this.getClassName()}`, document.getElementById("viewer").contentWindow.document.body)[0].getAttribute('data-label');
 	  }
 	
 	  showLabel(){
@@ -11241,12 +11263,18 @@
 	class Highlighter{
 	  constructor(annotationContainer){
 	    this.highlights = annotationContainer;
-	    this.highlighter = rangy.createHighlighter();
+	    this.highlighter = rangy.createHighlighter(this.BASE_DOCUMENT);
 	  }
 	
 	  // 定数扱い
-	  get BASE_NODE(){
+	  get BASE_IFRAME(){
 	    return document.getElementById("viewer");
+	  }
+	  get BASE_DOCUMENT(){
+	    return this.BASE_IFRAME.contentWindow.document;
+	  }
+	  get BASE_NODE(){
+	    return this.BASE_DOCUMENT.body;
 	  }
 	
 	  nodeFromTextOffset(offset){
@@ -11300,15 +11328,15 @@
 	
 	    const start = this.nodeFromTextOffset(startBodyOffset);
 	    const end = this.nodeFromTextOffset(endBodyOffset);
-	    const selection = rangy.getSelection();
-	    const range = rangy.createRange();
+	    const selection = rangy.getSelection(this.BASE_IFRAME);
+	    const range = rangy.createRange(this.BASE_DOCUMENT);
 	    range.setStart(start.node, start.offset);
 	    range.setEnd(end.node, end.offset);
 	    selection.setSingleRange(range);
 	  }
 	
 	  highlight(){
-	    const selection = rangy.getSelection();
+	    const selection = rangy.getSelection(this.BASE_IFRAME);
 	    if (selection.isCollapsed){
 	      return;
 	    }
@@ -11321,7 +11349,7 @@
 	
 	  create(id, startOffset, endOffset, text){
 	    this.selectRange(startOffset, endOffset);
-	    const selection = rangy.getSelection();
+	    const selection = rangy.getSelection(this.BASE_IFRAME);
 	    if (selection.isCollapsed){
 	      return;
 	    }
@@ -11350,7 +11378,7 @@
 	
 	  addToml(id, toml){
 	    this.selectRange(toml.position[0], toml.position[1]);
-	    const selection = rangy.getSelection();
+	    const selection = rangy.getSelection(this.BASE_IFRAME);
 	    if (!selection.isCollapsed){
 	      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
 	      const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
