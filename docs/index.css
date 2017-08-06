@@ -131,3 +131,14 @@
   margin-left: 0.5em;
   padding: 5px;
 }
+
+#viewer {
+  overflow: scroll;
+  width: 100%;
+  min-height: 300px;
+  border-top: solid 20px darkgray;
+  border-bottom: solid 20px darkgray;
+  border-left: solid 30px darkgray;
+  border-right: solid 30px darkgray;
+  padding: 5px;
+}
