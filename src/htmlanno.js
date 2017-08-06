@@ -47,6 +47,8 @@ class Htmlanno{
     // HTMLanno独自機能
     globalEvent.on(this, "uploadFileSelect", this.handleUploadFileSelect.bind(this));
     globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
+    globalEvent.on(this, "targetFileSelect", this.handleLoadTargetSelect.bind(this));
+    globalEvent.on(this, "loadTarget", this.handleLoadTarget.bind(this));
 
     this.wrapGlobalEvents();
   }
@@ -141,6 +143,25 @@ class Htmlanno{
       if ( undefined != files && 0 < files.length ){
         $("#import_file_view").val(files[0].name);
       }
+    });
+
+    $("#target_file_view").on("click", (e)=>{
+      globalEvent.emit("targetFileSelect", e);
+    })
+    // マウスクリック以外の動作は無効化
+    .on("focusin", ()=>{ $("#uploadButton").focus(); })
+    .on("keydown", false)
+    .on("contextmenu", false);
+
+    $("#target_file").change(()=>{
+      let files = $("#target_file")[0].files;
+      if ( undefined != files && 0 < files.length ){
+        $("#target_file_view").val(files[0].name);
+      }
+    });
+
+    $("#loadButton").on("click", (e)=>{
+      globalEvent.emit("loadTarget", e);
     });
   }
 
@@ -338,6 +359,88 @@ class Htmlanno{
     if (undefined != files && 0 < files.length) {
       TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
     }
+  }
+
+  handleLoadTargetSelect(){
+    $("#target_file").click();
+  }
+
+  handleLoadTarget(){
+    let files = $("#target_file")[0].files;
+    if (undefined != files && 0 < files.length) {
+      let reader = new FileReader();
+      reader.onload = ()=>{
+        if (reader.result.match(/<\?xml\s+.+\?>/)){
+          this.loadAsXML(reader.result);
+        } else if (reader.result.match(/<html\s?.*>/i)){
+          this.loadAsHtml(reader.result);
+        } else{
+          this.loadAsText(reader.result);
+        }
+      }
+      reader.onerror = ()=>{
+        alert("Load failed.");  // TODO: UI実装後に適時変更
+      };
+      reader.onabort = ()=>{
+        alert("Load aborted."); // TODO: UI実装後に適宜変更
+      };
+
+      reader.readAsText(files[0]);
+
+      let viewerObj = $('#viewer');
+      viewerObj.css('height', window.innerHeight - viewerObj.offset().top);
+    }
+  }
+
+  loadAsXML(xml){
+    let css = `
+#viewer > * {
+  display: inline;
+  font-size: 12px;
+}
+#viewer title {
+  display: block;
+  font-size: xx-large;
+  font-weight: bolder;
+}
+
+#viewer description {
+  display: block;
+}
+
+#viewr language {
+  display: hide;
+}
+
+#viewr item {
+  displau: block;
+  border: solid 1px gray;
+  margin: 1em;
+}
+
+#viewer item title {
+  display: block;
+  font-size: x-large;
+  font-weight: bolder;
+}
+`
+    $("head").append(`<style>${css}</style>`);
+    xml = xml.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
+    $("#viewer").html(xml);
+  }
+
+  loadAsHtml(html){
+    let bodyStart = html.match(/<body\s?.*>/im);
+    let bodyEnd   = html.search(/<\/body>/im);
+    if (null != bodyStart && -1 != bodyEnd){
+      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
+    }
+    html = html.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
+    $("#viewer").html(html);
+  }
+
+  loadAsText(text){
+    $("#viewer").text(text);
   }
 
   remove(){
