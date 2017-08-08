@@ -429,6 +429,7 @@
 	  handleImportAnnotation(){
 	    let files = $("#import_file")[0].files;
 	    if (undefined != files && 0 < files.length) {
+	      this.remove();
 	      TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
 	    }
 	  }
@@ -11321,7 +11322,7 @@
 	    this.highlighter = rangy.createHighlighter();
 	  }
 	
-	  // Using as static value
+	  // 定数扱い
 	  get BASE_NODE(){
 	    return document.getElementById("viewer");
 	  }
@@ -11396,7 +11397,7 @@
 	    return this.create(id, startOffset, endOffset, "");
 	  }
 	
-	  create(id, startOffset, endOffset, text){
+	  create(id, startOffset, endOffset, text, addOnly){
 	    this.selectRange(startOffset, endOffset);
 	    const selection = rangy.getSelection();
 	    if (selection.isCollapsed){
@@ -11415,7 +11416,9 @@
 	      highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
 	      highlight.setContent(text);
 	
-	      globalEvent.emit("highlightselect", {event: undefined, annotation: highlight});
+	      if (undefined == addOnly || !addOnly) {
+	        globalEvent.emit("highlightselect", {event: undefined, annotation: highlight});
+	      }
 	
 	      // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
 	      this.highlights.add(highlight);
@@ -11431,7 +11434,7 @@
 	    if (!selection.isCollapsed){
 	      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
 	      const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-	      let span = this.create(parseInt(id), startOffset, endOffset, toml.label);
+	      let span = this.create(parseInt(id), startOffset, endOffset, toml.label, true);
 	      span.blur();
 	    }
 	  }
@@ -13615,6 +13618,9 @@
 	      this.findById(annotationOrId.getId());
 	
 	    if (undefined != elm) {
+	      if (undefined != elm.remove) {
+	        elm.remove();
+	      }
 	      return this.set.delete(elm);
 	    }
 	    return false;
