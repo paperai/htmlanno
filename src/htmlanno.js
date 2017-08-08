@@ -44,9 +44,15 @@ class Htmlanno{
       this.unselectRelation();
     });
 
-    // HTMLanno独自機能
-    globalEvent.on(this, "uploadFileSelect", this.handleUploadFileSelect.bind(this));
-    globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
+    // HTMLanno original function.
+    globalEvent.on(this, "uploadFileSelect",
+      this.handleUploadFileSelect.bind(this));
+    globalEvent.on(this, "importAnnotation",
+      this.handleImportAnnotation.bind(this));
+    globalEvent.on(this, "targetFileSelect",
+      this.handleLoadTargetSelect.bind(this));
+    globalEvent.on(this, "loadTarget",
+      this.handleLoadTarget.bind(this));
 
     this.wrapGlobalEvents();
   }
@@ -64,7 +70,7 @@ class Htmlanno{
       baseProfile="full"
       pointer-events="visible"
       width="100%"
-      height="100%">
+      height="100%" style="z-index: 100;">
       <defs>
       <marker id="htmlanno-arrow-head"
       class="htmlanno-arrow-head"
@@ -85,7 +91,7 @@ class Htmlanno{
       </div>
       `;
 
-    $(html).appendTo(document.body);
+    $(html).appendTo("#viewerWrapper");
   }
 
   wrapGlobalEvents(){
@@ -123,11 +129,11 @@ class Htmlanno{
       globalEvent.emit("mouseup", e);
     });
 
-    // HTMLanno独自機能
+    // HTMLanno original function,
     $("#import_file_view").on("click", (e)=>{
       globalEvent.emit("uploadFileSelect", e);
     })
-    // マウスクリック以外の動作は無効化
+    // Elabled only mouse click action.
     .on("focusin", ()=>{ $("#uploadButton").focus(); })
     .on("keydown", false)
     .on("contextmenu", false);
@@ -141,6 +147,25 @@ class Htmlanno{
       if ( undefined != files && 0 < files.length ){
         $("#import_file_view").val(files[0].name);
       }
+    });
+
+    $("#target_file_view").on("click", (e)=>{
+      globalEvent.emit("targetFileSelect", e);
+    })
+    // Elabled only mouse click action.
+    .on("focusin", ()=>{ $("#loadlButton").focus(); })
+    .on("keydown", false)
+    .on("contextmenu", false);
+
+    $("#target_file").change(()=>{
+      let files = $("#target_file")[0].files;
+      if ( undefined != files && 0 < files.length ){
+        $("#target_file_view").val(files[0].name);
+      }
+    });
+
+    $("#loadButton").on("click", (e)=>{
+      globalEvent.emit("loadTarget", e);
     });
   }
 
@@ -178,7 +203,8 @@ class Htmlanno{
   }
 
   handleResize(){
-    $('#htmlanno-svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
+     let viewObj = $("#viewer");
+     $('#htmlanno-svg-screen').attr("top", viewObj.attr("scrollTop"));
     if (Circle.instances){
       Circle.instances.forEach((cir)=>{
         cir.resetPosition();
@@ -336,8 +362,56 @@ class Htmlanno{
   handleImportAnnotation(){
     let files = $("#import_file")[0].files;
     if (undefined != files && 0 < files.length) {
+      this.remove();
       TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
     }
+  }
+
+  // htmlAnno独自機能
+  handleLoadTargetSelect(){
+    $("#target_file").click();
+  }
+
+  // htmlAnno独自機能
+  handleLoadTarget(){
+    let files = $("#target_file")[0].files;
+    if (undefined != files && 0 < files.length) {
+      let reader = new FileReader();
+      reader.onload = ()=>{
+        if (reader.result.match(/<html\s?.*>/i)){
+          this.loadAsHtml(reader.result);
+        } else{
+          this.loadAsText(reader.result);
+        }
+        let viewerObj = $('#viewerWrapper');
+        viewerObj.css('height', window.innerHeight - viewerObj.offset().top);
+        $('#htmlanno-svg-screen').css('height',$('#viewer').css('height'));
+      }
+      reader.onerror = ()=>{
+        alert("Load failed.");  // TODO: UI実装後に適時変更
+      };
+      reader.onabort = ()=>{
+        alert("Load aborted."); // TODO: UI実装後に適宜変更
+      };
+
+      reader.readAsText(files[0]);
+    }
+  }
+
+  loadAsHtml(html){
+    let bodyStart = html.match(/<body\s?.*>/im);
+    let bodyEnd   = html.search(/<\/body>/im);
+    if (null != bodyStart && -1 != bodyEnd){
+      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
+    }
+    html = html.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
+    this.remove();
+    $("#viewer").html(html).on('click', false);
+  }
+
+  loadAsText(text){
+    this.remove();
+    $("#viewer").text(text);
   }
 
   remove(){

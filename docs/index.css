@@ -131,3 +131,24 @@
   margin-left: 0.5em;
   padding: 5px;
 }
+
+#viewerWrapper {
+  position: relative;
+  overflow: scroll;
+  min-height: 300px;
+  border-top: solid 20px darkgray;
+  border-bottom: solid 20px darkgray;
+  border-left: solid 30px darkgray;
+  border-right: solid 30px darkgray;
+  padding: 5px;
+}
+
+#viewer {
+  width: 100%;
+}
+
+/* Override bootstrap. */
+#viewer .row {
+  margin-right: 0px;
+  margin-left: 0px;
+}

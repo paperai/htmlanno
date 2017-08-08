@@ -88,7 +88,7 @@ class Highlighter{
     return this.create(id, startOffset, endOffset, "");
   }
 
-  create(id, startOffset, endOffset, text){
+  create(id, startOffset, endOffset, text, addOnly){
     this.selectRange(startOffset, endOffset);
     const selection = rangy.getSelection();
     if (selection.isCollapsed){
@@ -107,7 +107,9 @@ class Highlighter{
       highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
       highlight.setContent(text);
 
-      globalEvent.emit("highlightselect", {event: undefined, annotation: highlight});
+      if (undefined == addOnly || !addOnly) {
+        globalEvent.emit("highlightselect", {event: undefined, annotation: highlight});
+      }
 
       // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
       this.highlights.add(highlight);
@@ -123,7 +125,7 @@ class Highlighter{
     if (!selection.isCollapsed){
       const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
       const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-      let span = this.create(parseInt(id), startOffset, endOffset, toml.label);
+      let span = this.create(parseInt(id), startOffset, endOffset, toml.label, true);
       span.blur();
     }
   }

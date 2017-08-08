@@ -98,6 +98,8 @@ class Circle{
     this.jObject.css("top", `0px`);
     // this.jObject.css("transition", "0.0s");
     this.basePosition = this.jObject.offset();
+    this.basePosition.top -= $("#viewer").offset().top;
+    this.basePosition.left -= $("#viewer").offset().left;
     const pos = this.divPosition();
     this.jObject.css("left", `${pos.left}px`);
     this.jObject.css("top", `${pos.top}px`);
@@ -113,6 +115,8 @@ class Circle{
     this.jObject.css("left", `0px`);
     this.jObject.css("top", `0px`);
     this.basePosition = this.jObject.offset();
+    this.basePosition.top -= $("#viewer").offset().top;
+    this.basePosition.left -= $("#viewer").offset().left;
   }
 
   reposition(){
