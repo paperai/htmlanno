@@ -142,3 +142,9 @@
   border-right: solid 30px darkgray;
   padding: 5px;
 }
+
+/* Override bootstrap. */
+#viewer .row {
+  margin-right: 0px;
+  margin-left: 0px;
+}
