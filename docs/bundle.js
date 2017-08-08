@@ -111,11 +111,15 @@
 	      this.unselectRelation();
 	    });
 	
-	    // HTMLanno独自機能
-	    globalEvent.on(this, "uploadFileSelect", this.handleUploadFileSelect.bind(this));
-	    globalEvent.on(this, "importAnnotation", this.handleImportAnnotation.bind(this));
-	    globalEvent.on(this, "targetFileSelect", this.handleLoadTargetSelect.bind(this));
-	    globalEvent.on(this, "loadTarget", this.handleLoadTarget.bind(this));
+	    // HTMLanno original function.
+	    globalEvent.on(this, "uploadFileSelect",
+	      this.handleUploadFileSelect.bind(this));
+	    globalEvent.on(this, "importAnnotation",
+	      this.handleImportAnnotation.bind(this));
+	    globalEvent.on(this, "targetFileSelect",
+	      this.handleLoadTargetSelect.bind(this));
+	    globalEvent.on(this, "loadTarget",
+	      this.handleLoadTarget.bind(this));
 	
 	    this.wrapGlobalEvents();
 	  }
@@ -192,11 +196,11 @@
 	      globalEvent.emit("mouseup", e);
 	    });
 	
-	    // HTMLanno独自機能
+	    // HTMLanno original function,
 	    $("#import_file_view").on("click", (e)=>{
 	      globalEvent.emit("uploadFileSelect", e);
 	    })
-	    // マウスクリック以外の動作は無効化
+	    // Elabled only mouse click action.
 	    .on("focusin", ()=>{ $("#uploadButton").focus(); })
 	    .on("keydown", false)
 	    .on("contextmenu", false);
@@ -215,8 +219,8 @@
 	    $("#target_file_view").on("click", (e)=>{
 	      globalEvent.emit("targetFileSelect", e);
 	    })
-	    // マウスクリック以外の動作は無効化
-	    .on("focusin", ()=>{ $("#uploadButton").focus(); })
+	    // Elabled only mouse click action.
+	    .on("focusin", ()=>{ $("#loadlButton").focus(); })
 	    .on("keydown", false)
 	    .on("contextmenu", false);
 	
@@ -428,18 +432,18 @@
 	    }
 	  }
 	
+	  // htmlAnno独自機能
 	  handleLoadTargetSelect(){
 	    $("#target_file").click();
 	  }
 	
+	  // htmlAnno独自機能
 	  handleLoadTarget(){
 	    let files = $("#target_file")[0].files;
 	    if (undefined != files && 0 < files.length) {
 	      let reader = new FileReader();
 	      reader.onload = ()=>{
-	        if (reader.result.match(/<\?xml\s+.+\?>/)){
-	          this.loadAsXML(reader.result);
-	        } else if (reader.result.match(/<html\s?.*>/i)){
+	        if (reader.result.match(/<html\s?.*>/i)){
 	          this.loadAsHtml(reader.result);
 	        } else{
 	          this.loadAsText(reader.result);
@@ -459,43 +463,6 @@
 	    }
 	  }
 	
-	  loadAsXML(xml){
-	    let css = `
-	#viewer > * {
-	  display: inline;
-	  font-size: 12px;
-	}
-	#viewer title {
-	  display: block;
-	  font-size: xx-large;
-	  font-weight: bolder;
-	}
-	
-	#viewer description {
-	  display: block;
-	}
-	
-	#viewr language {
-	  display: hide;
-	}
-	
-	#viewr item {
-	  displau: block;
-	  border: solid 1px gray;
-	  margin: 1em;
-	}
-	
-	#viewer item title {
-	  display: block;
-	  font-size: x-large;
-	  font-weight: bolder;
-	}
-	`
-	    $("head").append(`<style>${css}</style>`);
-	    xml = xml.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
-	    $("#viewer").html(xml);
-	  }
-	
 	  loadAsHtml(html){
 	    let bodyStart = html.match(/<body\s?.*>/im);
 	    let bodyEnd   = html.search(/<\/body>/im);
@@ -503,7 +470,7 @@
 	      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
 	    }
 	    html = html.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
-	    $("#viewer").html(html);
+	    $("#viewer").html(html).on('click', false);
 	  }
 	
 	  loadAsText(text){
@@ -11347,7 +11314,7 @@
 	    this.highlighter = rangy.createHighlighter();
 	  }
 	
-	  // 定数扱い
+	  // Using as static value
 	  get BASE_NODE(){
 	    return document.getElementById("viewer");
 	  }
