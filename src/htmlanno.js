@@ -362,6 +362,7 @@ class Htmlanno{
   handleImportAnnotation(){
     let files = $("#import_file")[0].files;
     if (undefined != files && 0 < files.length) {
+      this.remove();
       TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
     }
   }
