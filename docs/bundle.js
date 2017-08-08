@@ -137,7 +137,7 @@
 	      baseProfile="full"
 	      pointer-events="visible"
 	      width="100%"
-	      height="100%">
+	      height="100%" style="z-index: 100;">
 	      <defs>
 	      <marker id="htmlanno-arrow-head"
 	      class="htmlanno-arrow-head"
@@ -158,7 +158,7 @@
 	      </div>
 	      `;
 	
-	    $(html).appendTo(document.body);
+	    $(html).appendTo("#viewerWrapper");
 	  }
 	
 	  wrapGlobalEvents(){
@@ -270,7 +270,8 @@
 	  }
 	
 	  handleResize(){
-	    $('#htmlanno-svg-screen').attr("height", Math.max(window.innerHeight, document.body.clientHeight));
+	     let viewObj = $("#viewer");
+	     $('#htmlanno-svg-screen').attr("top", viewObj.attr("scrollTop"));
 	    if (Circle.instances){
 	      Circle.instances.forEach((cir)=>{
 	        cir.resetPosition();
@@ -448,6 +449,9 @@
 	        } else{
 	          this.loadAsText(reader.result);
 	        }
+	        let viewerObj = $('#viewerWrapper');
+	        viewerObj.css('height', window.innerHeight - viewerObj.offset().top);
+	        $('#htmlanno-svg-screen').css('height',$('#viewer').css('height'));
 	      }
 	      reader.onerror = ()=>{
 	        alert("Load failed.");  // TODO: UI実装後に適時変更
@@ -457,9 +461,6 @@
 	      };
 	
 	      reader.readAsText(files[0]);
-	
-	      let viewerObj = $('#viewer');
-	      viewerObj.css('height', window.innerHeight - viewerObj.offset().top);
 	    }
 	  }
 	
@@ -470,10 +471,12 @@
 	      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
 	    }
 	    html = html.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
+	    this.remove();
 	    $("#viewer").html(html).on('click', false);
 	  }
 	
 	  loadAsText(text){
+	    this.remove();
 	    $("#viewer").text(text);
 	  }
 	
@@ -10981,6 +10984,8 @@
 	    this.jObject.css("top", `0px`);
 	    // this.jObject.css("transition", "0.0s");
 	    this.basePosition = this.jObject.offset();
+	    this.basePosition.top -= $("#viewer").offset().top;
+	    this.basePosition.left -= $("#viewer").offset().left;
 	    const pos = this.divPosition();
 	    this.jObject.css("left", `${pos.left}px`);
 	    this.jObject.css("top", `${pos.top}px`);
@@ -10996,6 +11001,8 @@
 	    this.jObject.css("left", `0px`);
 	    this.jObject.css("top", `0px`);
 	    this.basePosition = this.jObject.offset();
+	    this.basePosition.top -= $("#viewer").offset().top;
+	    this.basePosition.left -= $("#viewer").offset().left;
 	  }
 	
 	  reposition(){
