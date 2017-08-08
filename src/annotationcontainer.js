@@ -46,6 +46,9 @@ class AnnotationContainer{
       this.findById(annotationOrId.getId());
 
     if (undefined != elm) {
+      if (undefined != elm.remove) {
+        elm.remove();
+      }
       return this.set.delete(elm);
     }
     return false;
