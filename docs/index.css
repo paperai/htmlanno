@@ -147,6 +147,55 @@
   width: 100%;
 }
 
+/* Anno-ui */
+/**
+ * Label list.
+ */
+.label-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.label-list li {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    border-bottom: 1px solid #eee;
+}
+.label-list li:last-child {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-bottom: 0 solid rgba(0,0,0,0);
+}
+.label-list__btn {
+    width: 40px;
+    height: 40px;
+    line-height: 50px;
+    font-size: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 1.5 ease-in-out;
+    border-radius: 3px;
+    background-color: white;
+    margin-right: 20px;
+    flex: 0 0 30px;
+}
+.label-list__btn:hover,
+.label-list__text:hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.label-list__text {
+    flex-grow: 1;
+    cursor: pointer;
+    padding: 2px;
+    font-size: 20px;
+}
+.label-list__input {
+    flex-grow: 1;
+    padding: 2px 5px;
+}
+
+
 /* Override bootstrap. */
 #viewer .row {
   margin-right: 0px;
