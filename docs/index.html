@@ -28,10 +28,58 @@
     <div class="main">
       <div class="container-fluid">
         <div class="row anno-ui u-mb-10">
-          <div class="col-md-12 form-inline">
-            <a id="downloadButton" class="btn btn-default" href="#" title="Export">
+          <label class="btn btn-primary btn-file js-file u-ml-15">
+            Browse <input type="file" style="display: none;" webkitdirectory>
+          </label>
+
+          <div id="dropdownPdf" class="dropdown" style="display: inline-block;">
+            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+              <span class="js-text">PDF File</span>
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+              <!-- Added by JS. -->
+            </ul>
+          </div>
+
+          <div id="dropdownAnnoPrimary" class="dropdown" style="display: inline-block;">
+            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+              <span class="js-text">Anno File</span>
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+              <!-- Added by JS. -->
+            </ul>
+          </div>
+
+          <div id="dropdownAnnoReference" class="dropdown" style="display: inline-block;">
+            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+              <span class="js-text">Reference Files</span>
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenu2">
+              <!-- Added by JS. -->
+            </ul>
+          </div>
+
+          <div id="dropdownAnnoList" class="dropdown" style="display: inline-block;">
+            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+              <span class="js-text">Anno List&nbsp;(<span class="js-count">0</span>)</span>
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenu2">
+              <!-- Added by JS. -->
+            </ul>
+          </div>
+
+          <div class="btn-group" role="group">
+            <a id="downloadButton" class="btn btn-default" href="#" title="download">
               <i class="fa fa-download"></i>
             </a>
+          </div>
+        </div>
+
+          <div class="col-md-12 form-inline">
             <div class="input-group">
               <input type="text" id="import_file_view" class="form-control" placeholder="Choose annotation data file." style="width: 15em" />
               <input type="file" id="import_file" class="hidden" />
