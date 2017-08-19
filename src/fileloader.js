@@ -44,6 +44,46 @@ class FileLoader{
     });
   }
 
+  /**
+   * @param fileName ... maybe equal to this.contents[n].name
+   * @return this.contents[n] or null
+   *
+   * contents[n] = {
+   *   type    : 'html' or 'text'
+   *   name    : fileName
+   *   content : HTML soruce or Plain text
+   *   selected: boolean 
+   * }
+   */
+  getContent(fileName) {
+    return this._getItem(fileName, this.contents);
+  }
+
+  /**
+   * @param fileName ... maybe equal to this.annotations[n].name
+   * @return this.annotations[n] or null
+   *
+   * annotation[n] = {
+   *   type     : 'annotation'
+   *   name     : fileName
+   *   content  : TOML source
+   *   primary  : boolean
+   *   reference: boolean
+   * }
+   */
+  getAnnotation(fileName) {
+    return this._getItem(fileName, this.annotations);
+  }
+
+  _getItem(name, container) {
+    for(let i = 0; i < container.length; i ++) {
+      if (container[i].name === name) {
+        return container[i];
+      }
+    }
+    return null;
+  }
+
   _createHtmlLoadingPromiseList(files) {
     let promises = [];
     files.forEach((file) => {
@@ -64,7 +104,8 @@ class FileLoader{
             resolve({
               type   : 'html',
               name   : this._excludeBaseDirName(file.webkitRelativePath),
-              content: html
+              content: html,
+              selected: false
             });
           } else{
             reject(file); // must read as Plain text.
@@ -88,7 +129,8 @@ class FileLoader{
           resolve({
             type   : 'text',
             name   : this._excludeBaseDirName(file.webkitRelativePath),
-            content: reader.result
+            content: reader.result,
+            selected: false
           });
         };
         reader.onerror = this._loadError;
@@ -109,7 +151,9 @@ class FileLoader{
           resolve({
             type   : 'annotation',
             name   : this._excludeBaseDirName(file.webkitRelativePath),
-            content: reader.result
+            content: reader.result,
+            primary: false,
+            reference: false
           });
         };
         reader.onerror = this._loadError;
