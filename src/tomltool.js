@@ -13,10 +13,9 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-exports.loadToml = (fileBlob, highlighter, arrowConnector)=>{
-  let reader = new FileReader();
-  reader.onload = ()=>{
-    let data = TomlParser.parse(reader.result);
+exports.loadToml = (fileBlobOrText, highlighter, arrowConnector)=>{
+  const renderAnnotation = (toml)=>{
+    let data = TomlParser.parse(toml);
     for(key in data) {
       if ("version" == key) {
         continue;
@@ -31,12 +30,22 @@ exports.loadToml = (fileBlob, highlighter, arrowConnector)=>{
       }
     }
   };
-  reader.onerror = ()=>{
-    alert("Import failed.");  // TODO: UI実装後に適時変更
-  };
-  reader.onabort = ()=>{
-    alert("Import aborted."); // TODO: UI実装後に適宜変更
-  };
 
-  reader.readAsText(fileBlob);
+  if ('string' == typeof(fileBlobOrText)) {
+    renderAnnotation(fileBlobOrText);
+  } else{
+    let reader = new FileReader();
+    reader.onload = ()=>{
+      renderAnnotation(reader.result);
+    }
+    reader.onerror = ()=>{
+      alert("Import failed.");  // TODO: UI実装後に適時変更
+    };
+    reader.onabort = ()=>{
+      alert("Import aborted."); // TODO: UI実装後に適宜変更
+    };
+
+    reader.readAsText(fileBlob);
+  }
 };
+

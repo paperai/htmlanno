@@ -107,7 +107,7 @@ class Htmlanno{
       loadFiles : this.loadFiles.bind(this),
       clearAllAnnotations : this.remove.bind(this),
       displayCurrentReferenceAnnotations : () => {}, //window.annoPage.displayAnnotation(false, false),
-      displayCurrentPrimaryAnnotations : () => {}, //window.annoPage.displayAnnotation(true, false),
+      displayCurrentPrimaryAnnotations : this.displayPrimaryAnnotation.bind(this),
       getContentFiles : this.getContentFiles.bind(this),
       getAnnoFiles : this.getAnnoFiles.bind(this),
       closePDFViewer : () => {} //window.annoPage.closePDFViewer
@@ -118,6 +118,11 @@ class Htmlanno{
       overrideWarningMessage: 'Are you sure to load another HTML ?',
       contentReloadHandler: this.reloadContent.bind(this)
       
+    });
+
+    AnnoUI.primaryAnnoDropdown.setup({
+      clearPrimaryAnnotations: this.remove.bind(this),
+      displayPrimaryAnnotation: this.displayPrimaryAnnotation.bind(this)
     });
 
     AnnoUI.annoSpanButton.setup({
@@ -440,8 +445,16 @@ class Htmlanno{
     $("#viewer").text(text);
   }
 
-  displayAnnotation(isPrimary){
-    TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
+  displayPrimaryAnnotation(fileName) {
+    let annotation = this.fileLoader.getAnnotation(fileName);
+    if (null != annotation) {
+      this.remove();
+      TomlTool.loadToml(
+        annotation.content,
+        this.highlighter,
+        this.arrowConnector
+      );
+    } // システムから呼び出している限りこれは発生しない筈なので省略
   }
 
   loadFiles(files) {
@@ -460,10 +473,12 @@ class Htmlanno{
     let content = this.fileLoader.getContent(fileName);
     switch(content.type) {
       case 'html':
+        this.remove();
         $("#viewer").html(content.content).on('click', false);
         break;
 
       case 'text':
+        this.remove();
         $("#viewer").text(content.content);
         break;
 
