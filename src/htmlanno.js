@@ -12,6 +12,7 @@ const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
 const AnnotationContainer = require("./annotationcontainer.js");
 const InputLabel = require("./inputlabel");
+const FileLoader = require("./fileloader.js");
 
 class Htmlanno{
   constructor(){
@@ -23,6 +24,10 @@ class Htmlanno{
     this.handleResize();
     this.selectedHighlights = [];
     this.selectedRelation   = null;
+
+    this.contents = []; // HTML and Text.
+    this.annotations = [];
+    this.fileLoader = new FileLoader(this.contents, this.annotations);
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
@@ -97,6 +102,23 @@ class Htmlanno{
   wrapGlobalEvents(){
     AnnoUI.util.setupResizableColumns();
     AnnoUI.event.setup();
+
+    AnnoUI.browseButton.setup({
+      loadFiles : this.loadFiles.bind(this),
+      clearAllAnnotations : this.remove.bind(this),
+      displayCurrentReferenceAnnotations : () => {}, //window.annoPage.displayAnnotation(false, false),
+      displayCurrentPrimaryAnnotations : () => {}, //window.annoPage.displayAnnotation(true, false),
+      getContentFiles : this.getContentFiles.bind(this),
+      getAnnoFiles : this.getAnnoFiles.bind(this),
+      closePDFViewer : () => {} //window.annoPage.closePDFViewer
+    });
+
+    AnnoUI.contentDropdown.setup({
+      initialText: 'HTML File',
+      overrideWarningMessage: 'Are you sure to load another HTML ?',
+      contentReloadHandler: this.reloadContent.bind(this)
+      
+    });
 
     AnnoUI.annoSpanButton.setup({
       createSpanAnnotation: this.handleAddSpan.bind(this)
@@ -368,11 +390,13 @@ class Htmlanno{
   }
 
   // htmlAnno独自機能
+  // TODO: 不要
   handleLoadTargetSelect(){
     $("#target_file").click();
   }
 
   // htmlAnno独自機能
+  // TODO: 不要
   handleLoadTarget(){
     let files = $("#target_file")[0].files;
     if (undefined != files && 0 < files.length) {
@@ -398,6 +422,7 @@ class Htmlanno{
     }
   }
 
+  // TODO: 不要
   loadAsHtml(html){
     let bodyStart = html.match(/<body\s?.*>/im);
     let bodyEnd   = html.search(/<\/body>/im);
@@ -409,10 +434,43 @@ class Htmlanno{
     $("#viewer").html(html).on('click', false);
   }
 
+  // TODO: 不要
   loadAsText(text){
     this.remove();
     $("#viewer").text(text);
   }
+
+  displayAnnotation(isPrimary){
+    TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
+  }
+
+  loadFiles(files) {
+    return this.fileLoader.loadFiles(files);
+  }
+
+  getContentFiles() {
+    return this.contents;
+  }
+
+  getAnnoFiles() {
+    return this.annotations;
+  }
+
+  reloadContent(fileName) {
+    let content = this.fileLoader.getContent(fileName);
+    switch(content.type) {
+      case 'html':
+        $("#viewer").html(content.content).on('click', false);
+        break;
+
+      case 'text':
+        $("#viewer").text(content.content);
+        break;
+
+      default:
+        alertn('Unknown content type; ' + content.content); // TODO: UIに合わせたエラーメッセージにする
+    }
+  }  
 
   remove(){
     this.highlighter.remove();
