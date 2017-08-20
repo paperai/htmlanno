@@ -22,7 +22,7 @@ class ArrowConnector{
   }
 
   addToml(id, toml){
-    this.createRelation(
+    return this.createRelation(
       id,
       this.annotations.findById(parseInt(toml.ids[0])).circle,
       this.annotations.findById(parseInt(toml.ids[1])).circle,
@@ -30,10 +30,16 @@ class ArrowConnector{
     );
   }
 
-  remove(){
+  remove(extension){
     this.annotations.forEach((annotation, i)=>{
       if (annotation instanceof RelationAnnotation) {
-        this.annotations.remove(i);
+        if (undefined != extension) {
+          if (extension == annotation.extension()) {
+            this.annotations.remove(i);
+           }
+        } else {
+          this.annotations.remove(i);
+        }
       }
     });
   }

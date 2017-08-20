@@ -127,6 +127,8 @@ class Highlighter{
       const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
       let span = this.create(parseInt(id), startOffset, endOffset, toml.label, true);
       span.blur();
+
+      return span;
     }
   }
 
@@ -134,11 +136,17 @@ class Highlighter{
     return this.highlights.findById(id);
   }
 
-  remove(){
+  remove(extension){
     this.highlighter.removeAllHighlights();
     this.highlights.forEach((annotation, i)=>{
       if (annotation instanceof Highlight){
-        this.highlights.remove(i);
+        if (undefined != extension) {
+          if (extension == annotation.extension()) {
+            this.highlights.remove(i);
+          }
+        } else {
+          this.highlights.remove(i);
+        }
       }
     });
   }
