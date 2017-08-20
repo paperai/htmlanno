@@ -104,12 +104,12 @@ class Htmlanno{
     AnnoUI.event.setup();
 
     AnnoUI.browseButton.setup({
-      loadFiles : this.loadFiles.bind(this),
-      clearAllAnnotations : this.remove.bind(this),
-      displayCurrentReferenceAnnotations : () => {}, //window.annoPage.displayAnnotation(false, false),
-      displayCurrentPrimaryAnnotations : this.displayPrimaryAnnotation.bind(this),
-      getContentFiles : this.getContentFiles.bind(this),
-      getAnnoFiles : this.getAnnoFiles.bind(this),
+      loadFiles :                          this.loadFiles.bind(this),
+      clearAllAnnotations :                this.remove.bind(this),
+      displayCurrentReferenceAnnotations : this.displayReferenceAnnotation.bind(this),
+      displayCurrentPrimaryAnnotations :   this.displayPrimaryAnnotation.bind(this),
+      getContentFiles :                    this.getContentFiles.bind(this),
+      getAnnoFiles :                       this.getAnnoFiles.bind(this),
       closePDFViewer : () => {} //window.annoPage.closePDFViewer
     });
 
@@ -123,6 +123,10 @@ class Htmlanno{
     AnnoUI.primaryAnnoDropdown.setup({
       clearPrimaryAnnotations: this.remove.bind(this),
       displayPrimaryAnnotation: this.displayPrimaryAnnotation.bind(this)
+    });
+
+    AnnoUI.referenceAnnoDropdown.setup({
+      displayReferenceAnnotations: this.displayReferenceAnnotation.bind(this)
     });
 
     AnnoUI.annoSpanButton.setup({
@@ -448,6 +452,7 @@ class Htmlanno{
   displayPrimaryAnnotation(fileName) {
     let annotation = this.fileLoader.getAnnotation(fileName);
     if (null != annotation) {
+      annotation.primary = true;
       this.remove();
       TomlTool.loadToml(
         annotation.content,
@@ -455,6 +460,26 @@ class Htmlanno{
         this.arrowConnector
       );
     } // システムから呼び出している限りこれは発生しない筈なので省略
+  }
+
+  // TODO: 色設定
+  // TODO: Offにされたものを削除
+  displayReferenceAnnotation(fileNames) {
+    let annotations = [];
+    fileNames.forEach((fileName) => {
+      let annotation = this.fileLoader.getAnnotation(fileName);
+      if (null != annotation && !annotation.primary) { // TODO: pdfannoの挙動確認
+        annotations.push(annotation);
+      }
+    });
+    annotations.forEach((annotation) => {
+      annotation.reference = true;
+      TomlTool.loadToml(
+        annotation.content,
+        this.highlighter,
+        this.arrowConnector
+      );
+    });
   }
 
   loadFiles(files) {
