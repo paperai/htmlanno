@@ -32,7 +32,7 @@ class AnnotationContainer{
   findById(id){
     let obj = null;
     this.set.forEach((elm)=>{
-      if (elm.getId() === id) {
+      if (elm.getId() == id) {
         obj = elm;
       }
     });
@@ -41,7 +41,7 @@ class AnnotationContainer{
 
   // TODO: 排他制御
   remove(annotationOrId){
-    let elm = typeof(annotationOrId) === "number" ?
+    let elm = typeof(annotationOrId) === "string" ?
       this.findById(annotationOrId):
       this.findById(annotationOrId.getId());
 

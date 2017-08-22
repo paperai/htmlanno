@@ -1,12 +1,13 @@
 const RelationAnnotation = require("./relationannotation.js");
+const Annotation = require("./annotation.js");
 
 class ArrowConnector{
   constructor(annotationContainer){
     this.annotations = annotationContainer;
   }
 
-  get(id){
-    this.annotations.findById(id);
+  get(id, referenceId){
+    this.annotations.findById(Annotation.createId(id, refereneId));
   }
 
   add(data){
@@ -21,19 +22,30 @@ class ArrowConnector{
     return relation;
   }
 
-  addToml(id, toml){
-    this.createRelation(
+  addToml(id, toml, referenceId){
+    return this.createRelation(
       id,
-      this.annotations.findById(parseInt(toml.ids[0])).circle,
-      this.annotations.findById(parseInt(toml.ids[1])).circle,
-      toml.dir, toml.label
+      this.annotations.findById(
+        Annotation.createId(parseInt(toml.ids[0]), referenceId)
+      ).circle,
+      this.annotations.findById(
+        Annotation.createId(parseInt(toml.ids[1]), referenceId)
+      ).circle,
+      toml.dir, toml.label,
+      referenceId
     );
   }
 
-  remove(){
+  remove(refereneId){
     this.annotations.forEach((annotation, i)=>{
       if (annotation instanceof RelationAnnotation) {
-        this.annotations.remove(i);
+        if (undefined == referenceId) {
+          if (referenceId == annotation.referenceId()) {
+            this.annotations.remove(i);
+           }
+        } else {
+          this.annotations.remove(i);
+        }
       }
     });
   }

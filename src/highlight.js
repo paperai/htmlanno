@@ -1,10 +1,11 @@
 const $ = require("jquery");
 const Circle = require("./circle.js");
 const globalEvent = window.globalEvent;
+const Annotation = require("./annotation.js");
 
-class Highlight{
-  constructor(id, startOffset, endOffset, elements){
-    this.id = id;
+class Highlight extends Annotation {
+  constructor(id, startOffset, endOffset, elements, referenceId){
+    super(id, referenceId);
     this.startOffset = startOffset;
     this.endOffset = endOffset;
 
@@ -40,7 +41,7 @@ class Highlight{
   }
 
   getClassName(){
-    return `htmlanno-hl-${this.id}`;
+    return `htmlanno-hl-${Highlight.createId(this.id, this.referenceId)}`;
   }
 
   getBoundingClientRect(){
@@ -111,10 +112,6 @@ class Highlight{
     }
   }
 
-  getId(){
-    return this.id;
-  }
-
   static isMydata(toml){
     return (undefined != toml && "span" == toml.type);
   }
@@ -134,6 +131,14 @@ class Highlight{
   hideLabel(){
     globalEvent.emit("clearlabel");
   }
+
+  setExtension(text) {
+    $(`.${this.getClassName()}`)[0].setAttribute('data-ext', text);
+  }
+
+  extension() {
+    return $(`.${this.getClassName()}`)[0].getAttribute('data-ext');
+  }    
 }
 
 module.exports = Highlight;

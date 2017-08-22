@@ -12,6 +12,7 @@ const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
 const AnnotationContainer = require("./annotationcontainer.js");
 const InputLabel = require("./inputlabel");
+const FileLoader = require("./fileloader.js");
 
 class Htmlanno{
   constructor(){
@@ -23,6 +24,9 @@ class Htmlanno{
     this.handleResize();
     this.selectedHighlights = [];
     this.selectedRelation   = null;
+
+    // The contents and annotations from files.
+    this.fileLoader = new FileLoader();
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
@@ -43,16 +47,6 @@ class Htmlanno{
       this.arrowConnector.removeAnnotation(data);
       this.unselectRelation();
     });
-
-    // HTMLanno original function.
-    globalEvent.on(this, "uploadFileSelect",
-      this.handleUploadFileSelect.bind(this));
-    globalEvent.on(this, "importAnnotation",
-      this.handleImportAnnotation.bind(this));
-    globalEvent.on(this, "targetFileSelect",
-      this.handleLoadTargetSelect.bind(this));
-    globalEvent.on(this, "loadTarget",
-      this.handleLoadTarget.bind(this));
 
     this.wrapGlobalEvents();
   }
@@ -98,6 +92,32 @@ class Htmlanno{
     AnnoUI.util.setupResizableColumns();
     AnnoUI.event.setup();
 
+    AnnoUI.browseButton.setup({
+      loadFiles :                          this.loadFiles.bind(this),
+      clearAllAnnotations :                this.remove.bind(this),
+      displayCurrentReferenceAnnotations : this.displayReferenceAnnotation.bind(this),
+      displayCurrentPrimaryAnnotations :   this.displayPrimaryAnnotation.bind(this),
+      getContentFiles :                    this.getContentFiles.bind(this),
+      getAnnoFiles :                       this.getAnnoFiles.bind(this),
+      closePDFViewer : () => {} //window.annoPage.closePDFViewer
+    });
+
+    AnnoUI.contentDropdown.setup({
+      initialText: 'PDF File',
+      overrideWarningMessage: 'Are you sure to load another HTML ?',
+      contentReloadHandler: this.reloadContent.bind(this)
+      
+    });
+
+    AnnoUI.primaryAnnoDropdown.setup({
+      clearPrimaryAnnotations: this.remove.bind(this),
+      displayPrimaryAnnotation: this.displayPrimaryAnnotation.bind(this)
+    });
+
+    AnnoUI.referenceAnnoDropdown.setup({
+      displayReferenceAnnotations: this.displayReferenceAnnotation.bind(this)
+    });
+
     AnnoUI.annoSpanButton.setup({
       createSpanAnnotation: this.handleAddSpan.bind(this)
     });
@@ -127,45 +147,6 @@ class Htmlanno{
 
     $("#viewer").on("mouseup", (e)=>{
       globalEvent.emit("mouseup", e);
-    });
-
-    // HTMLanno original function,
-    $("#import_file_view").on("click", (e)=>{
-      globalEvent.emit("uploadFileSelect", e);
-    })
-    // Elabled only mouse click action.
-    .on("focusin", ()=>{ $("#uploadButton").focus(); })
-    .on("keydown", false)
-    .on("contextmenu", false);
-
-    $("#uploadButton").on("click", (e)=>{
-      globalEvent.emit("importAnnotation", e);
-    });
-
-    $("#import_file").change(()=>{
-      let files = $("#import_file")[0].files;
-      if ( undefined != files && 0 < files.length ){
-        $("#import_file_view").val(files[0].name);
-      }
-    });
-
-    $("#target_file_view").on("click", (e)=>{
-      globalEvent.emit("targetFileSelect", e);
-    })
-    // Elabled only mouse click action.
-    .on("focusin", ()=>{ $("#loadlButton").focus(); })
-    .on("keydown", false)
-    .on("contextmenu", false);
-
-    $("#target_file").change(()=>{
-      let files = $("#target_file")[0].files;
-      if ( undefined != files && 0 < files.length ){
-        $("#target_file_view").val(files[0].name);
-      }
-    });
-
-    $("#loadButton").on("click", (e)=>{
-      globalEvent.emit("loadTarget", e);
     });
   }
 
@@ -350,73 +331,83 @@ class Htmlanno{
   }
 
   handleExportAnnotation(){
-    return new Promise( (resolve, reject) => { resolve(TomlTool.saveToml(this.annotations)); } );
+    return new Promise((resolve, reject) => {
+      resolve(TomlTool.saveToml(this.annotations));
+    });
   }
 
-  // htmlAnno独自機能
-  handleUploadFileSelect(){
-    $("#import_file").click();
-  }
-
-  // htmlAnno独自機能
-  handleImportAnnotation(){
-    let files = $("#import_file")[0].files;
-    if (undefined != files && 0 < files.length) {
+  displayPrimaryAnnotation(fileName) {
+    let annotation = this.fileLoader.getAnnotation(fileName);
+    if (null != annotation) {
+      annotation.primary = true;
       this.remove();
-      TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
-    }
+      TomlTool.loadToml(
+        annotation.content,
+        this.highlighter,
+        this.arrowConnector
+      );
+    } // システムから呼び出している限りこれは発生しない筈なので省略
   }
 
-  // htmlAnno独自機能
-  handleLoadTargetSelect(){
-    $("#target_file").click();
-  }
-
-  // htmlAnno独自機能
-  handleLoadTarget(){
-    let files = $("#target_file")[0].files;
-    if (undefined != files && 0 < files.length) {
-      let reader = new FileReader();
-      reader.onload = ()=>{
-        if (reader.result.match(/<html\s?.*>/i)){
-          this.loadAsHtml(reader.result);
-        } else{
-          this.loadAsText(reader.result);
-        }
-        let viewerObj = $('#viewerWrapper');
-        viewerObj.css('height', window.innerHeight - viewerObj.offset().top);
-        $('#htmlanno-svg-screen').css('height',$('#viewer').css('height'));
+  // TODO: 色設定
+  displayReferenceAnnotation(fileNames) {
+    let annotations = [];
+    fileNames.forEach((fileName) => {
+      let annotation = this.fileLoader.getAnnotation(fileName);
+      if (null != annotation && !annotation.primary) { // TODO: pdfannoの挙動確認
+        annotations.push(annotation);
       }
-      reader.onerror = ()=>{
-        alert("Load failed.");  // TODO: UI実装後に適時変更
-      };
-      reader.onabort = ()=>{
-        alert("Load aborted."); // TODO: UI実装後に適宜変更
-      };
+    });
+    annotations.forEach((annotation) => {
+      if (annotation.reference) {
+        // TODO: GUI上でチェックが外れていることを確認する
+        annotation.reference = false;
+        this.remove(annotation.name);
+      } else {
+        annotation.reference = true;
+        TomlTool.loadToml(
+          annotation.content,
+          this.highlighter,
+          this.arrowConnector,
+          annotation.name
+        );
+      }
+    });
+  }
 
-      reader.readAsText(files[0]);
+  loadFiles(files) {
+    return this.fileLoader.loadFiles(files);
+  }
+
+  getContentFiles() {
+    return this.fileLoader.contents;
+  }
+
+  getAnnoFiles() {
+    return this.fileLoader.annotations;
+  }
+
+  reloadContent(fileName) {
+    let content = this.fileLoader.getContent(fileName);
+    switch(content.type) {
+      case 'html':
+        this.remove();
+        $("#viewer").html(content.content).on('click', false);
+        break;
+
+      case 'text':
+        this.remove();
+        $("#viewer").text(content.content);
+        break;
+
+      default:
+        alertn('Unknown content type; ' + content.content); // TODO: UIに合わせたエラーメッセージにする
     }
-  }
+  }  
 
-  loadAsHtml(html){
-    let bodyStart = html.match(/<body\s?.*>/im);
-    let bodyEnd   = html.search(/<\/body>/im);
-    if (null != bodyStart && -1 != bodyEnd){
-      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
-    }
-    html = html.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
-    this.remove();
-    $("#viewer").html(html).on('click', false);
-  }
-
-  loadAsText(text){
-    this.remove();
-    $("#viewer").text(text);
-  }
-
-  remove(){
-    this.highlighter.remove();
-    this.arrowConnector.remove();
+  remove(extension){
+    this.highlighter.remove(extension);
+    this.arrowConnector.remove(extension);
   }
 }
 

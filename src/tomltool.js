@@ -13,30 +13,49 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-exports.loadToml = (fileBlob, highlighter, arrowConnector)=>{
-  let reader = new FileReader();
-  reader.onload = ()=>{
-    let data = TomlParser.parse(reader.result);
+/**
+ * @param fileBlobOrText ... File(Blob) object that created by &lt;file&gt; tag.
+ * @param highlighter ... Highlight annotation containr.
+ * @param arrowConnector ... Relation annotation container.
+ * @param extension (optional) ... Used to identify annotations.
+ */
+exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, extension)=>{
+  const renderAnnotation = (toml)=>{
+    let data = TomlParser.parse(toml);
     for(key in data) {
       if ("version" == key) {
         continue;
       }
-    // Span.
+      let annotation = undefined;
+      // Span.
       if (Highlight.isMydata(data[key])) {
-        highlighter.addToml(key, data[key]);
+        annotation = highlighter.addToml(key, data[key]);
       }
-    // Relation(one-way, two-way, or link)
+      // Relation(one-way, two-way, or link)
       if (RelationAnnotation.isMydata(data[key])) {
-        arrowConnector.addToml(key, data[key]);
+        annotation = arrowConnector.addToml(key, data[key]);
+      }
+      if (undefined != extension) {
+        annotation.setExtension(extension);
       }
     }
   };
-  reader.onerror = ()=>{
-    alert("Import failed.");  // TODO: UI実装後に適時変更
-  };
-  reader.onabort = ()=>{
-    alert("Import aborted."); // TODO: UI実装後に適宜変更
-  };
 
-  reader.readAsText(fileBlob);
+  if ('string' == typeof(fileBlobOrText)) {
+    renderAnnotation(fileBlobOrText);
+  } else{
+    let reader = new FileReader();
+    reader.onload = ()=>{
+      renderAnnotation(reader.result);
+    }
+    reader.onerror = ()=>{
+      alert("Import failed.");  // TODO: UI実装後に適時変更
+    };
+    reader.onabort = ()=>{
+      alert("Import aborted."); // TODO: UI実装後に適宜変更
+    };
+
+    reader.readAsText(fileBlob);
+  }
 };
+
