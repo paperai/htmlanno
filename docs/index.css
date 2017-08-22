@@ -134,13 +134,9 @@
 
 #viewerWrapper {
   position: relative;
-  overflow: scroll;
+  overflow-y: scroll;
   min-height: 300px;
-  border-top: solid 20px darkgray;
-  border-bottom: solid 20px darkgray;
-  border-left: solid 30px darkgray;
-  border-right: solid 30px darkgray;
-  padding: 5px;
+  margin: 5px 0;
 }
 
 #viewer {

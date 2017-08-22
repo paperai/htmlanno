@@ -392,7 +392,7 @@ class Htmlanno{
     switch(content.type) {
       case 'html':
         this.remove();
-        $("#viewer").html(content.content).on('click', false);
+        $('#viewer').html(content.content).on('click', false);
         break;
 
       case 'text':
@@ -403,6 +403,9 @@ class Htmlanno{
       default:
         alertn('Unknown content type; ' + content.content); // TODO: UIに合わせたエラーメッセージにする
     }
+    // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
+    let height = $(window).height() - $('#viewerWrapper')[0].offsetTop - 10;
+    $('#viewer').css('maxHeight', `${height}px`);
   }  
 
   remove(extension){

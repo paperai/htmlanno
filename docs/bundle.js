@@ -459,7 +459,7 @@
 	    switch(content.type) {
 	      case 'html':
 	        this.remove();
-	        $("#viewer").html(content.content).on('click', false);
+	        $('#viewer').html(content.content).on('click', false);
 	        break;
 	
 	      case 'text':
@@ -470,6 +470,9 @@
 	      default:
 	        alertn('Unknown content type; ' + content.content); // TODO: UIに合わせたエラーメッセージにする
 	    }
+	    // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
+	    let height = $(window).height() - $('#viewerWrapper')[0].offsetTop - 10;
+	    $('#viewer').css('maxHeight', `${height}px`);
 	  }  
 	
 	  remove(extension){
@@ -18376,6 +18379,8 @@
 	   */
 	  loadFiles(files) {
 	    let categoraizedFiles = this._categorize(files);
+	    this._contents = [];
+	    this._annotations = [];
 	    let _this = this;
 	    return Promise.all([
 	      Promise.all(
@@ -18533,7 +18538,7 @@
 	  }
 	
 	  _categorize(files){
-	    let htmlMatcher  = new RegExp(/.+\.html?$/i); // htm or html
+	    let htmlMatcher  = new RegExp(/.+\.xhtml$/i);
 	    let textMatcher  = new RegExp(/.+\.txt$/i);
 	    let annoMatcher = new RegExp(/.+\.anno$/i);
 	
