@@ -10,6 +10,8 @@ class FileLoader{
    * @return Promise({contents, annotations}) or Promise(cannot_read_filename)
    */
   loadFiles(files) {
+    this._contents = [];
+    this._annotations = [];
     let categoraizedFiles = this._categorize(files);
     let _this = this;
     return Promise.all([
@@ -168,7 +170,7 @@ class FileLoader{
   }
 
   _categorize(files){
-    let htmlMatcher  = new RegExp(/.+\.html?$/i); // htm or html
+    let htmlMatcher  = new RegExp(/.+\.xhtml$/i);
     let textMatcher  = new RegExp(/.+\.txt$/i);
     let annoMatcher = new RegExp(/.+\.anno$/i);
 
