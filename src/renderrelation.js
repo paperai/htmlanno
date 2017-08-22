@@ -142,6 +142,14 @@ class RenderRelation{
   content(){
     return this.jObject[0].getAttribute('data-label');
   }
+
+  setExtension(value){
+    this.jObject[0].setAttribute('data-ext', value);
+  }
+
+  extension(){
+    return this.jObject[0].getAttribute('data-ext');
+  }
 }
 
 module.exports = RenderRelation;

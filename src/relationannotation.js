@@ -106,6 +106,14 @@ class RelationAnnotation extends Annotation {
   content(){
     return this.arrow.content();
   }
+
+  setExtension(text){
+    this.arrow.setExtension(text);
+  }
+
+  extension(){
+    return this.arrow.extension();
+  }
 }
 
 module.exports = RelationAnnotation;

@@ -25,9 +25,8 @@ class Htmlanno{
     this.selectedHighlights = [];
     this.selectedRelation   = null;
 
-    this.contents = []; // HTML and Text.
-    this.annotations = [];
-    this.fileLoader = new FileLoader(this.contents, this.annotations);
+    // The contents and annotations from files.
+    this.fileLoader = new FileLoader();
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
@@ -48,16 +47,6 @@ class Htmlanno{
       this.arrowConnector.removeAnnotation(data);
       this.unselectRelation();
     });
-
-    // HTMLanno original function.
-    globalEvent.on(this, "uploadFileSelect",
-      this.handleUploadFileSelect.bind(this));
-    globalEvent.on(this, "importAnnotation",
-      this.handleImportAnnotation.bind(this));
-    globalEvent.on(this, "targetFileSelect",
-      this.handleLoadTargetSelect.bind(this));
-    globalEvent.on(this, "loadTarget",
-      this.handleLoadTarget.bind(this));
 
     this.wrapGlobalEvents();
   }
@@ -114,7 +103,7 @@ class Htmlanno{
     });
 
     AnnoUI.contentDropdown.setup({
-      initialText: 'HTML File',
+      initialText: 'PDF File',
       overrideWarningMessage: 'Are you sure to load another HTML ?',
       contentReloadHandler: this.reloadContent.bind(this)
       
@@ -158,45 +147,6 @@ class Htmlanno{
 
     $("#viewer").on("mouseup", (e)=>{
       globalEvent.emit("mouseup", e);
-    });
-
-    // HTMLanno original function,
-    $("#import_file_view").on("click", (e)=>{
-      globalEvent.emit("uploadFileSelect", e);
-    })
-    // Elabled only mouse click action.
-    .on("focusin", ()=>{ $("#uploadButton").focus(); })
-    .on("keydown", false)
-    .on("contextmenu", false);
-
-    $("#uploadButton").on("click", (e)=>{
-      globalEvent.emit("importAnnotation", e);
-    });
-
-    $("#import_file").change(()=>{
-      let files = $("#import_file")[0].files;
-      if ( undefined != files && 0 < files.length ){
-        $("#import_file_view").val(files[0].name);
-      }
-    });
-
-    $("#target_file_view").on("click", (e)=>{
-      globalEvent.emit("targetFileSelect", e);
-    })
-    // Elabled only mouse click action.
-    .on("focusin", ()=>{ $("#loadlButton").focus(); })
-    .on("keydown", false)
-    .on("contextmenu", false);
-
-    $("#target_file").change(()=>{
-      let files = $("#target_file")[0].files;
-      if ( undefined != files && 0 < files.length ){
-        $("#target_file_view").val(files[0].name);
-      }
-    });
-
-    $("#loadButton").on("click", (e)=>{
-      globalEvent.emit("loadTarget", e);
     });
   }
 
@@ -381,72 +331,9 @@ class Htmlanno{
   }
 
   handleExportAnnotation(){
-    return new Promise( (resolve, reject) => { resolve(TomlTool.saveToml(this.annotations)); } );
-  }
-
-  // htmlAnno独自機能
-  handleUploadFileSelect(){
-    $("#import_file").click();
-  }
-
-  // htmlAnno独自機能
-  handleImportAnnotation(){
-    let files = $("#import_file")[0].files;
-    if (undefined != files && 0 < files.length) {
-      this.remove();
-      TomlTool.loadToml(files[0], this.highlighter, this.arrowConnector);
-    }
-  }
-
-  // htmlAnno独自機能
-  // TODO: 不要
-  handleLoadTargetSelect(){
-    $("#target_file").click();
-  }
-
-  // htmlAnno独自機能
-  // TODO: 不要
-  handleLoadTarget(){
-    let files = $("#target_file")[0].files;
-    if (undefined != files && 0 < files.length) {
-      let reader = new FileReader();
-      reader.onload = ()=>{
-        if (reader.result.match(/<html\s?.*>/i)){
-          this.loadAsHtml(reader.result);
-        } else{
-          this.loadAsText(reader.result);
-        }
-        let viewerObj = $('#viewerWrapper');
-        viewerObj.css('height', window.innerHeight - viewerObj.offset().top);
-        $('#htmlanno-svg-screen').css('height',$('#viewer').css('height'));
-      }
-      reader.onerror = ()=>{
-        alert("Load failed.");  // TODO: UI実装後に適時変更
-      };
-      reader.onabort = ()=>{
-        alert("Load aborted."); // TODO: UI実装後に適宜変更
-      };
-
-      reader.readAsText(files[0]);
-    }
-  }
-
-  // TODO: 不要
-  loadAsHtml(html){
-    let bodyStart = html.match(/<body\s?.*>/im);
-    let bodyEnd   = html.search(/<\/body>/im);
-    if (null != bodyStart && -1 != bodyEnd){
-      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
-    }
-    html = html.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
-    this.remove();
-    $("#viewer").html(html).on('click', false);
-  }
-
-  // TODO: 不要
-  loadAsText(text){
-    this.remove();
-    $("#viewer").text(text);
+    return new Promise((resolve, reject) => {
+      resolve(TomlTool.saveToml(this.annotations));
+    });
   }
 
   displayPrimaryAnnotation(fileName) {
@@ -463,7 +350,6 @@ class Htmlanno{
   }
 
   // TODO: 色設定
-  // TODO: Offにされたものを削除
   displayReferenceAnnotation(fileNames) {
     let annotations = [];
     fileNames.forEach((fileName) => {
@@ -473,12 +359,19 @@ class Htmlanno{
       }
     });
     annotations.forEach((annotation) => {
-      annotation.reference = true;
-      TomlTool.loadToml(
-        annotation.content,
-        this.highlighter,
-        this.arrowConnector
-      );
+      if (annotation.reference) {
+        // TODO: GUI上でチェックが外れていることを確認する
+        annotation.reference = false;
+        this.remove(annotation.name);
+      } else {
+        annotation.reference = true;
+        TomlTool.loadToml(
+          annotation.content,
+          this.highlighter,
+          this.arrowConnector,
+          annotation.name
+        );
+      }
     });
   }
 
@@ -487,11 +380,11 @@ class Htmlanno{
   }
 
   getContentFiles() {
-    return this.contents;
+    return this.fileLoader.contents;
   }
 
   getAnnoFiles() {
-    return this.annotations;
+    return this.fileLoader.annotations;
   }
 
   reloadContent(fileName) {
@@ -512,9 +405,9 @@ class Htmlanno{
     }
   }  
 
-  remove(){
-    this.highlighter.remove();
-    this.arrowConnector.remove();
+  remove(extension){
+    this.highlighter.remove(extension);
+    this.arrowConnector.remove(extension);
   }
 }
 

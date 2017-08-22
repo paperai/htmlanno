@@ -131,6 +131,14 @@ class Highlight extends Annotation {
   hideLabel(){
     globalEvent.emit("clearlabel");
   }
+
+  setExtension(text) {
+    $(`.${this.getClassName()}`)[0].setAttribute('data-ext', text);
+  }
+
+  extension() {
+    return $(`.${this.getClassName()}`)[0].getAttribute('data-ext');
+  }    
 }
 
 module.exports = Highlight;

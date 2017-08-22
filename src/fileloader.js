@@ -1,7 +1,7 @@
 class FileLoader{
-  constructor(contents, annotations){
-    this.contents = contents;
-    this.annotations = annotations
+  constructor() {
+    this._contents = [];
+    this._annotations = [];
   }
 
   /**
@@ -12,36 +12,30 @@ class FileLoader{
   loadFiles(files) {
     let categoraizedFiles = this._categorize(files);
     let _this = this;
-    return new Promise((masterResolve, masterReject) => {
-      let rejects = [];
+    return Promise.all([
       Promise.all(
         this._createHtmlLoadingPromiseList(categoraizedFiles[0])
       ).then(
-        (results) => { _this._merge(results, _this.contents); },
-        (reject)  => { rejects.push(rejects); }
-      );
+        (results) => { _this._merge(results, _this._contents); }
+      ),
       Promise.all(
         this._createTextLoadingPromiseList(categoraizedFiles[1])
       ).then(
-        (results) => { _this._merge(results, _this.contents); },
-        (reject)  => { rejects.push(rejects); }
-      );
+        (results) => { _this._merge(results, _this._contents); }
+      ),
       Promise.all(
         this._createAnnotationLoadingPromiseList(categoraizedFiles[2])
       ).then(
-        (results) => { _this._merge(results, _this.annotations); },
-        (reject)  => { rejects.push(rejects); }
-      );
-
-      if (0 == rejects.length) {
-        masterResolve({
-          contents: _this.contents,
-          annotations: _this.annotations}
-        );
-      } else {
-        masterReject(rejects);
+        (results) => { _this._merge(results, _this._annotations); }
+      )
+    ]).then(
+      (all_results) => {
+        return Promise.resolve({
+          contents: _this._contents,
+          annotations: _this._annotations
+        });
       }
-    });
+    );
   }
 
   /**
@@ -56,7 +50,7 @@ class FileLoader{
    * }
    */
   getContent(fileName) {
-    return this._getItem(fileName, this.contents);
+    return this._getItem(fileName, this._contents);
   }
 
   /**
@@ -72,7 +66,15 @@ class FileLoader{
    * }
    */
   getAnnotation(fileName) {
-    return this._getItem(fileName, this.annotations);
+    return this._getItem(fileName, this._annotations);
+  }
+
+  get contents() {
+    return this._contents;
+  }
+
+  get annotations() {
+    return this._annotations;
   }
 
   _getItem(name, container) {
