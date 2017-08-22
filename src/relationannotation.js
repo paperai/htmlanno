@@ -1,16 +1,21 @@
 const $ = require("jquery");
 const RenderRelation = require("./renderrelation.js");
 const globalEvent = window.globalEvent;
+const Annotation = require("./annotation.js");
 
-class RelationAnnotation{
-  constructor(id, startingCircle, endingCircle, direction){
-    this.id = id;
+class RelationAnnotation extends Annotation {
+  constructor(id, startingCircle, endingCircle, direction, referenceId){
+    super(id, referenceId);
     this.startingCircle = startingCircle;
     this.endingCircle = endingCircle;
 
     this.direction = direction;
 
-    this.arrow = new RenderRelation(id, startingCircle.positionCenter(), direction);
+    this.arrow = new RenderRelation(
+      RelationAnnotation.createId(id, referenceId),
+      startingCircle.positionCenter(),
+      direction
+    );
     this.arrow.appendTo($("#htmlanno-svg-screen"));
     this.arrow.on("click", (e)=>{
       globalEvent.emit("relationselect", {event: e, annotation: this});
@@ -85,10 +90,6 @@ class RelationAnnotation{
       // TODO: 同一ID、同一のstarting/entering等でチェックするか？
       return true;
     }
-  }
-
-  getId(){
-    return this.id;
   }
 
   static isMydata(toml){

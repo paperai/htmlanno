@@ -5,6 +5,7 @@ require("rangy/lib/rangy-highlighter.js");
 require("rangy/lib/rangy-serializer.js");
 
 const Highlight = require("./highlight.js");
+const Annotation = require("./annotation.js");
 const globalEvent = window.globalEvent;
 
 class Highlighter{
@@ -88,7 +89,7 @@ class Highlighter{
     return this.create(id, startOffset, endOffset, "");
   }
 
-  create(id, startOffset, endOffset, text, addOnly){
+  create(id, startOffset, endOffset, text, referenceId, addOnly){
     this.selectRange(startOffset, endOffset);
     const selection = rangy.getSelection();
     if (selection.isCollapsed){
@@ -96,19 +97,29 @@ class Highlighter{
     }
 
     const temporaryElements = [];
-    this.highlighter.addClassApplier(rangy.createClassApplier("htmlanno-highlight"+id, {
-      ignoreWhiteSpace: true,
-      onElementCreate: (element)=>{temporaryElements.push(element)}
-    }));
+    this.highlighter.addClassApplier(rangy.createClassApplier(
+      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
+      {
+        ignoreWhiteSpace: true,
+        onElementCreate: (element)=>{temporaryElements.push(element)}
+      }
+    ));
 
     let highlight = null;
-    this.highlighter.highlightSelection("htmlanno-highlight"+id, {exclusive: false});
+    this.highlighter.highlightSelection(
+      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
+      {exclusive: false}
+    );
     if (temporaryElements.length > 0){
-      highlight = new Highlight(id, startOffset, endOffset, temporaryElements);
+      highlight = new Highlight(
+        id, startOffset, endOffset, temporaryElements, referenceId
+      );
       highlight.setContent(text);
 
       if (undefined == addOnly || !addOnly) {
-        globalEvent.emit("highlightselect", {event: undefined, annotation: highlight});
+        globalEvent.emit(
+          "highlightselect", {event: undefined, annotation: highlight}
+        );
       }
 
       // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
@@ -119,26 +130,36 @@ class Highlighter{
     return highlight;
   }
 
-  addToml(id, toml){
+  addToml(id, toml, referenceId){
     this.selectRange(toml.position[0], toml.position[1]);
     const selection = rangy.getSelection();
     if (!selection.isCollapsed){
       const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
       const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-      let span = this.create(parseInt(id), startOffset, endOffset, toml.label, true);
+      let span = this.create(
+        parseInt(id), startOffset, endOffset, toml.label, referenceId, true
+      );
       span.blur();
+
+      return span;
     }
   }
 
-  get(id){
-    return this.highlights.findById(id);
+  get(id, referenceId){
+    return this.highlights.findById(Annotation.createId(id, referenceId));
   }
 
-  remove(){
+  remove(referenceId){
     this.highlighter.removeAllHighlights();
     this.highlights.forEach((annotation, i)=>{
       if (annotation instanceof Highlight){
-        this.highlights.remove(i);
+        if (undefined != referenceId) {
+          if (refereneId == annotation.refereneId()) {
+            this.highlights.remove(i);
+          }
+        } else {
+          this.highlights.remove(i);
+        }
       }
     });
   }
