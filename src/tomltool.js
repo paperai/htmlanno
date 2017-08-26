@@ -17,9 +17,9 @@ exports.saveToml = (annotationSet)=>{
  * @param fileBlobOrText ... File(Blob) object that created by &lt;file&gt; tag.
  * @param highlighter ... Highlight annotation containr.
  * @param arrowConnector ... Relation annotation container.
- * @param extension (optional) ... Used to identify annotations.
+ * @param referenceId (optional) ... Used to identify annotations.
  */
-exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, extension)=>{
+exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId)=>{
   const renderAnnotation = (toml)=>{
     let data = TomlParser.parse(toml);
     for(key in data) {
@@ -29,14 +29,11 @@ exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, extension)=>{
       let annotation = undefined;
       // Span.
       if (Highlight.isMydata(data[key])) {
-        annotation = highlighter.addToml(key, data[key]);
+        annotation = highlighter.addToml(key, data[key], referenceId);
       }
       // Relation(one-way, two-way, or link)
       if (RelationAnnotation.isMydata(data[key])) {
-        annotation = arrowConnector.addToml(key, data[key]);
-      }
-      if (undefined != extension) {
-        annotation.setExtension(extension);
+        annotation = arrowConnector.addToml(key, data[key], referenceId);
       }
     }
   };
