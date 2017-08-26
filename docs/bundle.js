@@ -418,19 +418,19 @@
 	
 	  // TODO: 色設定
 	  displayReferenceAnnotation(fileNames) {
-	    let annotations = [];
-	    fileNames.forEach((fileName) => {
-	      let annotation = this.fileLoader.getAnnotation(fileName);
-	      if (null != annotation && !annotation.primary) { // TODO: pdfannoの挙動確認
-	        annotations.push(annotation);
+	    // TODO: この処理はanno-ui側に入れてもらいたい
+	    let hideAnnoNames = [];
+	    $('#dropdownAnnoReference a').each((index, element) => {
+	      let $elm = $(element);
+	      if ($elm.find('.fa-check').hasClass('no-visible') === true) {
+	        hideAnnoNames.push($elm.find('.js-annoname').text());
 	      }
 	    });
+	    this.hideReferenceAnnotation(hideAnnoNames);
+	
+	    let annotations = this.fileLoader.getAnnotations(fileNames);
 	    annotations.forEach((annotation) => {
-	      if (annotation.reference) {
-	        // TODO: GUI上でチェックが外れていることを確認する
-	        annotation.reference = false;
-	        this.remove(annotation.name);
-	      } else {
+	      if (!annotation.primary && !annotation.reference) {
 	        annotation.reference = true;
 	        TomlTool.loadToml(
 	          annotation.content,
@@ -438,6 +438,16 @@
 	          this.arrowConnector,
 	          annotation.name
 	        );
+	      }
+	    });
+	  }
+	
+	  hideReferenceAnnotation(fileNames) {
+	    let annotations = this.fileLoader.getAnnotations(fileNames);
+	    annotations.forEach((annotation) => {
+	      if (annotation.reference) {
+	        annotation.reference = false;
+	        this.remove(annotation.name);
 	      }
 	    });
 	  }
@@ -475,9 +485,9 @@
 	    $('#viewer').css('maxHeight', `${height}px`);
 	  }  
 	
-	  remove(extension){
-	    this.highlighter.remove(extension);
-	    this.arrowConnector.remove(extension);
+	  remove(referenceId){
+	    this.highlighter.remove(referenceId);
+	    this.arrowConnector.remove(referenceId);
 	  }
 	}
 	
@@ -7336,9 +7346,9 @@
 	 * @param fileBlobOrText ... File(Blob) object that created by &lt;file&gt; tag.
 	 * @param highlighter ... Highlight annotation containr.
 	 * @param arrowConnector ... Relation annotation container.
-	 * @param extension (optional) ... Used to identify annotations.
+	 * @param referenceId (optional) ... Used to identify annotations.
 	 */
-	exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, extension)=>{
+	exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId)=>{
 	  const renderAnnotation = (toml)=>{
 	    let data = TomlParser.parse(toml);
 	    for(key in data) {
@@ -7348,14 +7358,11 @@
 	      let annotation = undefined;
 	      // Span.
 	      if (Highlight.isMydata(data[key])) {
-	        annotation = highlighter.addToml(key, data[key]);
+	        annotation = highlighter.addToml(key, data[key], referenceId);
 	      }
 	      // Relation(one-way, two-way, or link)
 	      if (RelationAnnotation.isMydata(data[key])) {
-	        annotation = arrowConnector.addToml(key, data[key]);
-	      }
-	      if (undefined != extension) {
-	        annotation.setExtension(extension);
+	        annotation = arrowConnector.addToml(key, data[key], referenceId);
 	      }
 	    }
 	  };
@@ -15432,14 +15439,6 @@
 	  hideLabel(){
 	    globalEvent.emit("clearlabel");
 	  }
-	
-	  setExtension(text) {
-	    $(`.${this.getClassName()}`)[0].setAttribute('data-ext', text);
-	  }
-	
-	  extension() {
-	    return $(`.${this.getClassName()}`)[0].getAttribute('data-ext');
-	  }    
 	}
 	
 	module.exports = Highlight;
@@ -15611,7 +15610,7 @@
 	    return Annotation.createId(this.id, this.referenceId);
 	  }
 	
-	  referenceId() {
+	  getReferenceId() {
 	    return this.referenceId;
 	  }
 	
@@ -16075,7 +16074,7 @@
 	    this.highlights.forEach((annotation, i)=>{
 	      if (annotation instanceof Highlight){
 	        if (undefined != referenceId) {
-	          if (refereneId == annotation.refereneId()) {
+	          if (referenceId == annotation.getReferenceId()) {
 	            this.highlights.remove(i);
 	          }
 	        } else {
@@ -18160,7 +18159,7 @@
 	  }
 	
 	  get(id, referenceId){
-	    this.annotations.findById(Annotation.createId(id, refereneId));
+	    this.annotations.findById(Annotation.createId(id, referenceId));
 	  }
 	
 	  add(data){
@@ -18189,11 +18188,11 @@
 	    );
 	  }
 	
-	  remove(refereneId){
+	  remove(referenceId){
 	    this.annotations.forEach((annotation, i)=>{
 	      if (annotation instanceof RelationAnnotation) {
-	        if (undefined == referenceId) {
-	          if (referenceId == annotation.referenceId()) {
+	        if (undefined != referenceId) {
+	          if (referenceId == annotation.getReferenceId()) {
 	            this.annotations.remove(i);
 	           }
 	        } else {
@@ -18378,9 +18377,9 @@
 	   * @return Promise({contents, annotations}) or Promise(cannot_read_filename)
 	   */
 	  loadFiles(files) {
-	    let categoraizedFiles = this._categorize(files);
 	    this._contents = [];
 	    this._annotations = [];
+	    let categoraizedFiles = this._categorize(files);
 	    let _this = this;
 	    return Promise.all([
 	      Promise.all(
@@ -18437,6 +18436,17 @@
 	   */
 	  getAnnotation(fileName) {
 	    return this._getItem(fileName, this._annotations);
+	  }
+	
+	  getAnnotations(fileNames) {
+	    let annotations = [];
+	    fileNames.forEach((fileName) => {
+	      let anno = this.getAnnotation(fileName);
+	      if (null != anno) {
+	        annotations.push(anno);
+	      }
+	    });
+	    return annotations;
 	  }
 	
 	  get contents() {
