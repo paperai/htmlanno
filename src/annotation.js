@@ -8,7 +8,7 @@ class Annotation {
     return Annotation.createId(this.id, this.referenceId);
   }
 
-  referenceId() {
+  getReferenceId() {
     return this.referenceId;
   }
 

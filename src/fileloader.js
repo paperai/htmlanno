@@ -71,6 +71,17 @@ class FileLoader{
     return this._getItem(fileName, this._annotations);
   }
 
+  getAnnotations(fileNames) {
+    let annotations = [];
+    fileNames.forEach((fileName) => {
+      let anno = this.getAnnotation(fileName);
+      if (null != anno) {
+        annotations.push(anno);
+      }
+    });
+    return annotations;
+  }
+
   get contents() {
     return this._contents;
   }

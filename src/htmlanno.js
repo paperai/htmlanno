@@ -351,19 +351,19 @@ class Htmlanno{
 
   // TODO: 色設定
   displayReferenceAnnotation(fileNames) {
-    let annotations = [];
-    fileNames.forEach((fileName) => {
-      let annotation = this.fileLoader.getAnnotation(fileName);
-      if (null != annotation && !annotation.primary) { // TODO: pdfannoの挙動確認
-        annotations.push(annotation);
+    // TODO: この処理はanno-ui側に入れてもらいたい
+    let hideAnnoNames = [];
+    $('#dropdownAnnoReference a').each((index, element) => {
+      let $elm = $(element);
+      if ($elm.find('.fa-check').hasClass('no-visible') === true) {
+        hideAnnoNames.push($elm.find('.js-annoname').text());
       }
     });
+    this.hideReferenceAnnotation(hideAnnoNames);
+
+    let annotations = this.fileLoader.getAnnotations(fileNames);
     annotations.forEach((annotation) => {
-      if (annotation.reference) {
-        // TODO: GUI上でチェックが外れていることを確認する
-        annotation.reference = false;
-        this.remove(annotation.name);
-      } else {
+      if (!annotation.primary && !annotation.reference) {
         annotation.reference = true;
         TomlTool.loadToml(
           annotation.content,
@@ -371,6 +371,16 @@ class Htmlanno{
           this.arrowConnector,
           annotation.name
         );
+      }
+    });
+  }
+
+  hideReferenceAnnotation(fileNames) {
+    let annotations = this.fileLoader.getAnnotations(fileNames);
+    annotations.forEach((annotation) => {
+      if (annotation.reference) {
+        annotation.reference = false;
+        this.remove(annotation.name);
       }
     });
   }
@@ -408,9 +418,9 @@ class Htmlanno{
     $('#viewer').css('maxHeight', `${height}px`);
   }  
 
-  remove(extension){
-    this.highlighter.remove(extension);
-    this.arrowConnector.remove(extension);
+  remove(referenceId){
+    this.highlighter.remove(referenceId);
+    this.arrowConnector.remove(referenceId);
   }
 }
 
