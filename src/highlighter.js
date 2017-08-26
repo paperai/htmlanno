@@ -154,7 +154,7 @@ class Highlighter{
     this.highlights.forEach((annotation, i)=>{
       if (annotation instanceof Highlight){
         if (undefined != referenceId) {
-          if (refereneId == annotation.refereneId()) {
+          if (referenceId == annotation.getReferenceId()) {
             this.highlights.remove(i);
           }
         } else {
