@@ -7,7 +7,7 @@ class ArrowConnector{
   }
 
   get(id, referenceId){
-    this.annotations.findById(Annotation.createId(id, refereneId));
+    this.annotations.findById(Annotation.createId(id, referenceId));
   }
 
   add(data){
@@ -36,11 +36,11 @@ class ArrowConnector{
     );
   }
 
-  remove(refereneId){
+  remove(referenceId){
     this.annotations.forEach((annotation, i)=>{
       if (annotation instanceof RelationAnnotation) {
-        if (undefined == referenceId) {
-          if (referenceId == annotation.referenceId()) {
+        if (undefined != referenceId) {
+          if (referenceId == annotation.getReferenceId()) {
             this.annotations.remove(i);
            }
         } else {
