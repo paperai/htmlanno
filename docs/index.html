@@ -87,30 +87,35 @@
         <div class="row">
           <div id="tools" class="col-md-3 col-sm-3 col-xs-3">
             <div class="row">
+              <div class="col-md-12">
+                <input type="text" id="inputLabel" class="form-control inputLabel" list="labels" disabled="disabled" />
+              </div>
+            </div>
+            <div class="row u-mt-20">
               <ul class="nav nav-tabs" role="tablist">
                 <li role="presentation" class="active">
-                  <a href="#add_span" aria-controls="add_span" role="tab" data-toggle="tab">
+                  <a href="#add_span" aria-controls="add_span" role="tab" data-toggle="tab" class="js-label-tab" data-type="span">
                     <i class="fa fa-pencil fa-2x"></i>
                   </a>
                 </li>
                 <li role="presentation">
-                  <a href="#add_oneway" aria-controls"=add_oneway" role="tab" data-toggle="tab">
+                  <a href="#add_oneway" aria-controls"=add_oneway" role="tab" data-toggle="tab" class="js-label-tab" data-type="one-way">
                     <i class="fa fa-long-arrow-right fa-2x"></i>
                   </a>
                 </li>
                 <li role="presentation">
-                  <a href="#add_twoway" aria-controls="add_twoway" role="tab" data-toggle="tab">
+                  <a href="#add_twoway" aria-controls="add_twoway" role="tab" data-toggle="tab" class-js-label-tab" data-type="two-way">
                     <i class="fa fa-arrows-h fa-2x"></i>
                   </a>
                 </li>
                 <li role="presentation">
-                  <a href="#add_link" aria-controls="add_link" role="tab" data-toggle="tab">
+                  <a href="#add_link" aria-controls="add_link" role="tab" data-toggle="tab" class-"js-label-tab" data-type="link">
                     <i class="fa fa-minus fa-2x"></i>
                   </a>
                 </li>
               </ul>
-              <div class="tab-content">
-                <ul role="tabpanel" class="label-list tab-pane active" id="add_span">
+              <div class="tab-content js-label-tab-content">
+                <ul role="tabpanel" class="label-list tab-pane active" id="add_span" data-type="span">
                   <!-- サンプル -->
                   <li>
                     <div class="label-list__btn js-label-tras">
@@ -118,25 +123,22 @@
                     </div>
                     <div class="label-list__text js-label">A</div>
                   </li>
+                  <li>
+                    <div class="label-list__btn js-add-label-button">
+                      <i class="fa fa-plus fa-2x"></i>
+                    </div>
+                    <input type="text" class="label-list__input" />
+                  <li>
+                  </li>
                   <!-- サンプル -->
                 </ul>
-                <ul role="tabpanel" class="label-list tab-pane" id="add_oneway">
+                <ul role="tabpanel" class="label-list tab-pane" id="add_oneway" data-type="one-way">
                 </ul>
-                <div role="tabpanel" class="label-list tab-pane" id="add_twoway">
+                <div role="tabpanel" class="label-list tab-pane" id="add_twoway" data-type="two-way">
                 </div>
-                <div role="tabpanel" class="label-list tab-pane" id="add_link">
+                <div role="tabpanel" class="label-list tab-pane" id="add_link" data-type="link">
                 </div>
               </div>
-            </div>
-            <div class="row">
-              <ul class="label-list">
-                <li>
-                  <div class="label-list__btn ja-add-label-button">
-                    <i class="fa fa-plus fa-2x"></i>
-                  </div>
-                  <input type="text" class="label-list__input" id="inputLabel" />
-                </li>
-              </ul>
             </div>
           </div>
           <div id="viewerWrapper" class="col-md-9 col-sm-9 col-xs-9">
