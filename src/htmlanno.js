@@ -132,6 +132,11 @@ class Htmlanno{
       unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
     });
 
+    AnnoUI.annoListDropdown.setup({
+      getAnnotations: this.annotations.getAllAnnotations.bind(this.annotations),
+      scrollToAnnotation: this.scrollToAnnotation.bind(this)
+    });
+
     $(document).on("dragover", (e)=>{
       if (e.originalEvent.pageX && e.originalEvent.pageY){
         globalEvent.emit("drag", e);
@@ -347,6 +352,8 @@ class Htmlanno{
         this.arrowConnector
       );
     } // システムから呼び出している限りこれは発生しない筈なので省略
+    
+    this.dispatchWindowEvent('annotationrendered');
   }
 
   // TODO: 色設定
@@ -373,6 +380,7 @@ class Htmlanno{
         );
       }
     });
+    this.dispatchWindowEvent('annotationrendered');
   }
 
   hideReferenceAnnotation(fileNames) {
@@ -418,9 +426,25 @@ class Htmlanno{
     $('#viewer').css('maxHeight', `${height}px`);
   }  
 
-  remove(referenceId){
+  scrollToAnnotation(id) {
+    let scrollArea = $('#viewerWrapper');
+    let annotation = this.annotations.findById(id);
+    scrollArea[0].scrollTop = annotation.scrollTop - scrollArea.offset().top;
+    annotation.blink();
+  }
+
+  remove(referenceId) {
     this.highlighter.remove(referenceId);
     this.arrowConnector.remove(referenceId);
+
+    this.dispatchWindowEvent('annotationDeleted');
+  }
+
+  // For Anno-ui.
+  dispatchWindowEvent(eventName, data) {
+    var event = document.createEvent('CustomEvent');
+    event.initCustomEvent(eventName, true, true, data);
+    window.dispatchEvent(event);
   }
 }
 
