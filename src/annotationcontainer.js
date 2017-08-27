@@ -65,8 +65,13 @@ class AnnotationContainer{
   destroy(){
   }
 
-  // TODO: pdfanno only
+  /**
+   * Get all annotations from the container.
+   */
   getAllAnnotations(){
+    let list = [];
+    this.set.forEach(a => list.push(a));
+    return list;
   }
 
   // TODO: pdfanno only

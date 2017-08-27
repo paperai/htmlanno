@@ -131,6 +131,21 @@ class Highlight extends Annotation {
   hideLabel(){
     globalEvent.emit("clearlabel");
   }
+
+  get type() {
+    return 'span';
+  }
+
+  get scrollTop() {
+    return this.circle.positionCenter().top;
+  }
+
+  blink() {
+    this.circle.jObject.addClass('htmlanno-circle-hover');
+    setTimeout(() => {
+      this.circle.jObject.removeClass('htmlanno-circle-hover');
+    }, 1000);
+  }
 }
 
 module.exports = Highlight;
