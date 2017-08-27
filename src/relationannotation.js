@@ -9,12 +9,12 @@ class RelationAnnotation extends Annotation {
     this.startingCircle = startingCircle;
     this.endingCircle = endingCircle;
 
-    this.direction = direction;
+    this._direction = direction;
 
     this.arrow = new RenderRelation(
-      RelationAnnotation.createId(id, referenceId),
+      Annotation.createId(id, referenceId),
       startingCircle.positionCenter(),
-      direction
+      this._direction
     );
     this.arrow.appendTo($("#htmlanno-svg-screen"));
     this.arrow.on("click", (e)=>{
@@ -76,7 +76,7 @@ class RelationAnnotation extends Annotation {
   saveToml(){
     return [
       'type = "relation"',
-      `dir = "${this.direction}"`,
+      `dir = "${this._direction}"`,
       `ids = ["${this.startingCircle.highlight.id}", "${this.endingCircle.highlight.id}"]`,
       `label = "${this.content()}"`
     ].join("\n");
@@ -107,12 +107,20 @@ class RelationAnnotation extends Annotation {
     return this.arrow.content();
   }
 
-  setExtension(text){
-    this.arrow.setExtension(text);
+  getClassName() {
+    return this.arrow.domId();
   }
 
-  extension(){
-    return this.arrow.extension();
+  get type() {
+    return 'relation';
+  }
+
+  get direction() {
+    return this._direction;
+  }
+
+  get scrollTop() {
+    return this.startingCircle.positionCenter().top;
   }
 }
 

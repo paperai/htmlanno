@@ -77,7 +77,7 @@ class Highlighter{
     selection.setSingleRange(range);
   }
 
-  highlight(){
+  highlight(label){
     const selection = rangy.getSelection();
     if (selection.isCollapsed){
       return;
@@ -86,7 +86,7 @@ class Highlighter{
     const id = this.highlights.nextId();
     const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
     const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-    return this.create(id, startOffset, endOffset, "");
+    return this.create(id, startOffset, endOffset, label);
   }
 
   create(id, startOffset, endOffset, text, referenceId, addOnly){

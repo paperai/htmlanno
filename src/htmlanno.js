@@ -37,8 +37,10 @@ class Htmlanno{
       this.handleAnnotationHoverOut.bind(this));
     globalEvent.on(this, "highlightselect",
       this.handleHighlightSelect.bind(this));
+
     globalEvent.on(this, "relationselect",
       this.handleRelationSelect.bind(this));
+
     globalEvent.on(this, "showlabel", this.showLabel.bind(this));
     globalEvent.on(this, "clearlabel", this.clearLabel.bind(this));
     globalEvent.on(this, "editlabel", this.editLabel.bind(this));
@@ -110,7 +112,7 @@ class Htmlanno{
     });
 
     AnnoUI.primaryAnnoDropdown.setup({
-      clearPrimaryAnnotations: this.remove.bind(this),
+      clearPrimaryAnnotations: this.clearPrimaryAnnotation.bind(this),
       displayPrimaryAnnotation: this.displayPrimaryAnnotation.bind(this)
     });
 
@@ -118,11 +120,10 @@ class Htmlanno{
       displayReferenceAnnotations: this.displayReferenceAnnotation.bind(this)
     });
 
-    AnnoUI.annoSpanButton.setup({
-      createSpanAnnotation: this.handleAddSpan.bind(this)
-    });
-
-    AnnoUI.annoRelButton.setup({
+    AnnoUI.labelInput.setup({
+      getSelectedAnnotations: this.getSelectedAnnotations.bind(this),
+      saveAnnotationText: this.endEditLabel.bind(this),
+      createSpanAnnotation: this.handleAddSpan.bind(this),
       createRelAnnotation: this.handleAddRelation.bind(this)
     });
 
@@ -130,6 +131,11 @@ class Htmlanno{
       getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
       getCurrentContentName: ()=>{ return "export.htmlanno"; },
       unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
+    });
+
+    AnnoUI.annoListDropdown.setup({
+      getAnnotations: this.annotations.getAllAnnotations.bind(this.annotations),
+      scrollToAnnotation: this.scrollToAnnotation.bind(this)
     });
 
     $(document).on("dragover", (e)=>{
@@ -147,6 +153,11 @@ class Htmlanno{
 
     $("#viewer").on("mouseup", (e)=>{
       globalEvent.emit("mouseup", e);
+    });
+
+    // NEED. (for prevent from deselecting text.)
+    $(window).on("mousedown", (e) =>{
+      this.handleMouseDown(e);
     });
   }
 
@@ -196,6 +207,7 @@ class Htmlanno{
     }
   }
 
+  // HtmlAnno only, remove?
   handleKeydown(e){
     if (0 != this.selectedHighlights.length){
       let lastSelected =
@@ -313,17 +325,17 @@ class Htmlanno{
     }
   }
 
-  handleAddSpan(){
-    this.highlighter.highlight();
+  handleAddSpan(label){
+    this.highlighter.highlight(label.text);
   }
 
-  handleAddRelation(direction){
+  handleAddRelation(params) {
     if (2 == this.selectedHighlights.length){
       this.selectedRelation = this.arrowConnector.createRelation(
         this.annotations.nextId(),
         this.selectedHighlights[0].circle,
         this.selectedHighlights[1].circle,
-        direction, ""
+        params.type, params.text
       );
       this.unselectHighlight();
       this.selectedRelation.select();
@@ -338,15 +350,24 @@ class Htmlanno{
 
   displayPrimaryAnnotation(fileName) {
     let annotation = this.fileLoader.getAnnotation(fileName);
-    if (null != annotation) {
-      annotation.primary = true;
-      this.remove();
-      TomlTool.loadToml(
-        annotation.content,
-        this.highlighter,
-        this.arrowConnector
-      );
-    } // システムから呼び出している限りこれは発生しない筈なので省略
+    annotation.primary = true;
+    this.remove();
+    TomlTool.loadToml(
+      annotation.content,
+      this.highlighter,
+      this.arrowConnector
+    );
+    
+    this.dispatchWindowEvent('annotationrendered');
+  }
+
+  clearPrimaryAnnotation() {
+    this.fileLoader.annotations.forEach((annotation) => {
+      if (annotation.primary) {
+        annotation.primary = false;
+      }
+    });
+    this.remove();
   }
 
   // TODO: 色設定
@@ -373,6 +394,7 @@ class Htmlanno{
         );
       }
     });
+    this.dispatchWindowEvent('annotationrendered');
   }
 
   hideReferenceAnnotation(fileNames) {
@@ -418,9 +440,47 @@ class Htmlanno{
     $('#viewer').css('maxHeight', `${height}px`);
   }  
 
-  remove(referenceId){
+  scrollToAnnotation(id) {
+    let scrollArea = $('#viewerWrapper');
+    let annotation = this.annotations.findById(id);
+    scrollArea[0].scrollTop = annotation.scrollTop - scrollArea.offset().top;
+    annotation.blink();
+  }
+
+  endEditLabel(id, label) {
+    let annotation = this.annotations.findById(id);
+    annotation.setContent(label);
+  }
+
+  getSelectedAnnotations() {
+    return this.fileLoader.annotations.filter((annotation) => {
+      return annotation.selected;
+    });
+  }
+
+  /**
+   * When text is selected and clicked annotation add-button,
+   * the selected text is prevented from being released.
+   */
+  handleMouseDown(e) {
+    if ($(e.target).hasClass("js-label")) {
+      e.preventDefault();
+    }
+  }
+
+  remove(referenceId) {
     this.highlighter.remove(referenceId);
     this.arrowConnector.remove(referenceId);
+
+    // TODO: labelInput内、treatAnnotationDeleted(e.detail)。編集中のアノテーションが削除された場合の対応
+    this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+  }
+
+  // For Anno-ui.
+  dispatchWindowEvent(eventName, data) {
+    var event = document.createEvent('CustomEvent');
+    event.initCustomEvent(eventName, true, true, data);
+    window.dispatchEvent(event);
   }
 }
 
