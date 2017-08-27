@@ -110,7 +110,7 @@ class Htmlanno{
     });
 
     AnnoUI.primaryAnnoDropdown.setup({
-      clearPrimaryAnnotations: this.remove.bind(this),
+      clearPrimaryAnnotations: this.clearPrimaryAnnotation.bind(this),
       displayPrimaryAnnotation: this.displayPrimaryAnnotation.bind(this)
     });
 
@@ -343,17 +343,24 @@ class Htmlanno{
 
   displayPrimaryAnnotation(fileName) {
     let annotation = this.fileLoader.getAnnotation(fileName);
-    if (null != annotation) {
-      annotation.primary = true;
-      this.remove();
-      TomlTool.loadToml(
-        annotation.content,
-        this.highlighter,
-        this.arrowConnector
-      );
-    } // システムから呼び出している限りこれは発生しない筈なので省略
+    annotation.primary = true;
+    this.remove();
+    TomlTool.loadToml(
+      annotation.content,
+      this.highlighter,
+      this.arrowConnector
+    );
     
     this.dispatchWindowEvent('annotationrendered');
+  }
+
+  clearPrimaryAnnotation() {
+    this.fileLoader.annotations.forEach((annotation) => {
+      if (annotation.primary) {
+        annotation.primary = false;
+      }
+    });
+    this.remove();
   }
 
   // TODO: 色設定
