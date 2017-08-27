@@ -104,8 +104,10 @@
 	      this.handleAnnotationHoverOut.bind(this));
 	    globalEvent.on(this, "highlightselect",
 	      this.handleHighlightSelect.bind(this));
+	
 	    globalEvent.on(this, "relationselect",
 	      this.handleRelationSelect.bind(this));
+	
 	    globalEvent.on(this, "showlabel", this.showLabel.bind(this));
 	    globalEvent.on(this, "clearlabel", this.clearLabel.bind(this));
 	    globalEvent.on(this, "editlabel", this.editLabel.bind(this));
@@ -177,7 +179,7 @@
 	    });
 	
 	    AnnoUI.primaryAnnoDropdown.setup({
-	      clearPrimaryAnnotations: this.remove.bind(this),
+	      clearPrimaryAnnotations: this.clearPrimaryAnnotation.bind(this),
 	      displayPrimaryAnnotation: this.displayPrimaryAnnotation.bind(this)
 	    });
 	
@@ -185,11 +187,10 @@
 	      displayReferenceAnnotations: this.displayReferenceAnnotation.bind(this)
 	    });
 	
-	    AnnoUI.annoSpanButton.setup({
-	      createSpanAnnotation: this.handleAddSpan.bind(this)
-	    });
-	
-	    AnnoUI.annoRelButton.setup({
+	    AnnoUI.labelInput.setup({
+	      getSelectedAnnotations: this.getSelectedAnnotations.bind(this),
+	      saveAnnotationText: this.endEditLabel.bind(this),
+	      createSpanAnnotation: this.handleAddSpan.bind(this),
 	      createRelAnnotation: this.handleAddRelation.bind(this)
 	    });
 	
@@ -197,6 +198,11 @@
 	      getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
 	      getCurrentContentName: ()=>{ return "export.htmlanno"; },
 	      unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
+	    });
+	
+	    AnnoUI.annoListDropdown.setup({
+	      getAnnotations: this.annotations.getAllAnnotations.bind(this.annotations),
+	      scrollToAnnotation: this.scrollToAnnotation.bind(this)
 	    });
 	
 	    $(document).on("dragover", (e)=>{
@@ -214,6 +220,11 @@
 	
 	    $("#viewer").on("mouseup", (e)=>{
 	      globalEvent.emit("mouseup", e);
+	    });
+	
+	    // NEED. (for prevent from deselecting text.)
+	    $(window).on("mousedown", (e) =>{
+	      this.handleMouseDown(e);
 	    });
 	  }
 	
@@ -263,6 +274,7 @@
 	    }
 	  }
 	
+	  // HtmlAnno only, remove?
 	  handleKeydown(e){
 	    if (0 != this.selectedHighlights.length){
 	      let lastSelected =
@@ -380,17 +392,17 @@
 	    }
 	  }
 	
-	  handleAddSpan(){
-	    this.highlighter.highlight();
+	  handleAddSpan(label){
+	    this.highlighter.highlight(label.text);
 	  }
 	
-	  handleAddRelation(direction){
+	  handleAddRelation(params) {
 	    if (2 == this.selectedHighlights.length){
 	      this.selectedRelation = this.arrowConnector.createRelation(
 	        this.annotations.nextId(),
 	        this.selectedHighlights[0].circle,
 	        this.selectedHighlights[1].circle,
-	        direction, ""
+	        params.type, params.text
 	      );
 	      this.unselectHighlight();
 	      this.selectedRelation.select();
@@ -405,15 +417,24 @@
 	
 	  displayPrimaryAnnotation(fileName) {
 	    let annotation = this.fileLoader.getAnnotation(fileName);
-	    if (null != annotation) {
-	      annotation.primary = true;
-	      this.remove();
-	      TomlTool.loadToml(
-	        annotation.content,
-	        this.highlighter,
-	        this.arrowConnector
-	      );
-	    } // システムから呼び出している限りこれは発生しない筈なので省略
+	    annotation.primary = true;
+	    this.remove();
+	    TomlTool.loadToml(
+	      annotation.content,
+	      this.highlighter,
+	      this.arrowConnector
+	    );
+	    
+	    this.dispatchWindowEvent('annotationrendered');
+	  }
+	
+	  clearPrimaryAnnotation() {
+	    this.fileLoader.annotations.forEach((annotation) => {
+	      if (annotation.primary) {
+	        annotation.primary = false;
+	      }
+	    });
+	    this.remove();
 	  }
 	
 	  // TODO: 色設定
@@ -440,6 +461,7 @@
 	        );
 	      }
 	    });
+	    this.dispatchWindowEvent('annotationrendered');
 	  }
 	
 	  hideReferenceAnnotation(fileNames) {
@@ -485,9 +507,47 @@
 	    $('#viewer').css('maxHeight', `${height}px`);
 	  }  
 	
-	  remove(referenceId){
+	  scrollToAnnotation(id) {
+	    let scrollArea = $('#viewerWrapper');
+	    let annotation = this.annotations.findById(id);
+	    scrollArea[0].scrollTop = annotation.scrollTop - scrollArea.offset().top;
+	    annotation.blink();
+	  }
+	
+	  endEditLabel(id, label) {
+	    let annotation = this.annotations.findById(id);
+	    annotation.setContent(label);
+	  }
+	
+	  getSelectedAnnotations() {
+	    return this.fileLoader.annotations.filter((annotation) => {
+	      return annotation.selected;
+	    });
+	  }
+	
+	  /**
+	   * When text is selected and clicked annotation add-button,
+	   * the selected text is prevented from being released.
+	   */
+	  handleMouseDown(e) {
+	    if ($(e.target).hasClass("js-label")) {
+	      e.preventDefault();
+	    }
+	  }
+	
+	  remove(referenceId) {
 	    this.highlighter.remove(referenceId);
 	    this.arrowConnector.remove(referenceId);
+	
+	    // TODO: labelInput内、treatAnnotationDeleted(e.detail)。編集中のアノテーションが削除された場合の対応
+	    this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+	  }
+	
+	  // For Anno-ui.
+	  dispatchWindowEvent(eventName, data) {
+	    var event = document.createEvent('CustomEvent');
+	    event.initCustomEvent(eventName, true, true, data);
+	    window.dispatchEvent(event);
 	  }
 	}
 	
@@ -950,11 +1010,10 @@
 	/**
 	 * UI - Alert dialog.
 	 */
-	__webpack_require__(9);
+	__webpack_require__(9)
 	
-	function create({ type='alert', message='' }) {
-	
-	    const id = 'modal-' + (new Date().getTime());
+	function create ({ type = 'alert', message = '' }) {
+	    const id = 'modal-' + (new Date().getTime())
 	
 	    const styleClass = (type === 'alert' ? 'alertdialog-danger' : '')
 	
@@ -974,16 +1033,16 @@
 	            </div>
 	          </div>
 	        </div>
-	    `;
-	    $(document.body).append(snipet);
+	    `
+	    $(document.body).append(snipet)
 	
 	    return $('#' + id)
 	}
 	
-	function show() {
-	    const $modal = create(...arguments);
-	    $modal.modal('show');
-	    return $modal;
+	function show () {
+	    const $modal = create(...arguments)
+	    $modal.modal('show')
+	    return $modal
 	}
 	
 	
@@ -1439,135 +1498,128 @@
 	/**
 	 * Make the UI resizable.
 	 */
-	function setupResizableColumns() {
-	
+	function setupResizableColumns () {
 	    // Make resizable.
 	    $('#tools').resizable({
-	      handles: 'e',
-	      alsoResizeReverse: '#viewerWrapper',
-	      start : () => {
-	        console.log('resize start');
-	        $('#viewer iframe').css({
-	            'pointer-events' : 'none',
-	        });
-	
-	      },
-	      stop : () => {
-	        console.log('resize stop');
-	        $('#viewer iframe').css({
-	            'pointer-events' : 'auto',
-	        });
-	
-	      }
-	    });
+	        handles           : 'e',
+	        alsoResizeReverse : '#viewerWrapper',
+	        start             : () => {
+	            $('#viewer iframe').css({
+	                'pointer-events' : 'none'
+	            })
+	        },
+	        stop : () => {
+	            $('#viewer iframe').css({
+	                'pointer-events' : 'auto'
+	            })
+	        }
+	    })
 	
 	    // Customize.
-	    $.ui.plugin.add("resizable", "alsoResizeReverse", {
+	    $.ui.plugin.add('resizable', 'alsoResizeReverse', {
 	
-	        start: function() {
-	            var that = $(this).resizable( "instance" ),
-	                o = that.options;
+	        start : function () {
+	            let that = $(this).resizable('instance')
+	            let o = that.options
 	
-	            $(o.alsoResizeReverse).each(function() {
-	                var el = $(this);
-	                el.data("ui-resizable-alsoresizeReverse", {
-	                    width: parseInt(el.width(), 10), height: parseInt(el.height(), 10),
-	                    left: parseInt(el.css("left"), 10), top: parseInt(el.css("top"), 10)
-	                });
-	            });
+	            $(o.alsoResizeReverse).each(function () {
+	                var el = $(this)
+	                el.data('ui-resizable-alsoresizeReverse', {
+	                    width  : parseInt(el.width(), 10),
+	                    height : parseInt(el.height(), 10),
+	                    left   : parseInt(el.css('left'), 10),
+	                    top    : parseInt(el.css('top'), 10)
+	                })
+	            })
 	        },
 	
-	        resize: function(event, ui) {
-	            var that = $(this).resizable( "instance" ),
-	                o = that.options,
-	                os = that.originalSize,
-	                op = that.originalPosition,
-	                delta = {
-	                    height: (that.size.height - os.height) || 0,
-	                    width: (that.size.width - os.width) || 0,
-	                    top: (that.position.top - op.top) || 0,
-	                    left: (that.position.left - op.left) || 0
-	                };
+	        resize : function (event, ui) {
+	            let that = $(this).resizable('instance')
+	            let o = that.options
+	            let os = that.originalSize
+	            let op = that.originalPosition
+	            let delta = {
+	                height : (that.size.height - os.height) || 0,
+	                width  : (that.size.width - os.width) || 0,
+	                top    : (that.position.top - op.top) || 0,
+	                left   : (that.position.left - op.left) || 0
+	            }
 	
-	            $(o.alsoResizeReverse).each(function() {
-	                var el = $(this), start = $(this).data("ui-resizable-alsoresize-reverse"), style = {},
-	                    css = el.parents(ui.originalElement[0]).length ?
-	                        [ "width", "height" ] :
-	                        [ "width", "height", "top", "left" ];
+	            $(o.alsoResizeReverse).each(function () {
+	                let el = $(this)
+	                let start = $(this).data('ui-resizable-alsoresize-reverse')
+	                let style = {}
+	                let css = el.parents(ui.originalElement[0]).length
+	                        ? [ 'width', 'height' ]
+	                        : [ 'width', 'height', 'top', 'left' ]
 	
-	                $.each(css, function(i, prop) {
-	                    var sum = (start[prop] || 0) - (delta[prop] || 0);
+	                $.each(css, function (i, prop) {
+	                    let sum = (start[prop] || 0) - (delta[prop] || 0)
 	                    if (sum && sum >= 0) {
-	                        style[prop] = sum || null;
+	                        style[prop] = sum || null
 	                    }
-	                });
+	                })
 	
-	                el.css(style);
-	            });
+	                el.css(style)
+	            })
 	        },
 	
-	        stop: function() {
-	            $(this).removeData("resizable-alsoresize-reverse");
+	        stop : function () {
+	            $(this).removeData('resizable-alsoresize-reverse')
 	        }
-	    });
+	    })
 	}
-	
 	
 	/**
 	 * Convert object to TOML String.
 	 */
-	function tomlString(obj, root=true) {
-	
-	    let lines = [];
+	function tomlString (obj, root = true) {
+	    let lines = []
 	
 	    // `version` is first.
 	    if ('version' in obj) {
-	        lines.push(`version = "${obj['version']}"`);
-	        lines.push('');
-	        delete obj['version'];
+	        lines.push(`version = "${obj['version']}"`)
+	        lines.push('')
+	        delete obj['version']
 	    }
 	
 	    // #paperanno-ja/issues/38
 	    // Make all values in `position` as string.
 	    if ('position' in obj) {
-	        let position = obj.position;
+	        let position = obj.position
 	        position = position.map(p => {
 	            if (typeof p === 'number') {
-	                return String(p);
+	                return String(p)
 	            } else {
-	                return p.map(v => String(v));
+	                return p.map(v => String(v))
 	            }
-	        });
-	        obj.position = position;
+	        })
+	        obj.position = position
 	    }
 	
 	    Object.keys(obj).forEach(prop => {
-	
-	        let val = obj[prop];
+	        let val = obj[prop]
 	        if (typeof val === 'string') {
-	            lines.push(`${prop} = "${val}"`);
-	            root && lines.push('');
-	
+	            lines.push(`${prop} = "${val}"`)
+	            root && lines.push('')
 	        } else if (typeof val === 'number') {
-	            lines.push(`${prop} = ${val}`);
-	            root && lines.push('');
-	
+	            lines.push(`${prop} = ${val}`)
+	            root && lines.push('')
 	        } else if (isArray(val)) {
-	            lines.push(`${prop} = ${JSON.stringify(val)}`);
-	            root && lines.push('');
-	
+	            lines.push(`${prop} = ${JSON.stringify(val)}`)
+	            root && lines.push('')
 	        } else if (typeof val === 'object') {
-	            lines.push(`[${prop}]`);
-	            lines.push(tomlString(val, false));
-	            root && lines.push('');
+	            lines.push(`[${prop}]`)
+	            lines.push(tomlString(val, false))
+	            root && lines.push('')
 	        }
-	    });
+	    })
 	
-	    return lines.join('\n');
+	    return lines.join('\n')
 	}
 	
-	function isArray(val) {
-	    return val && 'length' in val;
+	function isArray (val) {
+	    return val && 'length' in val
 	}
 	
 	
@@ -1605,7 +1657,7 @@
 	/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "ui", function() { return __WEBPACK_IMPORTED_MODULE_11__uis__; });
 	/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "event", function() { return __WEBPACK_IMPORTED_MODULE_12__events__; });
 	/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "util", function() { return __WEBPACK_IMPORTED_MODULE_13__utils__; });
-	__webpack_require__(5);
+	__webpack_require__(5)
 	
 	
 	
@@ -1782,12 +1834,12 @@
 	/**
 	 * Setup the color pickers.
 	 */
-	function setupColorPicker() {
+	function setupColorPicker () {
 	
 	    const colors = [
 	        'rgb(255, 128, 0)', 'hsv 100 70 50', 'yellow', 'blanchedalmond',
 	        'red', 'green', 'blue', 'violet'
-	    ];
+	    ]
 	
 	    // Setup colorPickers.
 	    $('.js-anno-palette').spectrum({
@@ -1795,171 +1847,164 @@
 	        showPalette            : true,
 	        hideAfterPaletteSelect : true,
 	        palette                : [
-	            colors.slice(0, Math.floor(colors.length/2)),
-	            colors.slice(Math.floor(colors.length/2), colors.length)
+	            colors.slice(0, Math.floor(colors.length / 2)),
+	            colors.slice(Math.floor(colors.length / 2), colors.length)
 	        ]
-	    });
+	    })
 	    // Set initial color.
 	    $('.js-anno-palette').each((i, elm) => {
-	        $(elm).spectrum('set', colors[ i % colors.length ]);
-	    });
+	        $(elm).spectrum('set', colors[ i % colors.length ])
+	    })
 	
 	    // Setup behavior.
-	    $('.js-anno-palette').off('change').on('change', _displayCurrentReferenceAnnotations);
+	    $('.js-anno-palette').off('change').on('change', _displayCurrentReferenceAnnotations)
 	}
 	
-	let _loadFiles;
-	let _clearAllAnnotations;
-	let _displayCurrentReferenceAnnotations;
-	let _displayCurrentPrimaryAnnotations;
-	let _getContentFiles;
-	let _getAnnoFiles;
-	let _closePDFViewer;
+	let _displayCurrentReferenceAnnotations
+	let _displayCurrentPrimaryAnnotations
+	let _getContentFiles
+	let _getAnnoFiles
+	let _closePDFViewer
 	
 	/**
 	 * Setup the behavior of a Browse Button.
 	 */
-	function setup({
-	        loadFiles,
-	        clearAllAnnotations,
-	        displayCurrentReferenceAnnotations,
-	        displayCurrentPrimaryAnnotations,
-	        getContentFiles,
-	        getAnnoFiles,
-	        closePDFViewer,
-	    }) {
-	
-	    _loadFiles = loadFiles;
-	    _clearAllAnnotations = clearAllAnnotations;
-	    _displayCurrentReferenceAnnotations = displayCurrentReferenceAnnotations;
-	    _displayCurrentPrimaryAnnotations = displayCurrentPrimaryAnnotations;
-	    _getContentFiles = getContentFiles,
-	    _getAnnoFiles = getAnnoFiles;
-	    _closePDFViewer = closePDFViewer;
+	function setup ({
+	    loadFiles,
+	    clearAllAnnotations,
+	    displayCurrentReferenceAnnotations,
+	    displayCurrentPrimaryAnnotations,
+	    getContentFiles,
+	    getAnnoFiles,
+	    closePDFViewer
+	}) {
+	    _displayCurrentReferenceAnnotations = displayCurrentReferenceAnnotations
+	    _displayCurrentPrimaryAnnotations = displayCurrentPrimaryAnnotations
+	    _getContentFiles = getContentFiles
+	    _getAnnoFiles = getAnnoFiles
+	    _closePDFViewer = closePDFViewer
 	
 	    // Enable to select the same directory twice or more.
 	    $('.js-file :file').on('click', ev => {
-	        $('input[type="file"]').val(null);
-	    });
+	        $('input[type="file"]').val(null)
+	    })
 	
 	    $('.js-file :file').on('change', ev => {
 	
-	        const files = ev.target.files;
+	        const files = ev.target.files
 	
-	        let error = isValidDirectorySelect(files);
+	        let error = isValidDirectorySelect(files)
 	        if (error) {
-	            __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : error });
-	            return;
+	            __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : error })
+	            return
 	        }
 	
 	        loadFiles(files).then(() => {
 	
 	            // Get current visuals.
-	            const current = getCurrentFileNames();
+	            const current = getCurrentFileNames()
 	
 	            // Initialize PDF Viewer.
-	            clearAllAnnotations();
+	            clearAllAnnotations()
 	
 	            // Setup PDF Dropdown.
-	            setPDFDropdownList();
+	            setPDFDropdownList()
 	
 	            // Setup Anno Dropdown.
-	            setAnnoDropdownList();
+	            setAnnoDropdownList()
 	
 	            // Display a PDF and annotations.
-	            restoreBeforeState(current);
-	
-	        });
-	
-	    });
+	            restoreBeforeState(current)
+	        })
+	    })
 	}
 	
 	/**
 	 * Check whether the directory the user specified is valid.
 	 */
-	function isValidDirectorySelect(files) {
+	function isValidDirectorySelect (files) {
 	
 	    // Error, if no contents exits.
 	    if (!files || files.length === 0) {
-	        return 'No files specified.';
+	        return 'No files specified.'
 	    }
 	
 	    // Error, if the user select a file - not a directory.
-	    let relativePath = files[0].webkitRelativePath;
+	    let relativePath = files[0].webkitRelativePath
 	    if (!relativePath) {
-	        return 'Please select a directory, NOT a file.';
+	        return 'Please select a directory, NOT a file.'
 	    }
 	
 	    // OK.
-	    return null;
+	    return null
 	}
 	
 	/**
 	 * Restore the state before Browse button was clicked.
 	 */
-	function restoreBeforeState(currentDisplay) {
+	function restoreBeforeState (currentDisplay) {
 	
-	    let files;
+	    let files
 	
-	    let isPDFClosed = false;
+	    let isPDFClosed = false
 	
 	    // Restore the check state of a content.
-	    files = _getContentFiles().filter(c => c.name === currentDisplay.pdfName);
+	    files = _getContentFiles().filter(c => c.name === currentDisplay.pdfName)
 	    if (files.length > 0) {
-	        $('#dropdownPdf .js-text').text(files[0].name);
+	        $('#dropdownPdf .js-text').text(files[0].name)
 	        $('#dropdownPdf a').each((index, element) => {
-	            let $elm = $(element);
+	            let $elm = $(element)
 	            if ($elm.find('.js-content-name').text() === currentDisplay.pdfName) {
-	                $elm.find('.fa-check').removeClass('no-visible');
+	                $elm.find('.fa-check').removeClass('no-visible')
 	            }
-	        });
+	        })
 	
 	    } else {
 	
-	        isPDFClosed = true;
+	        isPDFClosed = true
 	
-	        _closePDFViewer();
+	        _closePDFViewer()
 	    }
 	
 	    // Restore the check state of a primaryAnno.
-	    files = _getAnnoFiles().filter(c => c.name === currentDisplay.primaryAnnotationName);
+	    files = _getAnnoFiles().filter(c => c.name === currentDisplay.primaryAnnotationName)
 	    if (files.length > 0 && isPDFClosed === false) {
-	        $('#dropdownAnnoPrimary .js-text').text(currentDisplay.primaryAnnotationName);
+	        $('#dropdownAnnoPrimary .js-text').text(currentDisplay.primaryAnnotationName)
 	        $('#dropdownAnnoPrimary a').each((index, element) => {
-	            let $elm = $(element);
+	            let $elm = $(element)
 	            if ($elm.find('.js-annoname').text() === currentDisplay.primaryAnnotationName) {
-	                $elm.find('.fa-check').removeClass('no-visible');
+	                $elm.find('.fa-check').removeClass('no-visible')
 	            }
-	        });
+	        })
 	        setTimeout(() => {
-	            _displayCurrentPrimaryAnnotations();
-	        }, 100);
+	            _displayCurrentPrimaryAnnotations()
+	        }, 100)
 	    }
 	
 	    // Restore the check states of referenceAnnos.
-	    let names = currentDisplay.referenceAnnotationNames;
-	    let colors = currentDisplay.referenceAnnotationColors;
+	    let names = currentDisplay.referenceAnnotationNames
+	    let colors = currentDisplay.referenceAnnotationColors
 	    names = names.filter((name, i) => {
-	        let found = false;
-	        let annos = _getAnnoFiles().filter(c => c.name === name);
+	        let found = false
+	        let annos = _getAnnoFiles().filter(c => c.name === name)
 	        if (annos.length > 0) {
 	            $('#dropdownAnnoReference a').each((index, element) => {
-	                let $elm = $(element);
+	                let $elm = $(element)
 	                if ($elm.find('.js-annoname').text() === name) {
-	                    $elm.find('.fa-check').removeClass('no-visible');
-	                    $elm.find('.js-anno-palette').spectrum('set', colors[i]);
-	                    found = true;
+	                    $elm.find('.fa-check').removeClass('no-visible')
+	                    $elm.find('.js-anno-palette').spectrum('set', colors[i])
+	                    found = true
 	                }
-	            });
+	            })
 	        }
-	        return found;
-	    });
+	        return found
+	    })
 	
 	    if (names.length > 0 && isPDFClosed === false) {
-	        $('#dropdownAnnoReference .js-text').text(names.join(','));
+	        $('#dropdownAnnoReference .js-text').text(names.join(','))
 	        setTimeout(() => {
-	            _displayCurrentReferenceAnnotations();
-	        }, 500);
+	            _displayCurrentReferenceAnnotations()
+	        }, 500)
 	
 	    }
 	
@@ -1968,71 +2013,71 @@
 	/**
 	 * Get the file names which currently are displayed.
 	 */
-	function getCurrentFileNames() {
+	function getCurrentFileNames () {
 	
-	    let text;
+	    let text
 	
 	    // a PDF name.
-	    text = $('#dropdownPdf .js-text').text();
-	    let pdfName = (text !== 'PDF File' ? text : null);
+	    text = $('#dropdownPdf .js-text').text()
+	    let pdfName = (text !== 'PDF File' ? text : null)
 	
 	    // a Primary anno.
-	    text = $('#dropdownAnnoPrimary .js-text').text();
-	    let primaryAnnotationName = (text !== 'Anno File' ? text : null);
+	    text = $('#dropdownAnnoPrimary .js-text').text()
+	    let primaryAnnotationName = (text !== 'Anno File' ? text : null)
 	
-	    let referenceAnnotationNames = [];
-	    let referenceAnnotationColors = [];
+	    let referenceAnnotationNames = []
+	    let referenceAnnotationColors = []
 	    $('#dropdownAnnoReference a').each((index, element) => {
-	        let $elm = $(element);
+	        let $elm = $(element)
 	        if ($elm.find('.fa-check').hasClass('no-visible') === false) {
-	            let annoName = $elm.find('.js-annoname').text();
-	            referenceAnnotationNames.push(annoName);
-	            let color = $elm.find('.js-anno-palette').spectrum('get').toHexString();
-	            referenceAnnotationColors.push(color);
+	            let annoName = $elm.find('.js-annoname').text()
+	            referenceAnnotationNames.push(annoName)
+	            let color = $elm.find('.js-anno-palette').spectrum('get').toHexString()
+	            referenceAnnotationColors.push(color)
 	        }
-	    });
+	    })
 	
 	    return {
 	        pdfName,
 	        primaryAnnotationName,
 	        referenceAnnotationNames,
 	        referenceAnnotationColors
-	    };
+	    }
 	}
 	
 	/**
 	 * Reset and setup the PDF dropdown.
 	 */
-	function setPDFDropdownList() {
+	function setPDFDropdownList () {
 	
 	    // Reset the state of the PDF dropdown.
-	    $('#dropdownPdf .js-text').text('PDF File');
-	    $('#dropdownPdf li').remove();
+	    $('#dropdownPdf .js-text').text('PDF File')
+	    $('#dropdownPdf li').remove()
 	
 	    // Create and setup the dropdown menu.
 	    const snipets = _getContentFiles().map(content => {
 	        return `
 	            <li>
 	                <a href="#">
-	                    <i class="fa fa-check no-visible"></i>&nbsp;
+	                    <i class="fa fa-check no-visible"></i>&nbsp
 	                    <span class="js-content-name">${content.name}</span>
 	                </a>
 	            </li>
-	        `;
-	    });
-	    $('#dropdownPdf ul').append(snipets.join(''));
+	        `
+	    })
+	    $('#dropdownPdf ul').append(snipets.join(''))
 	}
 	
 	/**
 	 * Reset and setup the primary/reference annotation dropdown.
 	 */
-	function setAnnoDropdownList() {
+	function setAnnoDropdownList () {
 	
 	    // Reset the UI of primary/reference anno dropdowns.
-	    $('#dropdownAnnoPrimary ul').html('');
-	    $('#dropdownAnnoReference ul').html('');
-	    $('#dropdownAnnoPrimary .js-text').text('Anno File');
-	    $('#dropdownAnnoReference .js-text').text('Reference Files');
+	    $('#dropdownAnnoPrimary ul').html('')
+	    $('#dropdownAnnoReference ul').html('')
+	    $('#dropdownAnnoPrimary .js-text').text('Anno File')
+	    $('#dropdownAnnoReference .js-text').text('Reference Files')
 	
 	    // Setup anno / reference dropdown.
 	    _getAnnoFiles().forEach(file => {
@@ -2044,8 +2089,8 @@
 	                    <span class="js-annoname">${file.name}</span>
 	                </a>
 	            </li>
-	        `;
-	        $('#dropdownAnnoPrimary ul').append(snipet1);
+	        `
+	        $('#dropdownAnnoPrimary ul').append(snipet1)
 	
 	        let snipet2 = `
 	            <li>
@@ -2055,12 +2100,12 @@
 	                    <span class="js-annoname">${file.name}</span>
 	                </a>
 	            </li>
-	        `;
-	        $('#dropdownAnnoReference ul').append(snipet2);
-	    });
+	        `
+	        $('#dropdownAnnoReference ul').append(snipet2)
+	    })
 	
 	    // Setup color pallets.
-	    setupColorPicker();
+	    setupColorPicker()
 	}
 	
 	
@@ -2123,74 +2168,74 @@
 	/**
 	 * Setup the dropdown of PDFs.
 	 */
-	function setup({ 
-	        initialText,
-	        overrideWarningMessage,
-	        contentReloadHandler,
-	    }) {
+	function setup ({
+	    initialText,
+	    overrideWarningMessage,
+	    contentReloadHandler
+	}) {
 	
-	    $('#dropdownPdf .js-text').text(initialText);
+	    $('#dropdownPdf .js-text').text(initialText)
 	
 	    // TODO pdfという単語を削除したい..
 	
 	    $('#dropdownPdf').on('click', 'a', e => {
 	
-	        const $this = $(e.currentTarget);
+	        const $this = $(e.currentTarget)
 	
 	        // Get the name of PDF clicked.
-	        const pdfName = $this.find('.js-content-name').text();
+	        const pdfName = $this.find('.js-content-name').text()
 	
 	        // Get the name of PDF currently displayed.
-	        const currentPDFName = $('#dropdownPdf .js-text').text();
+	        const currentPDFName = $('#dropdownPdf .js-text').text()
 	
 	        // No action, if the current PDF is selected.
 	        if (currentPDFName === pdfName) {
-	            console.log('Not reload. the contents are same.');
-	            return;
+	            console.log('Not reload. the contents are same.')
+	            return
 	        }
 	
 	        // Confirm to override.
 	        if (currentPDFName !== initialText) {
 	            if (!window.confirm(overrideWarningMessage)) {
-	                return;
+	                return
 	            }
 	        }
 	
 	        // Update PDF's name displayed.
-	        $('#dropdownPdf .js-text').text(pdfName);
+	        $('#dropdownPdf .js-text').text(pdfName)
 	
 	        // Update the dropdown selection.
-	        $('#dropdownPdf .fa-check').addClass('no-visible');
-	        $this.find('.fa-check').removeClass('no-visible');
+	        $('#dropdownPdf .fa-check').addClass('no-visible')
+	        $this.find('.fa-check').removeClass('no-visible')
 	
 	        // Reset annotations' dropdowns.
-	        resetCheckPrimaryAnnoDropdown();
-	        resetCheckReferenceAnnoDropdown();
+	        resetCheckPrimaryAnnoDropdown()
+	        resetCheckReferenceAnnoDropdown()
 	
 	        // Close dropdown.
-	        $('#dropdownPdf').click();
+	        $('#dropdownPdf').click()
 	
 	        // Reload Content.
-	        contentReloadHandler(pdfName);
+	        contentReloadHandler(pdfName)
 	
-	        return false;
-	    });
+	        return false
+	    })
 	}
 	
 	/**
 	 * Reset the primary annotation dropdown selection.
 	 */
-	function resetCheckPrimaryAnnoDropdown() {
-	    $('#dropdownAnnoPrimary .js-text').text('Anno File');
-	    $('#dropdownAnnoPrimary .fa-check').addClass('no-visible');
+	function resetCheckPrimaryAnnoDropdown () {
+	    $('#dropdownAnnoPrimary .js-text').text('Anno File')
+	    $('#dropdownAnnoPrimary .fa-check').addClass('no-visible')
 	}
 	
 	/**
 	 * Reset the reference annotation dropdown selection.
 	 */
-	function resetCheckReferenceAnnoDropdown() {
-	    $('#dropdownAnnoReference .js-text').text('Reference Files');
-	    $('#dropdownAnnoReference .fa-check').addClass('no-visible');
+	function resetCheckReferenceAnnoDropdown () {
+	    $('#dropdownAnnoReference .js-text').text('Reference Files')
+	    $('#dropdownAnnoReference .fa-check').addClass('no-visible')
 	}
 	
 	
@@ -2208,56 +2253,56 @@
 	/**
 	 * Setup a click action of the Primary Annotation Dropdown.
 	 */
-	function setup({
-	        clearPrimaryAnnotations,
-	        displayPrimaryAnnotation
-	    }) {
+	function setup ({
+	    clearPrimaryAnnotations,
+	    displayPrimaryAnnotation
+	}) {
 	
 	    $('#dropdownAnnoPrimary').on('click', 'a', e => {
 	
-	        let $this = $(e.currentTarget);
-	        let annoName = $this.find('.js-annoname').text();
+	        let $this = $(e.currentTarget)
+	        let annoName = $this.find('.js-annoname').text()
 	
-	        let currentAnnoName = $('#dropdownAnnoPrimary .js-text').text();
+	        let currentAnnoName = $('#dropdownAnnoPrimary .js-text').text()
 	        if (currentAnnoName === annoName) {
 	
-	            let userAnswer = window.confirm('Are you sure to clear the current annotations?');
+	            let userAnswer = window.confirm('Are you sure to clear the current annotations?')
 	            if (!userAnswer) {
-	                return;
+	                return
 	            }
 	
-	            $('#dropdownAnnoPrimary .fa-check').addClass('no-visible');
-	            $('#dropdownAnnoPrimary .js-text').text('Anno File');
+	            $('#dropdownAnnoPrimary .fa-check').addClass('no-visible')
+	            $('#dropdownAnnoPrimary .js-text').text('Anno File')
 	
-	            clearPrimaryAnnotations();
+	            clearPrimaryAnnotations()
 	
 	            // Close
-	            $('#dropdownAnnoPrimary').click();
+	            $('#dropdownAnnoPrimary').click()
 	
-	            return false;
+	            return false
 	
 	        }
 	
 	        // Confirm to override.
 	        if (currentAnnoName !== 'Anno File') {
 	            if (!window.confirm('Are you sure to load another Primary Annotation ?')) {
-	                return;
+	                return
 	            }
 	        }
 	
-	        $('#dropdownAnnoPrimary .js-text').text(annoName);
+	        $('#dropdownAnnoPrimary .js-text').text(annoName)
 	
-	        $('#dropdownAnnoPrimary .fa-check').addClass('no-visible');
-	        $this.find('.fa-check').removeClass('no-visible');
+	        $('#dropdownAnnoPrimary .fa-check').addClass('no-visible')
+	        $this.find('.fa-check').removeClass('no-visible')
 	
 	        // Close
-	        $('#dropdownAnnoPrimary').click();
+	        $('#dropdownAnnoPrimary').click()
 	
 	        // reload.
-	        displayPrimaryAnnotation(annoName);
+	        displayPrimaryAnnotation(annoName)
 	
-	        return false;
-	    });
+	        return false
+	    })
 	}
 	
 	
@@ -2275,36 +2320,32 @@
 	/**
 	 * Setup a click action of the Reference Annotation Dropdown.
 	 */
-	function setup({
+	function setup ({
 	    displayReferenceAnnotations
 	}) {
-	
 	    $('#dropdownAnnoReference').on('click', 'a', e => {
+	        let $this = $(e.currentTarget)
 	
-	        let $this = $(e.currentTarget);
+	        $this.find('.fa-check').toggleClass('no-visible')
 	
-	        $this.find('.fa-check').toggleClass('no-visible');
-	
-	        let annoNames = [];
+	        let annoNames = []
 	        $('#dropdownAnnoReference a').each((index, element) => {
-	            let $elm = $(element);
+	            let $elm = $(element)
 	            if ($elm.find('.fa-check').hasClass('no-visible') === false) {
-	                annoNames.push($elm.find('.js-annoname').text());
+	                annoNames.push($elm.find('.js-annoname').text())
 	            }
-	        });
+	        })
 	        if (annoNames.length > 0) {
-	            $('#dropdownAnnoReference .js-text').text(annoNames.join(','));
+	            $('#dropdownAnnoReference .js-text').text(annoNames.join(','))
 	        } else {
-	            $('#dropdownAnnoReference .js-text').text('Reference Files');
+	            $('#dropdownAnnoReference .js-text').text('Reference Files')
 	        }
 	
 	        // Display reference annotations.
-	        displayReferenceAnnotations(annoNames);
+	        displayReferenceAnnotations(annoNames)
 	
-	        return false;
-	
-	    });
-	
+	        return false
+	    })
 	}
 	
 	
@@ -2322,63 +2363,56 @@
 	/**
 	 * Setup the dropdown for Anno list.
 	 */
-	function setup({
-	        getAnnotations,
-	        scrollToAnnotation
-	    }) {
-	
+	function setup ({
+	    getAnnotations,
+	    scrollToAnnotation
+	}) {
 	    // Show the list of primary annotations.
 	    $('#dropdownAnnoList').on('click', () => {
-	
 	        // Create html snipets.
 	        let elements = getAnnotations().map(a => {
-	
-	            let icon;
+	            let icon
 	            if (a.type === 'span') {
-	                icon = '<i class="fa fa-pencil"></i>';
+	                icon = '<i class="fa fa-pencil"></i>'
 	            } else if (a.type === 'relation' && a.direction === 'one-way') {
-	                icon = '<i class="fa fa-long-arrow-right"></i>';
+	                icon = '<i class="fa fa-long-arrow-right"></i>'
 	            } else if (a.type === 'relation' && a.direction === 'two-way') {
-	                icon = '<i class="fa fa-arrows-h"></i>';
+	                icon = '<i class="fa fa-arrows-h"></i>'
 	            } else if (a.type === 'relation' && a.direction === 'link') {
-	                icon = '<i class="fa fa-minus"></i>';
+	                icon = '<i class="fa fa-minus"></i>'
 	            } else if (a.type === 'area') {
-	                icon = '<i class="fa fa-square-o"></i>';
+	                icon = '<i class="fa fa-square-o"></i>'
 	            }
 	
 	            let snipet = `
 	                <li>
 	                    <a href="#" data-id="${a.uuid}">
-	                        ${icon}&nbsp;&nbsp;<span>${a.text || ''}</span>
+	                        ${icon}&nbsp&nbsp;<span>${a.text || ''}</span>
 	                    </a>
 	                </li>
-	            `;
-	
-	            return snipet;
-	        });
-	
-	        $('#dropdownAnnoList ul').html(elements);
-	
-	    });
+	            `
+	            return snipet
+	        })
+	        $('#dropdownAnnoList ul').html(elements)
+	    })
 	
 	    // Jump to the page that the selected annotation is at.
 	    $('#dropdownAnnoList').on('click', 'a', e => {
+	        let id = $(e.currentTarget).data('id')
 	
-	        let id = $(e.currentTarget).data('id');
-	
-	        scrollToAnnotation(id);
+	        scrollToAnnotation(id)
 	
 	        // Close the dropdown.
-	        $('#dropdownAnnoList').click();
-	    });
+	        $('#dropdownAnnoList').click()
+	    })
 	
 	    // Update the number of display, at adding / updating/ deleting annotations.
-	    function watchPrimaryAnno(e) {
-	        $('#dropdownAnnoList .js-count').text(getAnnotations().length);
+	    function watchPrimaryAnno (e) {
+	        $('#dropdownAnnoList .js-count').text(getAnnotations().length)
 	    }
 	    $(window)
-	        .off('annotationrendered annotationUpdated', watchPrimaryAnno)
-	        .on('annotationrendered annotationUpdated', watchPrimaryAnno);
+	        .off('annotationrendered annotationUpdated annotationDeleted', watchPrimaryAnno)
+	        .on('annotationrendered annotationUpdated annotationDeleted', watchPrimaryAnno)
 	}
 	
 	
@@ -2396,55 +2430,52 @@
 	/**
 	 * Setup the behavior of a Download Button.
 	 */
-	function setup({
-	        getAnnotationTOMLString,
-	        getCurrentContentName,
-	        unlistenWindowLeaveEvent
-	    }) {
-	
+	function setup ({
+	    getAnnotationTOMLString,
+	    getCurrentContentName,
+	    unlistenWindowLeaveEvent
+	}) {
 	    $('#downloadButton').off('click').on('click', e => {
-	
-	        $(e.currentTarget).blur();
+	        $(e.currentTarget).blur()
 	
 	        getAnnotationTOMLString().then(annotations => {
-	            let blob = new Blob([annotations]);
-	            let blobURL = window.URL.createObjectURL(blob);
-	            let a = document.createElement('a');
-	            document.body.appendChild(a); // for firefox working correctly.
-	            a.download = _getDownloadFileName(getCurrentContentName);
-	            a.href = blobURL;
-	            a.click();
-	            a.parentNode.removeChild(a);
-	        });
+	            let blob = new Blob([annotations])
+	            let blobURL = window.URL.createObjectURL(blob)
+	            let a = document.createElement('a')
+	            document.body.appendChild(a) // for firefox working correctly.
+	            a.download = _getDownloadFileName(getCurrentContentName)
+	            a.href = blobURL
+	            a.click()
+	            a.parentNode.removeChild(a)
+	        })
 	
-	        unlistenWindowLeaveEvent();
+	        unlistenWindowLeaveEvent()
 	
-	        return false;
-	    });
-	
+	        return false
+	    })
 	}
-	
 	
 	/**
 	 * Get the file name for download.
 	 */
-	function _getDownloadFileName(getCurrentContentName) {
+	function _getDownloadFileName (getCurrentContentName) {
 	
 	    // The name of Primary Annotation.
-	    let primaryAnnotationName;
+	    let primaryAnnotationName
 	    $('#dropdownAnnoPrimary a').each((index, element) => {
-	        let $elm = $(element);
+	        let $elm = $(element)
 	        if ($elm.find('.fa-check').hasClass('no-visible') === false) {
-	            primaryAnnotationName = $elm.find('.js-annoname').text();
+	            primaryAnnotationName = $elm.find('.js-annoname').text()
 	        }
-	    });
+	    })
 	    if (primaryAnnotationName) {
-	        return primaryAnnotationName;
+	        return primaryAnnotationName
 	    }
 	
 	    // The name of Content.
-	    let pdfFileName = getCurrentContentName();
-	    return pdfFileName.split('.')[0] + '.anno';
+	    let pdfFileName = getCurrentContentName()
+	    let annoName = pdfFileName.replace(/\.pdf$/i, '.anno')
+	    return annoName
 	}
 	
 	
@@ -2458,29 +2489,26 @@
 	/**
 	 * UI parts - Anno Tools for RectAnnotation.
 	 */
-	
-	function setup({ enableRect, disableRect }) {
-	
+	function setup ({ enableRect, disableRect }) {
 	    // Rect annotation button.
 	    $('.js-tool-btn-rect').off('click').on('click', (e) => {
-	
-	        let $btn = $(e.currentTarget);
+	        let $btn = $(e.currentTarget)
 	
 	        // Make disable.
 	        if ($btn.hasClass('active')) {
-	            window.currentAnnoToolType = 'view';
-	            $btn.removeClass('active').blur();
-	            disableRect();
+	            window.currentAnnoToolType = 'view'
+	            $btn.removeClass('active').blur()
+	            disableRect()
 	
 	        // Make enable.
 	        } else {
-	            window.currentAnnoToolType = 'rect';
-	            $btn.addClass('active');
-	            enableRect();
+	            window.currentAnnoToolType = 'rect'
+	            $btn.addClass('active')
+	            enableRect()
 	        }
 	
-	        return false;
-	    });
+	        return false
+	    })
 	}
 	
 	
@@ -2494,17 +2522,14 @@
 	/**
 	 * UI parts - Anno Tools for RelationAnnotation (one-way / two-way / link).
 	 */
-	
-	
-	function setup({ createRelAnnotation }) {
-	
+	function setup ({ createRelAnnotation }) {
 	    // Relation annotation button.
 	    $('.js-tool-btn-rel').off('click').on('click', e => {
-	        const $button = $(e.currentTarget);
-	        const type = $button.data('type');
-	        createRelAnnotation(type);
-	        $button.blur();
-	    });
+	        const $button = $(e.currentTarget)
+	        const type = $button.data('type')
+	        createRelAnnotation(type)
+	        $button.blur()
+	    })
 	}
 	
 	
@@ -2518,15 +2543,11 @@
 	/**
 	 * UI parts - Anno Tools for SpanAnnotation.
 	 */
-	
-	function setup({ createSpanAnnotation }) {
-	
+	function setup ({ createSpanAnnotation }) {
 	    $('.js-tool-btn-span').off('click').on('click', e => {
-	
-	        $(e.currentTarget).blur();
-	
-	        createSpanAnnotation();
-	    });
+	        $(e.currentTarget).blur()
+	        createSpanAnnotation()
+	    })
 	}
 	
 	
@@ -2546,398 +2567,359 @@
 	/**
 	 * UI parts - Input Label.
 	 */
-	__webpack_require__(20);
+	__webpack_require__(20)
 	
 	
 	
-	// import packageJson from '../../../package.json';
+	// import packageJson from '../../../package.json'
 	
 	
 	
 	// LocalStorage key to save label data.
-	const LSKEY_LABEL_LIST = 'pdfanno-label-list';
+	const LSKEY_LABEL_LIST = 'pdfanno-label-list'
 	
-	 let $inputLabel;
-	 window.addEventListener('DOMContentLoaded', () => {
-	    $inputLabel = $('#inputLabel');
-	 });
+	let $inputLabel
+	window.addEventListener('DOMContentLoaded', () => {
+	    $inputLabel = $('#inputLabel')
+	})
 	
-	let _blurListener;
+	let _blurListener
 	
-	let currentUUID;
+	let currentUUID
 	
-	let _getSelectedAnnotations;
-	let _saveAnnotationText;
-	let _createSpanAnnotation;
-	let _createRelAnnotation;
+	let _getSelectedAnnotations
+	let _saveAnnotationText
+	let _createSpanAnnotation
+	let _createRelAnnotation
 	
-	function setup({
+	function setup ({
 	    getSelectedAnnotations,
 	    saveAnnotationText,
 	    createSpanAnnotation,
 	    createRelAnnotation
 	}) {
-	
-	    _getSelectedAnnotations = getSelectedAnnotations;
-	    _saveAnnotationText = saveAnnotationText;
-	    _createSpanAnnotation = createSpanAnnotation;
-	    _createRelAnnotation = createRelAnnotation;
+	    _getSelectedAnnotations = getSelectedAnnotations
+	    _saveAnnotationText = saveAnnotationText
+	    _createSpanAnnotation = createSpanAnnotation
+	    _createRelAnnotation = createRelAnnotation
 	
 	    // set datalist.
-	    setDatalist();
+	    setDatalist()
 	
 	    // set actions.
-	    setupActions();
+	    setupActions()
 	
 	    // Start to listen window events.
-	    listenWindowEvents();
+	    listenWindowEvents()
 	
 	    // Set add button behavior.
-	    setupLabelAddButton();
+	    setupLabelAddButton()
 	
 	    // Set trash button behavior.
-	    setupLabelTrashButton();
+	    setupLabelTrashButton()
 	
 	    // Set the action when a label is clicked.
-	    setupLabelText();
+	    setupLabelText()
 	
 	    // Set tab behavior.
-	    seupTabClick();
+	    seupTabClick()
 	
 	    // Set import/export link behavior.
-	    setupImportExportLink();
+	    setupImportExportLink()
 	}
 	
 	// The tab name active.
-	let currentTab = 'span';
+	let currentTab = 'span'
 	
 	// Setup the action when a tab is clicked.
-	function seupTabClick() {
-	
+	function seupTabClick () {
 	    $('.js-label-tab').on('click', e => {
-	
-	        const type = $(e.currentTarget).data('type');
-	        let d = getLabelListData();
-	        const labelObject = d[type] || {};
-	        let labels;
+	        const type = $(e.currentTarget).data('type')
+	        let d = getLabelListData()
+	        const labelObject = d[type] || {}
+	        let labels
 	        if (labelObject.labels === undefined) {
-	            labels = ['&nbsp;'];
+	            labels = ['&nbsp;']
 	        } else {
-	            labels = labelObject.labels;
+	            labels = labelObject.labels
 	        }
 	
-	        labelObject.labels = labels;
-	        d[type] = labelObject;
-	        saveLabelListData(d);
+	        labelObject.labels = labels
+	        d[type] = labelObject
+	        saveLabelListData(d)
 	
-	        currentTab = type;
+	        currentTab = type
 	
-	        let $ul = $(`<ul class="tab-pane active label-list" data-type="${type}"/>`);
+	        let $ul = $(`<ul class="tab-pane active label-list" data-type="${type}"/>`)
 	        labels.forEach((label, index) => {
 	            $ul.append(`
 	                <li>
 	                    <div class="label-list__btn js-label-trash" data-index="${index}"><i class="fa fa-trash-o fa-2x"></i></div>
 	                    <div class="label-list__text js-label">${label}</div>
 	                </li>
-	            `);
-	        });
+	            `)
+	        })
 	        $ul.append(`
 	            <li>
 	                <div class="label-list__btn js-add-label-button"><i class="fa fa-plus fa-2x"></i></div>
 	                <input type="text" class="label-list__input">
 	            </li>
-	        `);
-	        $('.js-label-tab-content').html($ul);
-	    });
+	        `)
+	        $('.js-label-tab-content').html($ul)
+	    })
 	
 	    // Setup the initial tab content.
-	    $('.js-label-tab[data-type="span"]').click();
+	    $('.js-label-tab[data-type="span"]').click()
 	}
 	
-	
-	function setupLabelAddButton() {
-	
+	function setupLabelAddButton () {
 	    $('.js-label-tab-content').on('click', '.js-add-label-button', e => {
-	
-	        let
-	            $this = $(e.currentTarget),
-	            text = $this.parent().find('input').val().trim(),
-	            type = $this.parents('[data-type]').data('type');
+	        let $this = $(e.currentTarget)
+	        let text = $this.parent().find('input').val().trim()
+	        let type = $this.parents('[data-type]').data('type')
 	
 	        if (!text) {
-	            text = '&nbsp;';
+	            text = '&nbsp;'
 	        }
 	
-	        let d = getLabelListData();
-	        let labelObject = d[type] || { labels : [] };
-	        labelObject.labels.push(text);
-	        d[type] = labelObject;
-	        saveLabelListData(d);
+	        let d = getLabelListData()
+	        let labelObject = d[type] || { labels : [] }
+	        labelObject.labels.push(text)
+	        d[type] = labelObject
+	        saveLabelListData(d)
 	
 	        // Re-render.
-	        $(`.js-label-tab[data-type="${currentTab}"]`).click();
-	    });
+	        $(`.js-label-tab[data-type="${currentTab}"]`).click()
+	    })
 	}
 	
-	function setupLabelTrashButton() {
-	
+	function setupLabelTrashButton () {
 	    $('.js-label-tab-content').on('click', '.js-label-trash', e => {
+	        const $this = $(e.currentTarget)
+	        const idx = $this.data('index')
+	        const type = $this.parents('[data-type]').data('type')
 	
-	        const
-	            $this = $(e.currentTarget),
-	            idx   = $this.data('index'),
-	            type  = $this.parents('[data-type]').data('type');
-	
-	        console.log('trash:', idx, type);
-	
-	        let d = getLabelListData();
-	        let labelObject = d[type] || { labels : [] };
-	        labelObject.labels = labelObject.labels.slice(0, idx).concat(labelObject.labels.slice(idx+1, labelObject.labels.length));
-	        d[type] = labelObject;
-	        saveLabelListData(d);
+	        let d = getLabelListData()
+	        let labelObject = d[type] || { labels : [] }
+	        labelObject.labels = labelObject.labels.slice(0, idx).concat(labelObject.labels.slice(idx + 1, labelObject.labels.length))
+	        d[type] = labelObject
+	        saveLabelListData(d)
 	
 	        // Re-render.
-	        $(`.js-label-tab[data-type="${currentTab}"]`).click();
-	
-	    });
+	        $(`.js-label-tab[data-type="${currentTab}"]`).click()
+	    })
 	}
 	
-	function setupLabelText() {
-	
+	function setupLabelText () {
 	    $('.js-label-tab-content').on('click', '.js-label', e => {
-	
-	        let
-	            $this = $(e.currentTarget),
-	            text = $this.text().trim().replace(/&nbsp;/g, ''),
-	            type  = $this.parents('[data-type]').data('type');
+	        let $this = $(e.currentTarget)
+	        let text = $this.text().trim().replace(/&nbsp;/g, '')
+	        let type = $this.parents('[data-type]').data('type')
 	
 	        if (text === '<Empty Label>') {
-	            text = '';
+	            text = ''
 	        }
 	
 	        if (type === 'span') {
-	            _createSpanAnnotation({ text });
-	
+	            _createSpanAnnotation({ text })
 	        } else if (type === 'one-way' || type === 'two-way' || type === 'link') {
-	            _createRelAnnotation({ type, text });
+	            _createRelAnnotation({ type, text })
 	        }
-	
-	    });
+	    })
 	}
 	
-	function getLabelListData() {
-	    return JSON.parse(localStorage.getItem(LSKEY_LABEL_LIST) || '{}');
+	function getLabelListData () {
+	    return JSON.parse(localStorage.getItem(LSKEY_LABEL_LIST) || '{}')
 	}
 	
-	function saveLabelListData(data) {
-	    localStorage.setItem(LSKEY_LABEL_LIST, JSON.stringify(data));
+	function saveLabelListData (data) {
+	    localStorage.setItem(LSKEY_LABEL_LIST, JSON.stringify(data))
 	}
 	
-	function setupImportExportLink() {
-	
+	function setupImportExportLink () {
 	    $('.js-export-label').on('click', () => {
-	
-	        let data = getLabelListData();
+	        let data = getLabelListData()
 	
 	        // Transform '&nbsp;' to white space.
 	        Object.keys(data).forEach(key => {
-	            let labelObject = data[key];
+	            let labelObject = data[key]
 	            let labels = (labelObject.labels || []).map(label => {
 	                if (label === '&nbsp;') {
-	                    label = '';
+	                    label = ''
 	                }
-	                return label;
-	            });
-	            labelObject.labels = labels;
-	        });
+	                return label
+	            })
+	            labelObject.labels = labels
+	        })
 	
 	        // Conver to TOML style.
-	        const toml = __WEBPACK_IMPORTED_MODULE_1__utils__["tomlString"](data);
-	        console.log(toml);
+	        const toml = __WEBPACK_IMPORTED_MODULE_1__utils__["tomlString"](data)
+	        console.log(toml)
 	
 	        // Download.
-	        let blob = new Blob([toml]);
-	        let blobURL = window.URL.createObjectURL(blob);
-	        let a = document.createElement('a');
-	        document.body.appendChild(a); // for firefox working correctly.
-	        a.download = 'pdfanno.conf';
-	        a.href = blobURL;
-	        a.click();
-	        a.parentNode.removeChild(a);
-	
-	    });
+	        let blob = new Blob([toml])
+	        let blobURL = window.URL.createObjectURL(blob)
+	        let a = document.createElement('a')
+	        document.body.appendChild(a) // for firefox working correctly.
+	        a.download = 'pdfanno.conf'
+	        a.href = blobURL
+	        a.click()
+	        a.parentNode.removeChild(a)
+	    })
 	
 	    $('.js-import-label').on('click', () => {
-	        $('.js-import-file').val(null).click();
-	    });
+	        $('.js-import-file').val(null).click()
+	    })
 	    $('.js-import-file').on('change', ev => {
-	
-	        console.log('change', ev.target.files);
-	
 	        if (ev.target.files.length === 0) {
-	            return;
+	            return
 	        }
 	
-	        const file = ev.target.files[0];
+	        const file = ev.target.files[0]
 	
 	        if (!window.confirm('Are you sure to load labels?')) {
-	            return;
+	            return
 	        }
 	
-	        let fileReader = new FileReader();
+	        let fileReader = new FileReader()
 	        fileReader.onload = event => {
-	
-	            const tomlString = event.target.result;
+	            const tomlString = event.target.result
 	            try {
-	                const labelData = __WEBPACK_IMPORTED_MODULE_0_toml___default.a.parse(tomlString);
+	                const labelData = __WEBPACK_IMPORTED_MODULE_0_toml___default.a.parse(tomlString)
 	
-	                // whitespace to '&nbsp;'
+	                // whitespace to '&nbsp'
 	                Object.keys(labelData).forEach(key => {
-	                    let labelObject = labelData[key];
+	                    let labelObject = labelData[key]
 	                    let labels = (labelObject.labels || []).map(label => {
 	                        if (label === '') {
-	                            label = '&nbsp;';
+	                            label = '&nbsp;'
 	                        }
-	                        return label;
-	                    });
-	                    labelObject.labels = labels;
-	                });
+	                        return label
+	                    })
+	                    labelObject.labels = labels
+	                })
 	
-	                saveLabelListData(labelData);
+	                saveLabelListData(labelData)
 	                // Re-render.
-	                $(`.js-label-tab[data-type="${currentTab}"]`).click();
+	                $(`.js-label-tab[data-type="${currentTab}"]`).click()
 	            } catch (e) {
-	                console.log('ERROR:', e);
-	                console.log('TOML:\n', tomlString);
-	                __WEBPACK_IMPORTED_MODULE_2__uis_alertDialog__["show"]({ message : 'ERROR: cannot load the label file.' });
-	                return;
+	                console.log('ERROR:', e)
+	                console.log('TOML:\n', tomlString)
+	                __WEBPACK_IMPORTED_MODULE_2__uis_alertDialog__["show"]({ message : 'ERROR: cannot load the label file.' })
+	                return
 	            }
 	        }
-	        fileReader.readAsText(file);
-	    });
+	        fileReader.readAsText(file)
+	    })
 	}
 	
+	function enable ({ uuid, text, disable = false, autoFocus = false, blurListener = null }) {
+	    console.log('enableInputLabel:', uuid, text)
 	
-	function enable({ uuid, text, disable=false, autoFocus=false, blurListener=null }) {
-	    console.log('enableInputLabel:', uuid, text);
-	
-	    currentUUID = uuid;
+	    currentUUID = uuid
 	
 	    if (_blurListener) {
-	        _blurListener();
-	        _blurListener = null;
-	        console.log('old _blurListener is called.');
+	        _blurListener()
+	        _blurListener = null
+	        console.log('old _blurListener is called.')
 	    }
-	
 	
 	    $inputLabel
 	        .attr('disabled', 'disabled')
 	        .val(text || '')
 	        .off('blur')
-	        .off('keyup');
+	        .off('keyup')
 	
 	    if (disable === false) {
 	        $inputLabel
 	            .removeAttr('disabled')
 	            .on('keyup', () => {
-	                saveText(uuid);
-	            });
+	                saveText(uuid)
+	            })
 	    }
 	
 	    if (autoFocus) {
-	        $inputLabel.focus();
+	        $inputLabel.focus()
 	    }
 	
 	    $inputLabel.on('blur', () => {
-	
 	        if (blurListener) {
-	            blurListener();
-	            _blurListener = blurListener;
+	            blurListener()
+	            _blurListener = blurListener
 	        }
+	        saveText(uuid)
+	    })
+	}
 	
-	        saveText(uuid);
-	    });
-	
-	};
-	
-	function disable() {
-	    console.log('disableInputLabel');
-	
-	    currentUUID = null;
-	
+	function disable () {
+	    currentUUID = null
 	    $inputLabel
 	        .attr('disabled', 'disabled')
-	        .val('');
+	        .val('')
 	}
 	
-	function treatAnnotationDeleted({ uuid }) {
-	    console.log('treatAnnotationDeleted:', uuid);
-	
+	function treatAnnotationDeleted ({ uuid }) {
 	    if (currentUUID === uuid) {
-	        disable(...arguments);
+	        disable(...arguments)
 	    }
 	}
 	
-	function handleAnnotationHoverIn(annotation) {
+	function handleAnnotationHoverIn (annotation) {
 	    if (_getSelectedAnnotations().length === 0) {
-	        enable({ uuid : annotation.uuid, text : annotation.text, disable : true });
+	        enable({ uuid : annotation.uuid, text : annotation.text, disable : true })
 	    }
 	}
 	
-	function handleAnnotationHoverOut(annotation) {
+	function handleAnnotationHoverOut (annotation) {
 	    if (_getSelectedAnnotations().length === 0) {
-	        disable();
+	        disable()
 	    }
 	}
 	
-	function handleAnnotationSelected(annotation) {
+	function handleAnnotationSelected (annotation) {
 	    if (_getSelectedAnnotations().length === 1) {
-	        enable({ uuid : annotation.uuid, text : annotation.text });
+	        enable({ uuid : annotation.uuid, text : annotation.text })
 	    } else {
-	        disable();
+	        disable()
 	    }
 	}
 	
-	function handleAnnotationDeselected() {
-	    const annos = _getSelectedAnnotations();
+	function handleAnnotationDeselected () {
+	    const annos = _getSelectedAnnotations()
 	    if (annos.length === 1) {
-	        enable({ uuid : annos[0].uuid, text : annos[0].text });
+	        enable({ uuid : annos[0].uuid, text : annos[0].text })
 	    } else {
-	        disable();
+	        disable()
 	    }
 	}
 	
-	function saveText(uuid) {
-	
-	    const text = $inputLabel.val() || '';
-	
-	    _saveAnnotationText(uuid, text);
+	function saveText (uuid) {
+	    const text = $inputLabel.val() || ''
+	    _saveAnnotationText(uuid, text)
 	}
 	
 	/**
 	 * Local storage key for datalist.
 	 */
-	const LSKEY_DATALIST = '_pdfanno_datalist';
+	const LSKEY_DATALIST = '_pdfanno_datalist'
 	
-	function setDatalist() {
-	
+	function setDatalist () {
 	    // set datalist.
-	    let datalist = JSON.parse(localStorage.getItem(LSKEY_DATALIST) || '[]');
+	    let datalist = JSON.parse(localStorage.getItem(LSKEY_DATALIST) || '[]')
 	    const options = datalist.map(d => {
-	        return `<option value="${d}"></option>`;
-	    });
-	    $('#labels').html(options);
+	        return `<option value="${d}"></option>`
+	    })
+	    $('#labels').html(options)
 	}
 	
-	function setupActions() {
+	function setupActions () {
 	    // Setup datalist modal.
 	    $('#datalistModal').off().on('show.bs.modal', e => {
-	
 	        // datalist.
-	        let datalist = JSON.parse(localStorage.getItem(LSKEY_DATALIST) || '[]');
+	        let datalist = JSON.parse(localStorage.getItem(LSKEY_DATALIST) || '[]')
 	
 	        // input for new.
-	        datalist.push('');
+	        datalist.push('')
 	
 	        const snipets = datalist.map(d => {
 	            return `
@@ -2945,18 +2927,16 @@
 	                <input class="form-control js-input" value="${d}">
 	                <span class="glyphicon glyphicon-remove js-delete"></span>
 	            </li>
-	            `;
-	        });
+	            `
+	        })
 	
-	        $('#datalistModal .js-datalist').html(snipets.join(''));
-	
-	    });
+	        $('#datalistModal .js-datalist').html(snipets.join(''))
+	    })
 	
 	    $('#datalistModal').on('keyup', '.js-input', e => {
-	
-	        const $this = $(e.currentTarget);
-	        const val = $this.val();
-	        const isEnd = $this.parent().is(':last-child');
+	        const $this = $(e.currentTarget)
+	        const val = $this.val()
+	        const isEnd = $this.parent().is(':last-child')
 	
 	        if (isEnd && val && val.length > 0) {
 	            $('#datalistModal .js-datalist').append(`
@@ -2964,71 +2944,68 @@
 	                    <input class="form-control js-input" value="">
 	                    <span class="glyphicon glyphicon-remove js-delete"></span>
 	                </li>
-	            `);
+	            `)
 	        }
-	    });
+	    })
 	
 	    $('#datalistModal').on('click', '.js-delete', e => {
-	        $(e.currentTarget).parent().remove();
-	    });
+	        $(e.currentTarget).parent().remove()
+	    })
 	
 	    $('#datalistModal .js-done').on('click', e => {
-	
-	        let datalist = [];
-	        $('#datalistModal .js-datalist .js-input').each(function() {
-	            const val = $(this).val();
+	        let datalist = []
+	        $('#datalistModal .js-datalist .js-input').each(function () {
+	            const val = $(this).val()
 	            if (val && val.length > 0) {
-	                datalist.push(val);
+	                datalist.push(val)
 	            }
-	        });
+	        })
 	
-	        localStorage.setItem(LSKEY_DATALIST, JSON.stringify(datalist));
+	        localStorage.setItem(LSKEY_DATALIST, JSON.stringify(datalist))
 	
-	        setDatalist();
+	        setDatalist()
 	
-	        $('#datalistModal').modal('hide');
-	    });
+	        $('#datalistModal').modal('hide')
+	    })
 	}
 	
-	
-	function listenWindowEvents() {
-	
+	function listenWindowEvents () {
 	    // enable text input.
 	    window.addEventListener('enableTextInput', e => {
-	        console.log('enableTextInput:', e.detail);
-	        enable(e.detail);
-	    });
+	        console.log('enableTextInput:', e.detail)
+	        enable(e.detail)
+	    })
 	
 	    // disable text input.
 	    window.addEventListener('disappearTextInput', e => {
-	        console.log('disappearTextInput:', e.detail);
-	        disable(e.detail);
-	    });
+	        console.log('disappearTextInput:', e.detail)
+	        disable(e.detail)
+	    })
 	
 	    // handle annotation deleted.
 	    window.addEventListener('annotationDeleted', e => {
-	        treatAnnotationDeleted(e.detail);
-	    });
+	        treatAnnotationDeleted(e.detail)
+	    })
 	
 	    // handle annotation hoverIn.
-	    window.addEventListener('annotationHoverIn' , e => {
-	        handleAnnotationHoverIn(e.detail);
-	    });
+	    window.addEventListener('annotationHoverIn', e => {
+	        handleAnnotationHoverIn(e.detail)
+	    })
 	
 	    // handle annotation hoverOut.
-	    window.addEventListener('annotationHoverOut' , e => {
-	        handleAnnotationHoverOut(e.detail);
-	    });
+	    window.addEventListener('annotationHoverOut', e => {
+	        handleAnnotationHoverOut(e.detail)
+	    })
 	
 	    // handle annotation selected.
-	    window.addEventListener('annotationSelected' , e => {
-	        handleAnnotationSelected(e.detail);
-	    });
+	    window.addEventListener('annotationSelected', e => {
+	        handleAnnotationSelected(e.detail)
+	    })
 	
 	    // handle annotation deselected.
-	    window.addEventListener('annotationDeselected' , () => {
-	        handleAnnotationDeselected();
-	    });
+	    window.addEventListener('annotationDeselected', () => {
+	        handleAnnotationDeselected()
+	    })
 	}
 	
 	
@@ -7157,68 +7134,65 @@
 	 */
 	
 	
-	function setup({
-	        getCurrentDisplayContentFile,
+	function setup ({
+	        getCurrentDisplayContentFile
 	    }) {
 	    $('.js-btn-upload').off('click').on('click', () => {
-	
-	        const contentFile = getCurrentDisplayContentFile();
+	        const contentFile = getCurrentDisplayContentFile()
 	        if (!contentFile) {
-	            return __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : 'Display a content before upload.' });
+	            return __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : 'Display a content before upload.' })
 	        }
 	
-	        function arrayBufferToBase64(buffer) {
-	            var s = '';
-	            var bytes = new Uint8Array(buffer);
-	            var len = bytes.byteLength;
+	        function arrayBufferToBase64 (buffer) {
+	            var s = ''
+	            var bytes = new Uint8Array(buffer)
+	            var len = bytes.byteLength
 	            for (var i = 0; i < len; i++) {
-	                s += String.fromCharCode(bytes[i]);
+	                s += String.fromCharCode(bytes[i])
 	            }
-	            return window.btoa(s);
+	            return window.btoa(s)
 	        }
 	
-	        const contentBase64 = arrayBufferToBase64(contentFile.content);
+	        const contentBase64 = arrayBufferToBase64(contentFile.content)
 	
-	        const $progressBar = $('.js-upload-progress');
+	        const $progressBar = $('.js-upload-progress')
 	
-	        const url = window.API_ROOT + '/api/pdf_upload';
+	        const url = window.API_ROOT + '/api/pdf_upload'
 	
-	        setResult("Waiting for response...");
-	
+	        setResult('Waiting for response...')
 	
 	        let data = {
 	            filename : contentFile.name,
 	            pdf      : contentBase64
-	        };
+	        }
 	
 	        $.ajax({
-	            xhr: function(){
-	               var xhr = new window.XMLHttpRequest();
-	               //Upload progress
-	               xhr.upload.addEventListener("progress", function(evt){
-	               if (evt.lengthComputable) {
-	                 var percentComplete = evt.loaded / evt.total;
-	                 //Do something with upload progress
-	                 console.log('uploadProgress:', percentComplete);
-	
-	                 let percent = Math.floor(percentComplete * 100);
-	                 $progressBar.find('.progress-bar').css('width', percent + '%').attr('aria-valuenow', percent).text(percent + '%');
-	                 if (percent === 100) {
-	                    setTimeout(() => {
-	                        $progressBar.addClass('hidden');
-	                    }, 2000);
-	                 }
-	                }
-	               }, false);
-	               //Download progress
-	               xhr.addEventListener("progress", function(evt){
-	                 if (evt.lengthComputable) {
-	                   var percentComplete = evt.loaded / evt.total;
-	                   //Do something with download progress
-	                   console.log('downloadProgress:', percentComplete);
-	                 }
-	               }, false);
-	               return xhr;
+	            xhr : function () {
+	                var xhr = new window.XMLHttpRequest()
+	                // Upload progress
+	                xhr.upload.addEventListener('progress', function (evt) {
+	                    if (evt.lengthComputable) {
+	                        var percentComplete = evt.loaded / evt.total
+	                        // Do something with upload progress
+	                        console.log('uploadProgress:', percentComplete)
+	                        let percent = Math.floor(percentComplete * 100)
+	                        $progressBar.find('.progress-bar').css('width', percent + '%').attr('aria-valuenow', percent).text(percent + '%')
+	                        if (percent === 100) {
+	                            setTimeout(() => {
+	                                $progressBar.addClass('hidden')
+	                            }, 2000)
+	                        }
+	                    }
+	                }, false)
+	                // Download progress
+	                xhr.addEventListener('progress', function (evt) {
+	                    if (evt.lengthComputable) {
+	                        var percentComplete = evt.loaded / evt.total
+	                        // Do something with download progress
+	                        console.log('downloadProgress:', percentComplete)
+	                    }
+	                }, false)
+	                return xhr
 	            },
 	            url      : url,
 	            method   : 'POST',
@@ -7226,30 +7200,29 @@
 	            data
 	
 	        }).then(result => {
-	
 	            if (result.status === 'failure') {
 	                alert('ERROR!!')
-	                setResult(result.err.stderr);
-	                return;
+	                setResult(result.err.stderr)
+	                return
 	            }
 	
 	            setTimeout(() => {
-	                setResult(result.text);
-	            }, 500); // wait for progress bar animation.
-	        });
+	                setResult(result.text)
+	            }, 500) // wait for progress bar animation.
+	        })
 	
 	        // Show.
-	        $progressBar.removeClass('hidden').find('.progress-bar').css('width', '0%').attr('aria-valuenow', 0).text('0%');
+	        $progressBar.removeClass('hidden').find('.progress-bar').css('width', '0%').attr('aria-valuenow', 0).text('0%')
 	
-	        return false;
-	    });
+	        return false
+	    })
 	}
 	
 	/**
 	 * Set the analyzing result.
 	 */
-	function setResult(text) {
-	    $('#uploadResult').val(text);
+	function setResult (text) {
+	    $('#uploadResult').val(text)
 	}
 	
 	
@@ -7280,41 +7253,38 @@
 	/**
 	 * Initializer.
 	 */
-	function setup() {
+	function setup () {
 	    $(document).on('keydown', e => {
-	
 	        if (e.keyCode === 17 || e.keyCode === 91) { // 17:ctrlKey, 91:cmdKey
-	            dispatchWindowEvent('manageCtrlKey', 'on');
+	            dispatchWindowEvent('manageCtrlKey', 'on')
 	        }
-	
 	    }).on('keyup', e => {
-	
 	        // Allow any keyboard events for <input/>.
 	        if (e.target.tagName.toLowerCase() === 'input') {
-	            return;
+	            return
 	        }
 	
-	        dispatchWindowEvent('manageCtrlKey', 'off');
+	        dispatchWindowEvent('manageCtrlKey', 'off')
 	
 	        if (e.keyCode === 49) {         // Digit "1"
-	            dispatchWindowEvent('digitKeyPressed', 1);
+	            dispatchWindowEvent('digitKeyPressed', 1)
 	        } else if (e.keyCode === 50) {  // Digit "2"
-	            dispatchWindowEvent('digitKeyPressed', 2);
+	            dispatchWindowEvent('digitKeyPressed', 2)
 	        } else if (e.keyCode === 51) {  // Digit "3"
-	            dispatchWindowEvent('digitKeyPressed', 3);
+	            dispatchWindowEvent('digitKeyPressed', 3)
 	        } else if (e.keyCode === 52) {  // Digit "4"
-	            dispatchWindowEvent('digitKeyPressed', 4);
+	            dispatchWindowEvent('digitKeyPressed', 4)
 	        }
-	    });
+	    })
 	}
 	
 	/**
 	 * Dispatch a custom event to `window` object.
 	 */
-	function dispatchWindowEvent(eventName, data) {
-	    var event = document.createEvent('CustomEvent');
-	    event.initCustomEvent(eventName, true, true, data);
-	    window.dispatchEvent(event);
+	function dispatchWindowEvent (eventName, data) {
+	    var event = document.createEvent('CustomEvent')
+	    event.initCustomEvent(eventName, true, true, data)
+	    window.dispatchEvent(event)
 	}
 	
 	
@@ -15439,6 +15409,21 @@
 	  hideLabel(){
 	    globalEvent.emit("clearlabel");
 	  }
+	
+	  get type() {
+	    return 'span';
+	  }
+	
+	  get scrollTop() {
+	    return this.circle.positionCenter().top;
+	  }
+	
+	  blink() {
+	    this.circle.jObject.addClass('htmlanno-circle-hover');
+	    setTimeout(() => {
+	      this.circle.jObject.removeClass('htmlanno-circle-hover');
+	    }, 1000);
+	  }
 	}
 	
 	module.exports = Highlight;
@@ -15539,6 +15524,7 @@
 	    pos.left += 5;
 	    pos.top += 5;
 	
+	$('body').append(`<div style="position: absolute; z-index: 2000; top: ${pos.top}; left: ${pos.left};">X</div>`);
 	    return pos;
 	  }
 	
@@ -15614,6 +15600,59 @@
 	    return this.referenceId;
 	  }
 	
+	  /**
+	   * Returns annotation object Identifier (Unique in all(highlight and relation) object).
+	   * This method expects the subclass to implement #getClassName ().
+	   *
+	   * For Anno-ui annoListDropDown. This interface calls `annotation.uuid` as the identifier.
+	   */
+	  get uuid() {
+	    return this.getId();
+	  }
+	
+	  /**
+	   * Returns annotation type.
+	   * this method expects ths subclass to override.
+	   * type ::= 'span'|'relation'|'area' (but 'area' is not used in htmlanno.)
+	   *
+	   * For Anno-ui annoListDropDown.
+	   *
+	  get type() {
+	    return undefined;
+	  }
+	
+	  /**
+	   * Returns annotation direction.
+	   * direction ::= 'one-way'|'two-way'|'link'
+	   * this method expects ths subclass to override.
+	   *
+	   * For Anno-ui annoListDropDown.
+	   */
+	  get direction() {
+	    return undefined;
+	  }
+	
+	  /**
+	   * Returns annotation label.
+	   *
+	   * For Anno-ui annoListDropDown.
+	   */
+	  get text() {
+	    return this.content();
+	  }
+	
+	  /**
+	   * Returns the Y coordinate of the annotation object.
+	   * this method expects ths subclass to override.
+	   */
+	  get scrollTop() {
+	    return 0;
+	  }
+	
+	  blink() {
+	    return;
+	  }
+	
 	  static createId(id, referenceId) {
 	    if (undefined == referenceId) {
 	      referenceId = '';
@@ -15642,12 +15681,12 @@
 	    this.startingCircle = startingCircle;
 	    this.endingCircle = endingCircle;
 	
-	    this.direction = direction;
+	    this._direction = direction;
 	
 	    this.arrow = new RenderRelation(
-	      RelationAnnotation.createId(id, referenceId),
+	      Annotation.createId(id, referenceId),
 	      startingCircle.positionCenter(),
-	      direction
+	      this._direction
 	    );
 	    this.arrow.appendTo($("#htmlanno-svg-screen"));
 	    this.arrow.on("click", (e)=>{
@@ -15709,7 +15748,7 @@
 	  saveToml(){
 	    return [
 	      'type = "relation"',
-	      `dir = "${this.direction}"`,
+	      `dir = "${this._direction}"`,
 	      `ids = ["${this.startingCircle.highlight.id}", "${this.endingCircle.highlight.id}"]`,
 	      `label = "${this.content()}"`
 	    ].join("\n");
@@ -15740,12 +15779,20 @@
 	    return this.arrow.content();
 	  }
 	
-	  setExtension(text){
-	    this.arrow.setExtension(text);
+	  getClassName() {
+	    return this.arrow.domId();
 	  }
 	
-	  extension(){
-	    return this.arrow.extension();
+	  get type() {
+	    return 'relation';
+	  }
+	
+	  get direction() {
+	    return this._direction;
+	  }
+	
+	  get scrollTop() {
+	    return this.startingCircle.positionCenter().top;
 	  }
 	}
 	
@@ -15997,7 +16044,7 @@
 	    selection.setSingleRange(range);
 	  }
 	
-	  highlight(){
+	  highlight(label){
 	    const selection = rangy.getSelection();
 	    if (selection.isCollapsed){
 	      return;
@@ -16006,7 +16053,7 @@
 	    const id = this.highlights.nextId();
 	    const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
 	    const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-	    return this.create(id, startOffset, endOffset, "");
+	    return this.create(id, startOffset, endOffset, label);
 	  }
 	
 	  create(id, startOffset, endOffset, text, referenceId, addOnly){
@@ -18281,8 +18328,13 @@
 	  destroy(){
 	  }
 	
-	  // TODO: pdfanno only
+	  /**
+	   * Get all annotations from the container.
+	   */
 	  getAllAnnotations(){
+	    let list = [];
+	    this.set.forEach(a => list.push(a));
+	    return list;
 	  }
 	
 	  // TODO: pdfanno only
