@@ -86,7 +86,7 @@ class Circle{
     const p = this.originalPosition();
     pos.left += p.left;
     pos.top += p.top;
-    pos.left += 5;
+    pos.left += 15;
     pos.top += 5;
 
     return pos;
