@@ -262,8 +262,12 @@
 	  }
 	
 	  handleResize(){
-	     let viewObj = $("#viewer");
-	     $('#htmlanno-svg-screen').attr("top", viewObj.attr("scrollTop"));
+	    let viewWrapper = $('#viewerWrapper');
+	    // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
+	    let height = $(window).height() - viewWrapper[0].offsetTop - 10;
+	    viewWrapper.css('max-height', `${height}px`);
+	    $('#htmlanno-svg-screen').css('height', `${$('#viewer').height()}px`);
+	
 	    if (Circle.instances){
 	      Circle.instances.forEach((cir)=>{
 	        cir.resetPosition();
@@ -293,6 +297,8 @@
 	          lastSelected.remove();
 	          this.highlighter.removeAnnotation(lastSelected);
 	          this.unselectHighlight(lastSelected);
+	
+	          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
 	        }
 	      }
 	    } else if (null != this.selectedRelation){
@@ -310,6 +316,8 @@
 	          this.selectedRelation.remove();
 	          this.arrowConnector.removeAnnotation(this.selectedRelation);
 	          this.unselectRelation();
+	
+	          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
 	        }
 	      }
 	    }
@@ -394,6 +402,7 @@
 	
 	  handleAddSpan(label){
 	    this.highlighter.highlight(label.text);
+	    this.dispatchWindowEvent('annotationrendered');
 	  }
 	
 	  handleAddRelation(params) {
@@ -406,6 +415,7 @@
 	      );
 	      this.unselectHighlight();
 	      this.selectedRelation.select();
+	      this.dispatchWindowEvent('annotationrendered');
 	    }
 	  }
 	
@@ -502,9 +512,7 @@
 	      default:
 	        alertn('Unknown content type; ' + content.content); // TODO: UIに合わせたエラーメッセージにする
 	    }
-	    // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
-	    let height = $(window).height() - $('#viewerWrapper')[0].offsetTop - 10;
-	    $('#viewer').css('maxHeight', `${height}px`);
+	    this.handleResize();
 	  }  
 	
 	  scrollToAnnotation(id) {
@@ -15521,10 +15529,9 @@
 	    const p = this.originalPosition();
 	    pos.left += p.left;
 	    pos.top += p.top;
-	    pos.left += 5;
+	    pos.left += 15;
 	    pos.top += 5;
 	
-	$('body').append(`<div style="position: absolute; z-index: 2000; top: ${pos.top}; left: ${pos.left};">X</div>`);
 	    return pos;
 	  }
 	
