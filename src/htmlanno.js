@@ -195,8 +195,12 @@ class Htmlanno{
   }
 
   handleResize(){
-     let viewObj = $("#viewer");
-     $('#htmlanno-svg-screen').attr("top", viewObj.attr("scrollTop"));
+    let viewWrapper = $('#viewerWrapper');
+    // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
+    let height = $(window).height() - viewWrapper[0].offsetTop - 10;
+    viewWrapper.css('max-height', `${height}px`);
+    $('#htmlanno-svg-screen').css('height', `${$('#viewer').height()}px`);
+
     if (Circle.instances){
       Circle.instances.forEach((cir)=>{
         cir.resetPosition();
@@ -226,6 +230,8 @@ class Htmlanno{
           lastSelected.remove();
           this.highlighter.removeAnnotation(lastSelected);
           this.unselectHighlight(lastSelected);
+
+          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
         }
       }
     } else if (null != this.selectedRelation){
@@ -243,6 +249,8 @@ class Htmlanno{
           this.selectedRelation.remove();
           this.arrowConnector.removeAnnotation(this.selectedRelation);
           this.unselectRelation();
+
+          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
         }
       }
     }
@@ -327,6 +335,7 @@ class Htmlanno{
 
   handleAddSpan(label){
     this.highlighter.highlight(label.text);
+    this.dispatchWindowEvent('annotationrendered');
   }
 
   handleAddRelation(params) {
@@ -339,6 +348,7 @@ class Htmlanno{
       );
       this.unselectHighlight();
       this.selectedRelation.select();
+      this.dispatchWindowEvent('annotationrendered');
     }
   }
 
@@ -435,9 +445,7 @@ class Htmlanno{
       default:
         alertn('Unknown content type; ' + content.content); // TODO: UIに合わせたエラーメッセージにする
     }
-    // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
-    let height = $(window).height() - $('#viewerWrapper')[0].offsetTop - 10;
-    $('#viewer').css('maxHeight', `${height}px`);
+    this.handleResize();
   }  
 
   scrollToAnnotation(id) {
