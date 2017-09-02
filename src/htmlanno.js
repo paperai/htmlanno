@@ -13,6 +13,8 @@ const ArrowConnector = require("./arrowconnector.js");
 const AnnotationContainer = require("./annotationcontainer.js");
 const InputLabel = require("./inputlabel");
 const FileLoader = require("./fileloader.js");
+const Highlight = require("./highlight.js");
+const RelationAnnotation = require("./relationannotation.js");
 
 class Htmlanno{
   constructor(){
@@ -31,15 +33,6 @@ class Htmlanno{
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
     globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
-    globalEvent.on(this, "annotationhoverin",
-      this.handleAnnotationHoverIn.bind(this));
-    globalEvent.on(this, "annotationhoverout",
-      this.handleAnnotationHoverOut.bind(this));
-    globalEvent.on(this, "highlightselect",
-      this.handleHighlightSelect.bind(this));
-
-    globalEvent.on(this, "relationselect",
-      this.handleRelationSelect.bind(this));
 
     globalEvent.on(this, "showlabel", this.showLabel.bind(this));
     globalEvent.on(this, "clearlabel", this.clearLabel.bind(this));
@@ -161,39 +154,6 @@ class Htmlanno{
     });
   }
 
-  handleHighlightSelect(data){
-    this.inputLabel.endEdit();
-    this.unselectRelation();
-
-    if (!this.unselectHighlight(data.annotation)){
-    // Now selected highlight is not already selected.
-      if (0 == this.selectedHighlights.length){
-      // First selection.
-        this.selectedHighlights.push(data.annotation);
-        data.annotation.select();
-      } else{
-        if (undefined != data.event && data.event.ctrlKey) {
-        // multi selection.
-          this.selectedHighlights.push(data.annotation);
-          data.annotation.select(true);
-        } else{
-        // New selection, unselect all old selection.
-          this.unselectHighlight();
-          this.selectedHighlights.push(data.annotation);
-          data.annotation.select();
-        }
-      }
-    }
-  }
-
-  handleRelationSelect(data){
-    this.inputLabel.endEdit();
-    this.unselectRelation();
-    this.unselectHighlight();
-    this.selectedRelation = data.annotation;
-    data.annotation.select();
-  }
-
   handleResize(){
     let viewWrapper = $('#viewerWrapper');
     // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
@@ -213,58 +173,63 @@ class Htmlanno{
 
   // HtmlAnno only, remove?
   handleKeydown(e){
-    if (0 != this.selectedHighlights.length){
-      let lastSelected =
-        this.selectedHighlights[this.selectedHighlights.length - 1];
-      // esc
-      if (e.keyCode === 27) {
-        this.inputLabel.endEdit();
-        this.unselectHighlight(lastSelected);
-      }
-
-      // delete or back space
-      if (e.keyCode === 46 || e.keyCode == 8) {
-        if (document.body == e.target){
-          e.preventDefault();
+    let selected = this.getSelectedAnnotations();
+    if (0 != selected.length) {
+      let lastSelected = selected.sort(
+        (a, b) => { return a - b; }
+      ).pop();
+      if (lastSelected instanceof Highlight) {
+        // esc
+        if (e.keyCode === 27) {
           this.inputLabel.endEdit();
-          lastSelected.remove();
-          this.highlighter.removeAnnotation(lastSelected);
           this.unselectHighlight(lastSelected);
-
-          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
         }
-      }
-    } else if (null != this.selectedRelation){
-      // esc
-      if (e.keyCode == 27) {
-        this.inputLabel.endEdit();
-        this.unselectRelation();
-      }
 
-      // delete or back space
-      if (e.keyCode === 46 || e.keyCode == 8) {
-        if (document.body == e.target){
-          e.preventDefault();
+        // delete or back space
+        if (e.keyCode === 46 || e.keyCode == 8) {
+          if (document.body == e.target){
+            e.preventDefault();
+            this.inputLabel.endEdit();
+            lastSelected.remove();
+            this.highlighter.removeAnnotation(lastSelected);
+            this.unselectHighlight(lastSelected);
+
+            this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+          }
+        }
+      } else if (lastSelected instanceof RelationAnnotation) {
+        // esc
+        if (e.keyCode == 27) {
           this.inputLabel.endEdit();
-          this.selectedRelation.remove();
-          this.arrowConnector.removeAnnotation(this.selectedRelation);
           this.unselectRelation();
+        }
 
-          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+        // delete or back space
+        if (e.keyCode === 46 || e.keyCode == 8) {
+          if (document.body == e.target){
+            e.preventDefault();
+            this.inputLabel.endEdit();
+            this.selectedRelation.remove();
+            this.arrowConnector.removeAnnotation(this.selectedRelation);
+            this.unselectRelation();
+
+            this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+          }
         }
       }
     }
   }
 
   handleMouseUp(e){
-    this.inputLabel.endEdit();
+    //this.inputLabel.endEdit();
 
     if (
       !$(e.target).hasClass("htmlanno-circle") &&
       !$(e.target).hasClass("htmlanno-arrow")
     ) {
-      this.unselectRelation();
-      this.unselectHighlight();
+      this.getSelectedAnnotations().forEach((annotation) => {
+        annotation.blur();
+      });
     }
     // else ... maybe fire an event from annotation or relation.
   }
@@ -276,41 +241,23 @@ class Htmlanno{
   // When call without index, unselect all highlights.
   unselectHighlight(target){
     if (undefined == target){
-      this.selectedHighlights.forEach((highlight)=>{
-        highlight.blur();
+      this.getSelectedAnnotations().forEach((annotation) => {
+        if (annotation instanceof Highlight) {
+          annotation.blur();
+        }
       });
-      this.selectedHighlights = [];
-    } else if ('number' === typeof(target)) {
-      while(target < this.selectedHighlights.length){
-        this.selectedHighlights.pop().blur();
-      }
-      if (0 != this.selectedHighlights.length){
-        this.selectedHighlights[this.selectedHighlights.length - 1].select();
-      }
-    } else{
-      let index = this.selectedHighlights.findIndex((elm)=>{
-        return elm === target;
-      });
-      return -1 == index ? false : this.unselectHighlight(index);
+    } else {
+      target.blur();
     }
     return true;
   }
 
   unselectRelation(){
-    if (null != this.selectedRelation){
-      this.selectedRelation.blur();
-      this.selectedRelation = null;
-    }
-  }
-
-  // Annotation (highliht and relation) hover in.
-  handleAnnotationHoverIn(annotation){
-    this.showLabel({target: annotation});
-  }
-
-  // Annotation (highliht and relation) hover out.
-  handleAnnotationHoverOut(annotation){
-    this.clearLabel({target:annotation});
+    this.getSelectedAnnotations().forEach((annotation) => {
+      if (annotation instanceof RelationAnnotation) {
+        annotation.blur();
+      }
+    });
   }
 
   showLabel(e){
@@ -339,11 +286,20 @@ class Htmlanno{
   }
 
   handleAddRelation(params) {
-    if (2 == this.selectedHighlights.length){
+    let selected = this.getSelectedAnnotations();
+    if (2 == selected.length) {
+      let start = undefined;
+      let end   = undefined;
+      if (selected[0].selectedTimestamp < selected[1].selectedTimestamp) {
+        start = selected[0];
+        end   = selected[1];
+      } else {
+        start = selected[1];
+        end   = selected[0];
+      }
       this.selectedRelation = this.arrowConnector.createRelation(
         this.annotations.nextId(),
-        this.selectedHighlights[0].circle,
-        this.selectedHighlights[1].circle,
+        start.circle, end.circle,
         params.type, params.text
       );
       this.unselectHighlight();
@@ -461,9 +417,7 @@ class Htmlanno{
   }
 
   getSelectedAnnotations() {
-    return this.fileLoader.annotations.filter((annotation) => {
-      return annotation.selected;
-    });
+    return this.annotations.getSelectedAnnotations();
   }
 
   /**
@@ -485,6 +439,7 @@ class Htmlanno{
   }
 
   // For Anno-ui.
+  // TODO: Anno-UI events 辺りで提供してほしい
   dispatchWindowEvent(eventName, data) {
     var event = document.createEvent('CustomEvent');
     event.initCustomEvent(eventName, true, true, data);
