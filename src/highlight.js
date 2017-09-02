@@ -1,6 +1,6 @@
 const $ = require("jquery");
 const Circle = require("./circle.js");
-const globalEvent = window.globalEvent;
+const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
 const Annotation = require("./annotation.js");
 
 class Highlight extends Annotation {
@@ -24,14 +24,14 @@ class Highlight extends Annotation {
     this.elements.forEach((e)=>{
       $(e).addClass("htmlanno-border");
     });
-    globalEvent.emit("annotationhoverin", this);
+    this.dispatchWindowEvent('annotationHoverIn', this);
   }
 
   handleHoverOut(e){
     this.elements.forEach((e)=>{
       $(e).removeClass("htmlanno-border");
     });
-    globalEvent.emit("annotationhoverout", this);
+    this.dispatchWindowEvent('annotationHoverOut', this);
   }
 
   addCircle(){
@@ -82,7 +82,7 @@ class Highlight extends Annotation {
 
   blur(){
     this.removeClass("htmlanno-highlight-selected");
-    this.hideLabel();
+    super.blur();
   }
 
   remove(){

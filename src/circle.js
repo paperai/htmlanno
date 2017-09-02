@@ -15,7 +15,8 @@ class Circle{
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
 
     this.jObject.on("click", (e)=>{
-      globalEvent.emit("highlightselect", {event: e, annotation: this.highlight});
+      this.highlight.selected = true;
+      highlight.dispatchWindowEvent('annotationSelected', highlight);
     });
 
     this.resetHoverEvent();
@@ -34,12 +35,12 @@ class Circle{
 
   handleHoverIn(e){
     e.stopPropagation();
-    globalEvent.emit("annotationhoverin", this.highlight);
+    this.highlight.dispatchWindowEvent('annotationHoverIn', this.highlight);
   }
 
   handleHoverOut(e){
     e.stopPropagation();
-    globalEvent.emit("annotationhoverout", this.highlight);
+    this.highlight.dispatchWindowEvent('annotationHoverOut', this.highlight);
   }
 
   domId(){

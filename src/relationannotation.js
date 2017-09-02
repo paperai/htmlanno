@@ -18,7 +18,8 @@ class RelationAnnotation extends Annotation {
     );
     this.arrow.appendTo($("#htmlanno-svg-screen"));
     this.arrow.on("click", (e)=>{
-      globalEvent.emit("relationselect", {event: e, annotation: this});
+      this.selected = true;
+      this.dispatchWindowEvent('annotationSelected', this);
     });
     this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
     this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
@@ -56,6 +57,7 @@ class RelationAnnotation extends Annotation {
 
   blur(){
     this.arrow.blur();
+    super.blur();
   }
 
   remove(){
@@ -65,12 +67,12 @@ class RelationAnnotation extends Annotation {
 
   handleHoverIn(e){
     this.arrow.handleHoverIn();
-    globalEvent.emit("annotationhoverin", this);
+    this.dispatchWindowEvent('annotationHoverIn', this);
   }
 
   handleHoverOut(e){
     this.arrow.handleHoverOut();
-    globalEvent.emit("annotationhoverout", this);
+    this.dispatchWindowEvent('annotationHoverOut', this);
   }
 
   saveToml(){
