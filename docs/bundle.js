@@ -80,6 +80,8 @@
 	const AnnotationContainer = __webpack_require__(21);
 	const InputLabel = __webpack_require__(22);
 	const FileLoader = __webpack_require__(23);
+	const Highlight = __webpack_require__(11);
+	const RelationAnnotation = __webpack_require__(14);
 	
 	class Htmlanno{
 	  constructor(){
@@ -98,12 +100,6 @@
 	    globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
 	    globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
 	    globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
-	    globalEvent.on(this, "annotationhoverin",
-	      this.handleAnnotationHoverIn.bind(this));
-	    globalEvent.on(this, "annotationhoverout",
-	      this.handleAnnotationHoverOut.bind(this));
-	    globalEvent.on(this, "highlightselect",
-	      this.handleHighlightSelect.bind(this));
 	
 	    globalEvent.on(this, "relationselect",
 	      this.handleRelationSelect.bind(this));
@@ -228,31 +224,6 @@
 	    });
 	  }
 	
-	  handleHighlightSelect(data){
-	    this.inputLabel.endEdit();
-	    this.unselectRelation();
-	
-	    if (!this.unselectHighlight(data.annotation)){
-	    // Now selected highlight is not already selected.
-	      if (0 == this.selectedHighlights.length){
-	      // First selection.
-	        this.selectedHighlights.push(data.annotation);
-	        data.annotation.select();
-	      } else{
-	        if (undefined != data.event && data.event.ctrlKey) {
-	        // multi selection.
-	          this.selectedHighlights.push(data.annotation);
-	          data.annotation.select(true);
-	        } else{
-	        // New selection, unselect all old selection.
-	          this.unselectHighlight();
-	          this.selectedHighlights.push(data.annotation);
-	          data.annotation.select();
-	        }
-	      }
-	    }
-	  }
-	
 	  handleRelationSelect(data){
 	    this.inputLabel.endEdit();
 	    this.unselectRelation();
@@ -280,58 +251,63 @@
 	
 	  // HtmlAnno only, remove?
 	  handleKeydown(e){
-	    if (0 != this.selectedHighlights.length){
-	      let lastSelected =
-	        this.selectedHighlights[this.selectedHighlights.length - 1];
-	      // esc
-	      if (e.keyCode === 27) {
-	        this.inputLabel.endEdit();
-	        this.unselectHighlight(lastSelected);
-	      }
-	
-	      // delete or back space
-	      if (e.keyCode === 46 || e.keyCode == 8) {
-	        if (document.body == e.target){
-	          e.preventDefault();
+	    let selected = this.getSelectedAnnotations();
+	    if (0 != selected.length) {
+	      let lastSelected = selected.sort(
+	        (a, b) => { return a - b; }
+	      ).pop();
+	      if (lastSelected instanceof Highlight) {
+	        // esc
+	        if (e.keyCode === 27) {
 	          this.inputLabel.endEdit();
-	          lastSelected.remove();
-	          this.highlighter.removeAnnotation(lastSelected);
 	          this.unselectHighlight(lastSelected);
-	
-	          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
 	        }
-	      }
-	    } else if (null != this.selectedRelation){
-	      // esc
-	      if (e.keyCode == 27) {
-	        this.inputLabel.endEdit();
-	        this.unselectRelation();
-	      }
 	
-	      // delete or back space
-	      if (e.keyCode === 46 || e.keyCode == 8) {
-	        if (document.body == e.target){
-	          e.preventDefault();
+	        // delete or back space
+	        if (e.keyCode === 46 || e.keyCode == 8) {
+	          if (document.body == e.target){
+	            e.preventDefault();
+	            this.inputLabel.endEdit();
+	            lastSelected.remove();
+	            this.highlighter.removeAnnotation(lastSelected);
+	            this.unselectHighlight(lastSelected);
+	
+	            this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+	          }
+	        }
+	      } else if (lastSelected instanceof RelationAnnotation) {
+	        // esc
+	        if (e.keyCode == 27) {
 	          this.inputLabel.endEdit();
-	          this.selectedRelation.remove();
-	          this.arrowConnector.removeAnnotation(this.selectedRelation);
 	          this.unselectRelation();
+	        }
 	
-	          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+	        // delete or back space
+	        if (e.keyCode === 46 || e.keyCode == 8) {
+	          if (document.body == e.target){
+	            e.preventDefault();
+	            this.inputLabel.endEdit();
+	            this.selectedRelation.remove();
+	            this.arrowConnector.removeAnnotation(this.selectedRelation);
+	            this.unselectRelation();
+	
+	            this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+	          }
 	        }
 	      }
 	    }
 	  }
 	
 	  handleMouseUp(e){
-	    this.inputLabel.endEdit();
+	    //this.inputLabel.endEdit();
 	
 	    if (
 	      !$(e.target).hasClass("htmlanno-circle") &&
 	      !$(e.target).hasClass("htmlanno-arrow")
 	    ) {
-	      this.unselectRelation();
-	      this.unselectHighlight();
+	      this.getSelectedAnnotations().forEach((annotation) => {
+	        annotation.blur();
+	      });
 	    }
 	    // else ... maybe fire an event from annotation or relation.
 	  }
@@ -343,41 +319,23 @@
 	  // When call without index, unselect all highlights.
 	  unselectHighlight(target){
 	    if (undefined == target){
-	      this.selectedHighlights.forEach((highlight)=>{
-	        highlight.blur();
+	      this.getSelectedAnnotations().forEach((annotation) => {
+	        if (annotation instanceof Highlight) {
+	          annotation.blur();
+	        }
 	      });
-	      this.selectedHighlights = [];
-	    } else if ('number' === typeof(target)) {
-	      while(target < this.selectedHighlights.length){
-	        this.selectedHighlights.pop().blur();
-	      }
-	      if (0 != this.selectedHighlights.length){
-	        this.selectedHighlights[this.selectedHighlights.length - 1].select();
-	      }
-	    } else{
-	      let index = this.selectedHighlights.findIndex((elm)=>{
-	        return elm === target;
-	      });
-	      return -1 == index ? false : this.unselectHighlight(index);
+	    } else {
+	      target.blur();
 	    }
 	    return true;
 	  }
 	
 	  unselectRelation(){
-	    if (null != this.selectedRelation){
-	      this.selectedRelation.blur();
-	      this.selectedRelation = null;
-	    }
-	  }
-	
-	  // Annotation (highliht and relation) hover in.
-	  handleAnnotationHoverIn(annotation){
-	    this.showLabel({target: annotation});
-	  }
-	
-	  // Annotation (highliht and relation) hover out.
-	  handleAnnotationHoverOut(annotation){
-	    this.clearLabel({target:annotation});
+	    this.getSelectedAnnotations().forEach((annotation) => {
+	      if (annotation instanceof RelationAnnotation) {
+	        annotation.blur();
+	      }
+	    });
 	  }
 	
 	  showLabel(e){
@@ -406,11 +364,20 @@
 	  }
 	
 	  handleAddRelation(params) {
-	    if (2 == this.selectedHighlights.length){
+	    let selected = this.getSelectedAnnotations();
+	    if (2 == selected.length) {
+	      let start = undefined;
+	      let end   = undefined;
+	      if (selected[0].selectedTimestamp < selected[1].selectedTimestamp) {
+	        start = selected[0];
+	        end   = selected[1];
+	      } else {
+	        start = selected[1];
+	        end   = selected[0];
+	      }
 	      this.selectedRelation = this.arrowConnector.createRelation(
 	        this.annotations.nextId(),
-	        this.selectedHighlights[0].circle,
-	        this.selectedHighlights[1].circle,
+	        start.circle, end.circle,
 	        params.type, params.text
 	      );
 	      this.unselectHighlight();
@@ -528,9 +495,7 @@
 	  }
 	
 	  getSelectedAnnotations() {
-	    return this.fileLoader.annotations.filter((annotation) => {
-	      return annotation.selected;
-	    });
+	    return this.annotations.getSelectedAnnotations();
 	  }
 	
 	  /**
@@ -552,6 +517,7 @@
 	  }
 	
 	  // For Anno-ui.
+	  // TODO: Anno-UI events 辺りで提供してほしい
 	  dispatchWindowEvent(eventName, data) {
 	    var event = document.createEvent('CustomEvent');
 	    event.initCustomEvent(eventName, true, true, data);
@@ -2611,12 +2577,6 @@
 	    _createSpanAnnotation = createSpanAnnotation
 	    _createRelAnnotation = createRelAnnotation
 	
-	    // set datalist.
-	    setDatalist()
-	
-	    // set actions.
-	    setupActions()
-	
 	    // Start to listen window events.
 	    listenWindowEvents()
 	
@@ -2647,7 +2607,7 @@
 	        const labelObject = d[type] || {}
 	        let labels
 	        if (labelObject.labels === undefined) {
-	            labels = ['&nbsp;']
+	            labels = [(type === 'span' ? 'span1' : 'relation1')]
 	        } else {
 	            labels = labelObject.labels
 	        }
@@ -2907,86 +2867,16 @@
 	}
 	
 	/**
-	 * Local storage key for datalist.
+	 * Set window event listeners.
 	 */
-	const LSKEY_DATALIST = '_pdfanno_datalist'
-	
-	function setDatalist () {
-	    // set datalist.
-	    let datalist = JSON.parse(localStorage.getItem(LSKEY_DATALIST) || '[]')
-	    const options = datalist.map(d => {
-	        return `<option value="${d}"></option>`
-	    })
-	    $('#labels').html(options)
-	}
-	
-	function setupActions () {
-	    // Setup datalist modal.
-	    $('#datalistModal').off().on('show.bs.modal', e => {
-	        // datalist.
-	        let datalist = JSON.parse(localStorage.getItem(LSKEY_DATALIST) || '[]')
-	
-	        // input for new.
-	        datalist.push('')
-	
-	        const snipets = datalist.map(d => {
-	            return `
-	            <li class="list-group-item">
-	                <input class="form-control js-input" value="${d}">
-	                <span class="glyphicon glyphicon-remove js-delete"></span>
-	            </li>
-	            `
-	        })
-	
-	        $('#datalistModal .js-datalist').html(snipets.join(''))
-	    })
-	
-	    $('#datalistModal').on('keyup', '.js-input', e => {
-	        const $this = $(e.currentTarget)
-	        const val = $this.val()
-	        const isEnd = $this.parent().is(':last-child')
-	
-	        if (isEnd && val && val.length > 0) {
-	            $('#datalistModal .js-datalist').append(`
-	                <li class="list-group-item">
-	                    <input class="form-control js-input" value="">
-	                    <span class="glyphicon glyphicon-remove js-delete"></span>
-	                </li>
-	            `)
-	        }
-	    })
-	
-	    $('#datalistModal').on('click', '.js-delete', e => {
-	        $(e.currentTarget).parent().remove()
-	    })
-	
-	    $('#datalistModal .js-done').on('click', e => {
-	        let datalist = []
-	        $('#datalistModal .js-datalist .js-input').each(function () {
-	            const val = $(this).val()
-	            if (val && val.length > 0) {
-	                datalist.push(val)
-	            }
-	        })
-	
-	        localStorage.setItem(LSKEY_DATALIST, JSON.stringify(datalist))
-	
-	        setDatalist()
-	
-	        $('#datalistModal').modal('hide')
-	    })
-	}
-	
 	function listenWindowEvents () {
 	    // enable text input.
 	    window.addEventListener('enableTextInput', e => {
-	        console.log('enableTextInput:', e.detail)
 	        enable(e.detail)
 	    })
 	
 	    // disable text input.
 	    window.addEventListener('disappearTextInput', e => {
-	        console.log('disappearTextInput:', e.detail)
 	        disable(e.detail)
 	    })
 	
@@ -15286,7 +15176,7 @@
 
 	const $ = __webpack_require__(1);
 	const Circle = __webpack_require__(12);
-	const globalEvent = window.globalEvent;
+	const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
 	const Annotation = __webpack_require__(13);
 	
 	class Highlight extends Annotation {
@@ -15310,14 +15200,14 @@
 	    this.elements.forEach((e)=>{
 	      $(e).addClass("htmlanno-border");
 	    });
-	    globalEvent.emit("annotationhoverin", this);
+	    this.dispatchWindowEvent('annotationHoverIn', this);
 	  }
 	
 	  handleHoverOut(e){
 	    this.elements.forEach((e)=>{
 	      $(e).removeClass("htmlanno-border");
 	    });
-	    globalEvent.emit("annotationhoverout", this);
+	    this.dispatchWindowEvent('annotationHoverOut', this);
 	  }
 	
 	  addCircle(){
@@ -15368,7 +15258,7 @@
 	
 	  blur(){
 	    this.removeClass("htmlanno-highlight-selected");
-	    this.hideLabel();
+	    super.blur();
 	  }
 	
 	  remove(){
@@ -15458,7 +15348,8 @@
 	    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
 	
 	    this.jObject.on("click", (e)=>{
-	      globalEvent.emit("highlightselect", {event: e, annotation: this.highlight});
+	      this.highlight.selected = true;
+	      highlight.dispatchWindowEvent('annotationSelected', highlight);
 	    });
 	
 	    this.resetHoverEvent();
@@ -15477,12 +15368,12 @@
 	
 	  handleHoverIn(e){
 	    e.stopPropagation();
-	    globalEvent.emit("annotationhoverin", this.highlight);
+	    this.highlight.dispatchWindowEvent('annotationHoverIn', this.highlight);
 	  }
 	
 	  handleHoverOut(e){
 	    e.stopPropagation();
-	    globalEvent.emit("annotationhoverout", this.highlight);
+	    this.highlight.dispatchWindowEvent('annotationHoverOut', this.highlight);
 	  }
 	
 	  domId(){
@@ -15591,12 +15482,16 @@
 
 /***/ }),
 /* 13 */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
+	const AnnoUI = __webpack_require__(5);
+	
 	class Annotation {
 	  constructor(id, referenceId) {
 	    this.id = id;
 	    this.referenceId = referenceId;
+	    this._selected = false;
+	    this._selectedTimestamp = undefined;
 	  }
 	
 	  getId() {
@@ -15656,8 +15551,33 @@
 	    return 0;
 	  }
 	
+	  get selected() {
+	    return this._selected;
+	  }
+	
+	  set selected(value) {
+	    this._selected = value;
+	    this._selectedTimestamp = value ? new Date() : undefined;
+	  }
+	
+	  get selectedTimestamp() {
+	    return this._selectedTimestamp;
+	  }
+	
+	  blur() {
+	    this.selected = false;
+	    this.dispatchWindowEvent('annotationDeselected');
+	  }
+	
 	  blink() {
 	    return;
+	  }
+	
+	  // TODO: Anno-UI events 辺りで提供してほしい
+	  dispatchWindowEvent(eventName, data) {
+	    let event = document.createEvent('CustomEvent')
+	    event.initCustomEvent(eventName, true, true, data)
+	    window.dispatchEvent(event)
 	  }
 	
 	  static createId(id, referenceId) {
@@ -15697,7 +15617,9 @@
 	    );
 	    this.arrow.appendTo($("#htmlanno-svg-screen"));
 	    this.arrow.on("click", (e)=>{
-	      globalEvent.emit("relationselect", {event: e, annotation: this});
+	      //globalEvent.emit("relationselect", {event: e, annotation: this});
+	      this.selected = true;
+	      this.dispatchWindowEvent('annotationSelected', this);
 	    });
 	    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
 	    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
@@ -15735,6 +15657,7 @@
 	
 	  blur(){
 	    this.arrow.blur();
+	    super.blur();
 	  }
 	
 	  remove(){
@@ -15744,12 +15667,12 @@
 	
 	  handleHoverIn(e){
 	    this.arrow.handleHoverIn();
-	    globalEvent.emit("annotationhoverin", this);
+	    this.dispatchWindowEvent('annotationHoverIn', this);
 	  }
 	
 	  handleHoverOut(e){
 	    this.arrow.handleHoverOut();
-	    globalEvent.emit("annotationhoverout", this);
+	    this.dispatchWindowEvent('annotationHoverOut', this);
 	  }
 	
 	  saveToml(){
@@ -18344,8 +18267,14 @@
 	    return list;
 	  }
 	
-	  // TODO: pdfanno only
 	  getSelectedAnnotations(){
+	    let list = [];
+	    this.set.forEach((annotation) => {
+	      if (annotation.selected) {
+	        list.push(annotation);
+	      }
+	    });
+	    return list;
 	  }
 	
 	  // TODO: pdfanno only
@@ -18609,7 +18538,7 @@
 	  _categorize(files){
 	    let htmlMatcher  = new RegExp(/.+\.xhtml$/i);
 	    let textMatcher  = new RegExp(/.+\.txt$/i);
-	    let annoMatcher = new RegExp(/.+\.anno$/i);
+	    let annoMatcher = new RegExp(/.+\.htmlanno$/i);
 	
 	    let htmlNames = [];
 	    let textNames = [];
