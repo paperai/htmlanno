@@ -74,8 +74,14 @@ class AnnotationContainer{
     return list;
   }
 
-  // TODO: pdfanno only
   getSelectedAnnotations(){
+    let list = [];
+    this.set.forEach((annotation) => {
+      if (annotation.selected) {
+        list.push(annotation);
+      }
+    });
+    return list;
   }
 
   // TODO: pdfanno only
