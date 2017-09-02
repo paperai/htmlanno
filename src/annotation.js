@@ -1,7 +1,11 @@
+const AnnoUI = require('anno-ui');
+
 class Annotation {
   constructor(id, referenceId) {
     this.id = id;
     this.referenceId = referenceId;
+    this._selected = false;
+    this._selectedTimestamp = undefined;
   }
 
   getId() {
@@ -61,8 +65,33 @@ class Annotation {
     return 0;
   }
 
+  get selected() {
+    return this._selected;
+  }
+
+  set selected(value) {
+    this._selected = value;
+    this._selectedTimestamp = value ? new Date() : undefined;
+  }
+
+  get selectedTimestamp() {
+    return this._selectedTimestamp;
+  }
+
+  blur() {
+    this.selected = false;
+    this.dispatchWindowEvent('annotationDeselected');
+  }
+
   blink() {
     return;
+  }
+
+  // TODO: Anno-UI events 辺りで提供してほしい
+  dispatchWindowEvent(eventName, data) {
+    let event = document.createEvent('CustomEvent')
+    event.initCustomEvent(eventName, true, true, data)
+    window.dispatchEvent(event)
   }
 
   static createId(id, referenceId) {
