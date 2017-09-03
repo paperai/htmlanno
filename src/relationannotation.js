@@ -65,8 +65,10 @@ class RelationAnnotation extends Annotation {
   }
 
   remove(){
+    this.blur();
     this.arrow.remove();
     globalEvent.removeObject(this);
+    this.dispatchWindowEvent('annotationDeleted', this);
   }
 
   handleHoverIn(e){
