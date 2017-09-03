@@ -11,7 +11,6 @@ const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
 const AnnotationContainer = require("./annotationcontainer.js");
-const InputLabel = require("./inputlabel");
 const FileLoader = require("./fileloader.js");
 const Highlight = require("./highlight.js");
 const RelationAnnotation = require("./relationannotation.js");
@@ -22,10 +21,7 @@ class Htmlanno{
     this.annotations = new AnnotationContainer();
     this.highlighter = new Highlighter(this.annotations);
     this.arrowConnector = new ArrowConnector(this.annotations);
-    this.inputLabel = new InputLabel($("#inputLabel"));
     this.handleResize();
-    this.selectedHighlights = [];
-    this.selectedRelation   = null;
 
     // The contents and annotations from files.
     this.fileLoader = new FileLoader();
@@ -33,10 +29,6 @@ class Htmlanno{
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
     globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
-
-    globalEvent.on(this, "showlabel", this.showLabel.bind(this));
-    globalEvent.on(this, "clearlabel", this.clearLabel.bind(this));
-    globalEvent.on(this, "editlabel", this.editLabel.bind(this));
 
     globalEvent.on(this, "removearrowannotation", (data)=>{
       this.arrowConnector.removeAnnotation(data);
@@ -140,16 +132,17 @@ class Htmlanno{
     $(document).on("keydown", (e)=>{
       globalEvent.emit("keydown", e);
     });
-    $(window).on("resize", (e)=>{
-      globalEvent.emit("resizewindow", e);
-    });
 
     $("#viewer").on("mouseup", (e)=>{
       globalEvent.emit("mouseup", e);
     });
 
-    // NEED. (for prevent from deselecting text.)
-    $(window).on("mousedown", (e) =>{
+    let windowObj = $(window);
+    windowObj.on("resize", (e)=>{
+      globalEvent.emit("resizewindow", e);
+    });
+
+    windowObj.on("mousedown", (e) =>{
       this.handleMouseDown(e);
     });
   }
@@ -171,7 +164,7 @@ class Htmlanno{
     }
   }
 
-  // HtmlAnno only, remove?
+  // HtmlAnno only, NEED.
   handleKeydown(e){
     let selected = this.getSelectedAnnotations();
     if (0 != selected.length) {
@@ -181,7 +174,6 @@ class Htmlanno{
       if (lastSelected instanceof Highlight) {
         // esc
         if (e.keyCode === 27) {
-          this.inputLabel.endEdit();
           this.unselectHighlight(lastSelected);
         }
 
@@ -189,18 +181,13 @@ class Htmlanno{
         if (e.keyCode === 46 || e.keyCode == 8) {
           if (document.body == e.target){
             e.preventDefault();
-            this.inputLabel.endEdit();
             lastSelected.remove();
-            this.highlighter.removeAnnotation(lastSelected);
-            this.unselectHighlight(lastSelected);
-
-            this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+            this.annotations.remove(lastSelected);
           }
         }
       } else if (lastSelected instanceof RelationAnnotation) {
         // esc
         if (e.keyCode == 27) {
-          this.inputLabel.endEdit();
           this.unselectRelation();
         }
 
@@ -208,12 +195,8 @@ class Htmlanno{
         if (e.keyCode === 46 || e.keyCode == 8) {
           if (document.body == e.target){
             e.preventDefault();
-            this.inputLabel.endEdit();
-            this.selectedRelation.remove();
-            this.arrowConnector.removeAnnotation(this.selectedRelation);
-            this.unselectRelation();
-
-            this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+            lastSelected.remove();
+            this.annotations.remove(lastSelected);
           }
         }
       }
@@ -221,8 +204,6 @@ class Htmlanno{
   }
 
   handleMouseUp(e){
-    //this.inputLabel.endEdit();
-
     if (
       !$(e.target).hasClass("htmlanno-circle") &&
       !$(e.target).hasClass("htmlanno-arrow")
@@ -260,26 +241,6 @@ class Htmlanno{
     });
   }
 
-  showLabel(e){
-    if (!this.inputLabel.editing()){
-      this.inputLabel.show(e.target.content());
-    }
-  }
-
-  clearLabel(){
-    if (!this.inputLabel.editing()){
-      this.inputLabel.clear();
-    }
-  }
-
-  editLabel(e){
-    if (!this.inputLabel.editing()){
-      this.inputLabel.startEdit(
-        e.target.content(), e.target.setContent.bind(e.target)
-      );
-    }
-  }
-
   handleAddSpan(label){
     this.highlighter.highlight(label.text);
     this.dispatchWindowEvent('annotationrendered');
@@ -297,14 +258,14 @@ class Htmlanno{
         start = selected[1];
         end   = selected[0];
       }
-      this.selectedRelation = this.arrowConnector.createRelation(
+      let relation = this.arrowConnector.createRelation(
         this.annotations.nextId(),
         start.circle, end.circle,
         params.type, params.text
       );
       this.unselectHighlight();
-      this.selectedRelation.select();
       this.dispatchWindowEvent('annotationrendered');
+      relation.select();
     }
   }
 

@@ -94,6 +94,7 @@ class Highlight extends Annotation {
     $(`.${this.getClassName()}`).each(function() {
       $(this).replaceWith(this.childNodes);
     });
+    this.dispatchWindowEvent('annotationDeleted', this);
   }
 
   saveToml(){
@@ -125,14 +126,6 @@ class Highlight extends Annotation {
 
   content(){
     return $(`.${this.getClassName()}`)[0].getAttribute('data-label');
-  }
-
-  showLabel(){
-    globaleEvent.emit("showlabel", {target: this});
-  }
-
-  hideLabel(){
-    globalEvent.emit("clearlabel");
   }
 
   get type() {
