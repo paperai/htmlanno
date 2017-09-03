@@ -15,8 +15,7 @@ class Circle{
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
 
     this.jObject.on("click", (e)=>{
-      this.highlight.selected = true;
-      highlight.dispatchWindowEvent('annotationSelected', highlight);
+      this.highlight.select();
     });
 
     this.resetHoverEvent();

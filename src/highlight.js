@@ -73,10 +73,13 @@ class Highlight extends Annotation {
     });
   }
 
-  select(showOnly){
-    this.addClass("htmlanno-highlight-selected");
-    if (undefined == showOnly || !showOnly){
-      globalEvent.emit("editlabel", {target: this});
+  select(){
+    if (this.selected) {
+      this.blur();
+    } else {
+      this.addClass("htmlanno-highlight-selected");
+      this.selected = true;
+      this.dispatchWindowEvent('annotationSelected', this);
     }
   }
 
