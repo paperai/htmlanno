@@ -78,8 +78,7 @@
 	const Circle = __webpack_require__(12);
 	const ArrowConnector = __webpack_require__(20);
 	const AnnotationContainer = __webpack_require__(21);
-	const InputLabel = __webpack_require__(22);
-	const FileLoader = __webpack_require__(23);
+	const FileLoader = __webpack_require__(22);
 	const Highlight = __webpack_require__(11);
 	const RelationAnnotation = __webpack_require__(14);
 	
@@ -89,10 +88,7 @@
 	    this.annotations = new AnnotationContainer();
 	    this.highlighter = new Highlighter(this.annotations);
 	    this.arrowConnector = new ArrowConnector(this.annotations);
-	    this.inputLabel = new InputLabel($("#inputLabel"));
 	    this.handleResize();
-	    this.selectedHighlights = [];
-	    this.selectedRelation   = null;
 	
 	    // The contents and annotations from files.
 	    this.fileLoader = new FileLoader();
@@ -100,13 +96,6 @@
 	    globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
 	    globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
 	    globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
-	
-	    globalEvent.on(this, "relationselect",
-	      this.handleRelationSelect.bind(this));
-	
-	    globalEvent.on(this, "showlabel", this.showLabel.bind(this));
-	    globalEvent.on(this, "clearlabel", this.clearLabel.bind(this));
-	    globalEvent.on(this, "editlabel", this.editLabel.bind(this));
 	
 	    globalEvent.on(this, "removearrowannotation", (data)=>{
 	      this.arrowConnector.removeAnnotation(data);
@@ -210,26 +199,19 @@
 	    $(document).on("keydown", (e)=>{
 	      globalEvent.emit("keydown", e);
 	    });
-	    $(window).on("resize", (e)=>{
-	      globalEvent.emit("resizewindow", e);
-	    });
 	
 	    $("#viewer").on("mouseup", (e)=>{
 	      globalEvent.emit("mouseup", e);
 	    });
 	
-	    // NEED. (for prevent from deselecting text.)
-	    $(window).on("mousedown", (e) =>{
+	    let windowObj = $(window);
+	    windowObj.on("resize", (e)=>{
+	      globalEvent.emit("resizewindow", e);
+	    });
+	
+	    windowObj.on("mousedown", (e) =>{
 	      this.handleMouseDown(e);
 	    });
-	  }
-	
-	  handleRelationSelect(data){
-	    this.inputLabel.endEdit();
-	    this.unselectRelation();
-	    this.unselectHighlight();
-	    this.selectedRelation = data.annotation;
-	    data.annotation.select();
 	  }
 	
 	  handleResize(){
@@ -249,7 +231,7 @@
 	    }
 	  }
 	
-	  // HtmlAnno only, remove?
+	  // HtmlAnno only, NEED.
 	  handleKeydown(e){
 	    let selected = this.getSelectedAnnotations();
 	    if (0 != selected.length) {
@@ -259,7 +241,6 @@
 	      if (lastSelected instanceof Highlight) {
 	        // esc
 	        if (e.keyCode === 27) {
-	          this.inputLabel.endEdit();
 	          this.unselectHighlight(lastSelected);
 	        }
 	
@@ -267,18 +248,13 @@
 	        if (e.keyCode === 46 || e.keyCode == 8) {
 	          if (document.body == e.target){
 	            e.preventDefault();
-	            this.inputLabel.endEdit();
 	            lastSelected.remove();
-	            this.highlighter.removeAnnotation(lastSelected);
-	            this.unselectHighlight(lastSelected);
-	
-	            this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+	            this.annotations.remove(lastSelected);
 	          }
 	        }
 	      } else if (lastSelected instanceof RelationAnnotation) {
 	        // esc
 	        if (e.keyCode == 27) {
-	          this.inputLabel.endEdit();
 	          this.unselectRelation();
 	        }
 	
@@ -286,12 +262,8 @@
 	        if (e.keyCode === 46 || e.keyCode == 8) {
 	          if (document.body == e.target){
 	            e.preventDefault();
-	            this.inputLabel.endEdit();
-	            this.selectedRelation.remove();
-	            this.arrowConnector.removeAnnotation(this.selectedRelation);
-	            this.unselectRelation();
-	
-	            this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+	            lastSelected.remove();
+	            this.annotations.remove(lastSelected);
 	          }
 	        }
 	      }
@@ -299,8 +271,6 @@
 	  }
 	
 	  handleMouseUp(e){
-	    //this.inputLabel.endEdit();
-	
 	    if (
 	      !$(e.target).hasClass("htmlanno-circle") &&
 	      !$(e.target).hasClass("htmlanno-arrow")
@@ -338,26 +308,6 @@
 	    });
 	  }
 	
-	  showLabel(e){
-	    if (!this.inputLabel.editing()){
-	      this.inputLabel.show(e.target.content());
-	    }
-	  }
-	
-	  clearLabel(){
-	    if (!this.inputLabel.editing()){
-	      this.inputLabel.clear();
-	    }
-	  }
-	
-	  editLabel(e){
-	    if (!this.inputLabel.editing()){
-	      this.inputLabel.startEdit(
-	        e.target.content(), e.target.setContent.bind(e.target)
-	      );
-	    }
-	  }
-	
 	  handleAddSpan(label){
 	    this.highlighter.highlight(label.text);
 	    this.dispatchWindowEvent('annotationrendered');
@@ -375,14 +325,14 @@
 	        start = selected[1];
 	        end   = selected[0];
 	      }
-	      this.selectedRelation = this.arrowConnector.createRelation(
+	      let relation = this.arrowConnector.createRelation(
 	        this.annotations.nextId(),
 	        start.circle, end.circle,
 	        params.type, params.text
 	      );
 	      this.unselectHighlight();
-	      this.selectedRelation.select();
 	      this.dispatchWindowEvent('annotationrendered');
+	      relation.select();
 	    }
 	  }
 	
@@ -15249,10 +15199,13 @@
 	    });
 	  }
 	
-	  select(showOnly){
-	    this.addClass("htmlanno-highlight-selected");
-	    if (undefined == showOnly || !showOnly){
-	      globalEvent.emit("editlabel", {target: this});
+	  select(){
+	    if (this.selected) {
+	      this.blur();
+	    } else {
+	      this.addClass("htmlanno-highlight-selected");
+	      this.selected = true;
+	      this.dispatchWindowEvent('annotationSelected', this);
 	    }
 	  }
 	
@@ -15267,6 +15220,7 @@
 	    $(`.${this.getClassName()}`).each(function() {
 	      $(this).replaceWith(this.childNodes);
 	    });
+	    this.dispatchWindowEvent('annotationDeleted', this);
 	  }
 	
 	  saveToml(){
@@ -15298,14 +15252,6 @@
 	
 	  content(){
 	    return $(`.${this.getClassName()}`)[0].getAttribute('data-label');
-	  }
-	
-	  showLabel(){
-	    globaleEvent.emit("showlabel", {target: this});
-	  }
-	
-	  hideLabel(){
-	    globalEvent.emit("clearlabel");
 	  }
 	
 	  get type() {
@@ -15348,8 +15294,7 @@
 	    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
 	
 	    this.jObject.on("click", (e)=>{
-	      this.highlight.selected = true;
-	      highlight.dispatchWindowEvent('annotationSelected', highlight);
+	      this.highlight.select();
 	    });
 	
 	    this.resetHoverEvent();
@@ -15617,9 +15562,7 @@
 	    );
 	    this.arrow.appendTo($("#htmlanno-svg-screen"));
 	    this.arrow.on("click", (e)=>{
-	      //globalEvent.emit("relationselect", {event: e, annotation: this});
-	      this.selected = true;
-	      this.dispatchWindowEvent('annotationSelected', this);
+	      this.select();
 	    });
 	    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
 	    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
@@ -15651,8 +15594,13 @@
 	  }
 	
 	  select(){
-	    this.arrow.select();
-	    globalEvent.emit("editlabel", {target: this});
+	    if (this.selected) {
+	      this.blur();
+	    } else {
+	      this.arrow.select();
+	      this.selected = true;
+	      this.dispatchWindowEvent('annotationSelected', this);
+	    }
 	  }
 	
 	  blur(){
@@ -15661,8 +15609,10 @@
 	  }
 	
 	  remove(){
+	    this.blur();
 	    this.arrow.remove();
 	    globalEvent.removeObject(this);
+	    this.dispatchWindowEvent('annotationDeleted', this);
 	  }
 	
 	  handleHoverIn(e){
@@ -18290,67 +18240,6 @@
 
 /***/ }),
 /* 22 */
-/***/ (function(module, exports) {
-
-	class InputLabel{
-	  constructor(inputObject){
-	    this.inputObject = inputObject;
-	    this.endEditingListener = undefined;
-	    this._editing = false;
-	  }
-	
-	  enable(){
-	    $(this.inputObject)
-	      .on("focusout", this.endEdit.bind(this))
-	      .on("blur", this.endEdit.bind(this))
-	      .removeAttr("disabled");
-	  }
-	
-	  disable(){
-	    $(this.inputObject)
-	      .off("focusout")
-	      .off("blur")
-	      .attr("disabled", "disabled")
-	      .blur()
-	      .val("");
-	  }
-	
-	  startEdit(value, endEditingListener){
-	    this.endEditingListener = endEditingListener;
-	    this._editing = true;
-	    this.show(value);
-	    this.enable();
-	  }
-	
-	  endEdit(){
-	    if (this._editing){
-	      let value = $(this.inputObject).val();
-	      this.disable();
-	      this._editing = false;
-	      if (this.endEditingListener) {
-	        this.endEditingListener(value);
-	        this.endEditingListener = null;
-	      }
-	    }
-	  }
-	
-	  show(value){
-	    $(this.inputObject).val(value);
-	  }
-	
-	  clear(){
-	    $(this.inputObject).val("");
-	  }
-	
-	  editing(){
-	    return this._editing;
-	  }
-	}
-	module.exports = InputLabel;
-
-
-/***/ }),
-/* 23 */
 /***/ (function(module, exports) {
 
 	class FileLoader{
