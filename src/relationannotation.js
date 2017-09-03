@@ -18,7 +18,7 @@ class RelationAnnotation extends Annotation {
     );
     this.arrow.appendTo($("#htmlanno-svg-screen"));
     this.arrow.on("click", (e)=>{
-      globalEvent.emit("relationselect", {event: e, annotation: this});
+      this.select();
     });
     this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
     this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
@@ -50,27 +50,35 @@ class RelationAnnotation extends Annotation {
   }
 
   select(){
-    this.arrow.select();
-    globalEvent.emit("editlabel", {target: this});
+    if (this.selected) {
+      this.blur();
+    } else {
+      this.arrow.select();
+      this.selected = true;
+      this.dispatchWindowEvent('annotationSelected', this);
+    }
   }
 
   blur(){
     this.arrow.blur();
+    super.blur();
   }
 
   remove(){
+    this.blur();
     this.arrow.remove();
     globalEvent.removeObject(this);
+    this.dispatchWindowEvent('annotationDeleted', this);
   }
 
   handleHoverIn(e){
     this.arrow.handleHoverIn();
-    globalEvent.emit("annotationhoverin", this);
+    this.dispatchWindowEvent('annotationHoverIn', this);
   }
 
   handleHoverOut(e){
     this.arrow.handleHoverOut();
-    globalEvent.emit("annotationhoverout", this);
+    this.dispatchWindowEvent('annotationHoverOut', this);
   }
 
   saveToml(){

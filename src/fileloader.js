@@ -183,7 +183,7 @@ class FileLoader{
   _categorize(files){
     let htmlMatcher  = new RegExp(/.+\.xhtml$/i);
     let textMatcher  = new RegExp(/.+\.txt$/i);
-    let annoMatcher = new RegExp(/.+\.anno$/i);
+    let annoMatcher = new RegExp(/.+\.htmlanno$/i);
 
     let htmlNames = [];
     let textNames = [];

@@ -1,6 +1,6 @@
 const $ = require("jquery");
 const Circle = require("./circle.js");
-const globalEvent = window.globalEvent;
+const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
 const Annotation = require("./annotation.js");
 
 class Highlight extends Annotation {
@@ -24,14 +24,14 @@ class Highlight extends Annotation {
     this.elements.forEach((e)=>{
       $(e).addClass("htmlanno-border");
     });
-    globalEvent.emit("annotationhoverin", this);
+    this.dispatchWindowEvent('annotationHoverIn', this);
   }
 
   handleHoverOut(e){
     this.elements.forEach((e)=>{
       $(e).removeClass("htmlanno-border");
     });
-    globalEvent.emit("annotationhoverout", this);
+    this.dispatchWindowEvent('annotationHoverOut', this);
   }
 
   addCircle(){
@@ -73,16 +73,19 @@ class Highlight extends Annotation {
     });
   }
 
-  select(showOnly){
-    this.addClass("htmlanno-highlight-selected");
-    if (undefined == showOnly || !showOnly){
-      globalEvent.emit("editlabel", {target: this});
+  select(){
+    if (this.selected) {
+      this.blur();
+    } else {
+      this.addClass("htmlanno-highlight-selected");
+      this.selected = true;
+      this.dispatchWindowEvent('annotationSelected', this);
     }
   }
 
   blur(){
     this.removeClass("htmlanno-highlight-selected");
-    this.hideLabel();
+    super.blur();
   }
 
   remove(){
@@ -91,6 +94,7 @@ class Highlight extends Annotation {
     $(`.${this.getClassName()}`).each(function() {
       $(this).replaceWith(this.childNodes);
     });
+    this.dispatchWindowEvent('annotationDeleted', this);
   }
 
   saveToml(){
@@ -122,14 +126,6 @@ class Highlight extends Annotation {
 
   content(){
     return $(`.${this.getClassName()}`)[0].getAttribute('data-label');
-  }
-
-  showLabel(){
-    globaleEvent.emit("showlabel", {target: this});
-  }
-
-  hideLabel(){
-    globalEvent.emit("clearlabel");
   }
 
   get type() {
