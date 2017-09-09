@@ -212,6 +212,10 @@
 	    windowObj.on("mousedown", (e) =>{
 	      this.handleMouseDown(e);
 	    });
+	
+	    window.addEventListener('open-alert-dialog', (e) => {
+	      AnnoUI.ui.alertDialog.show(e.detail);
+	    });
 	  }
 	
 	  handleResize(){
@@ -309,8 +313,11 @@
 	  }
 	
 	  handleAddSpan(label){
-	    this.highlighter.highlight(label.text);
-	    this.dispatchWindowEvent('annotationrendered');
+	    let span = this.highlighter.highlight(label.text);
+	    if (undefined != span) {
+	      this.dispatchWindowEvent('annotationrendered');
+	      span.select();
+	    }
 	  }
 	
 	  handleAddRelation(params) {
@@ -333,6 +340,11 @@
 	      this.unselectHighlight();
 	      this.dispatchWindowEvent('annotationrendered');
 	      relation.select();
+	    } else {
+	      this.dispatchWindowEvent(
+	        'open-alert-dialog',
+	        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
+	      );
 	    }
 	  }
 	
@@ -345,13 +357,11 @@
 	  displayPrimaryAnnotation(fileName) {
 	    let annotation = this.fileLoader.getAnnotation(fileName);
 	    annotation.primary = true;
-	    this.remove();
 	    TomlTool.loadToml(
 	      annotation.content,
 	      this.highlighter,
 	      this.arrowConnector
 	    );
-	    
 	    this.dispatchWindowEvent('annotationrendered');
 	  }
 	
@@ -364,41 +374,60 @@
 	    this.remove();
 	  }
 	
-	  // TODO: 色設定
 	  displayReferenceAnnotation(fileNames) {
-	    // TODO: この処理はanno-ui側に入れてもらいたい
-	    let hideAnnoNames = [];
-	    $('#dropdownAnnoReference a').each((index, element) => {
-	      let $elm = $(element);
-	      if ($elm.find('.fa-check').hasClass('no-visible') === true) {
-	        hideAnnoNames.push($elm.find('.js-annoname').text());
-	      }
-	    });
-	    this.hideReferenceAnnotation(hideAnnoNames);
+	    this.hideReferenceAnnotation(this.getUiAnnotations(true));
 	
-	    let annotations = this.fileLoader.getAnnotations(fileNames);
-	    annotations.forEach((annotation) => {
-	      if (!annotation.primary && !annotation.reference) {
+	    let selectedUiAnnotations = this.getUiAnnotations(false);
+	    selectedUiAnnotations.forEach((uiAnnotation) => {
+	      let annotation = this.fileLoader.getAnnotation(uiAnnotation.name);
+	      if (annotation.reference) {
+	        this.annotations.forEach((annotationObj) => {
+	          if (uiAnnotation.name == annotationObj.referenceId) {
+	            annotationObj.setColor(uiAnnotation.color);
+	          }
+	        });
+	      } else {
 	        annotation.reference = true;
 	        TomlTool.loadToml(
 	          annotation.content,
 	          this.highlighter,
 	          this.arrowConnector,
-	          annotation.name
+	          uiAnnotation.name,
+	          uiAnnotation.color
 	        );
 	      }
 	    });
 	    this.dispatchWindowEvent('annotationrendered');
 	  }
 	
-	  hideReferenceAnnotation(fileNames) {
-	    let annotations = this.fileLoader.getAnnotations(fileNames);
+	  hideReferenceAnnotation(uiAnnotations) {
+	    let annotations = this.fileLoader.getAnnotations(
+	      uiAnnotations.map((ann) => {
+	        return ann.name;
+	      })
+	    );
 	    annotations.forEach((annotation) => {
 	      if (annotation.reference) {
 	        annotation.reference = false;
 	        this.remove(annotation.name);
 	      }
 	    });
+	  }
+	
+	  // TODO: この処理はanno-ui側に入れてもらいたい
+	  getUiAnnotations(not_selected) {
+	    not_selected = undefined == not_selected ? true: not_selected;
+	    let uiAnnotations = [];
+	    $('#dropdownAnnoReference a').each((index, element) => {
+	      let $elm = $(element);
+	      if ($elm.find('.fa-check').hasClass('no-visible') === not_selected) {
+	        uiAnnotations.push({
+	          name: $elm.find('.js-annoname').text(),
+	          color: $elm.find('.sp-preview-inner').css('background-color')
+	        });
+	      }
+	    });
+	    return uiAnnotations;
 	  }
 	
 	  loadFiles(files) {
@@ -7149,6 +7178,7 @@
 	const rangy = __webpack_require__(10);
 	const Highlight = __webpack_require__(11);
 	const RelationAnnotation = __webpack_require__(14);
+	const Annotation = __webpack_require__(13);
 	
 	exports.saveToml = (annotationSet)=>{
 	  let data = ["version = 0.1"];
@@ -7166,7 +7196,7 @@
 	 * @param arrowConnector ... Relation annotation container.
 	 * @param referenceId (optional) ... Used to identify annotations.
 	 */
-	exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId)=>{
+	exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId, color)=>{
 	  const renderAnnotation = (toml)=>{
 	    let data = TomlParser.parse(toml);
 	    for(key in data) {
@@ -7181,6 +7211,9 @@
 	      // Relation(one-way, two-way, or link)
 	      if (RelationAnnotation.isMydata(data[key])) {
 	        annotation = arrowConnector.addToml(key, data[key], referenceId);
+	      }
+	      if (undefined != color) {
+	        annotation.setColor(color);
 	      }
 	    }
 	  };
@@ -15140,7 +15173,9 @@
 	
 	    this.addCircle();
 	    this.setClass();
-	    $(`.${this.getClassName()}`).hover(
+	    this.jObject = $(`.${this.getClassName()}`);
+	
+	    this.jObject.hover(
 	        this.handleHoverIn.bind(this),
 	        this.handleHoverOut.bind(this)
 	    );
@@ -15217,9 +15252,11 @@
 	  remove(){
 	    this.blur();
 	    this.circle.remove();
-	    $(`.${this.getClassName()}`).each(function() {
-	      $(this).replaceWith(this.childNodes);
+	    // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
+	    $(`.${this.getClassName()}`).each((i, elm) => {
+	      $(elm).replaceWith(elm.childNodes);
 	    });
+	    this.jObject = null;
 	    this.dispatchWindowEvent('annotationDeleted', this);
 	  }
 	
@@ -15247,11 +15284,11 @@
 	  }
 	
 	  setContent(text){
-	    $(`.${this.getClassName()}`)[0].setAttribute('data-label', text);
+	    this.jObject[0].setAttribute('data-label', text);
 	  }
 	
 	  content(){
-	    return $(`.${this.getClassName()}`)[0].getAttribute('data-label');
+	    return this.jObject[0].getAttribute('data-label');
 	  }
 	
 	  get type() {
@@ -15268,6 +15305,14 @@
 	      this.circle.jObject.removeClass('htmlanno-circle-hover');
 	    }, 1000);
 	  }
+	
+	  setColor(color) {
+	    this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
+	  }
+	
+	  removeColor() {
+	    this.jObject[0].style.backgroundColor = undefined;
+	  } 
 	}
 	
 	module.exports = Highlight;
@@ -15297,14 +15342,6 @@
 	      this.highlight.select();
 	    });
 	
-	    this.resetHoverEvent();
-	  }
-	
-	  disableHoverAction(){
-	    this.jObject.off("mouseenter").off("mouseleave");
-	  }
-	
-	  resetHoverEvent(){
 	    this.jObject.hover(
 	      this.handleHoverIn.bind(this),
 	      this.handleHoverOut.bind(this)
@@ -15518,6 +15555,12 @@
 	    return;
 	  }
 	
+	  setColor(color) {
+	  }
+	
+	  removeColor() {
+	  }
+	
 	  // TODO: Anno-UI events 辺りで提供してほしい
 	  dispatchWindowEvent(eventName, data) {
 	    let event = document.createEvent('CustomEvent')
@@ -15661,6 +15704,14 @@
 	
 	  getClassName() {
 	    return this.arrow.domId();
+	  }
+	
+	  setColor(color) {
+	    this.arrow.setColor(color);
+	  }
+	
+	  removeColor() {
+	    this.arrow.removeColor();
 	  }
 	
 	  get type() {
@@ -15836,6 +15887,16 @@
 	  extension(){
 	    return this.jObject[0].getAttribute('data-ext');
 	  }
+	
+	  setColor(color) {
+	    this.jObject[0].style.stroke = color;
+	    this.jObject[0].setAttribute('opacity', '0.2');
+	  }
+	
+	  removeColor() {
+	    this.jObject[0].style.stroke = undefined;
+	    this.jObject[0].removeAttribute('opacity');
+	  }
 	}
 	
 	module.exports = RenderRelation;
@@ -15853,7 +15914,6 @@
 	
 	const Highlight = __webpack_require__(11);
 	const Annotation = __webpack_require__(13);
-	const globalEvent = window.globalEvent;
 	
 	class Highlighter{
 	  constructor(annotationContainer){
@@ -15926,6 +15986,12 @@
 	
 	  highlight(label){
 	    const selection = rangy.getSelection();
+	    if (0 == selection.rangeCount){
+	      this.dispatchWindowEvent(
+	        'open-alsert-dialog', {message: 'Text span is not selected.'}
+	      );
+	      return;
+	    }
 	    if (selection.isCollapsed){
 	      return;
 	    }
@@ -15936,7 +16002,7 @@
 	    return this.create(id, startOffset, endOffset, label);
 	  }
 	
-	  create(id, startOffset, endOffset, text, referenceId, addOnly){
+	  create(id, startOffset, endOffset, text, referenceId){
 	    this.selectRange(startOffset, endOffset);
 	    const selection = rangy.getSelection();
 	    if (selection.isCollapsed){
@@ -15963,12 +16029,6 @@
 	      );
 	      highlight.setContent(text);
 	
-	      if (undefined == addOnly || !addOnly) {
-	        globalEvent.emit(
-	          "highlightselect", {event: undefined, annotation: highlight}
-	        );
-	      }
-	
 	      // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
 	      this.highlights.add(highlight);
 	    }
@@ -15984,7 +16044,7 @@
 	      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
 	      const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
 	      let span = this.create(
-	        parseInt(id), startOffset, endOffset, toml.label, referenceId, true
+	        parseInt(id), startOffset, endOffset, toml.label, referenceId
 	      );
 	      span.blur();
 	
@@ -15997,22 +16057,39 @@
 	  }
 	
 	  remove(referenceId){
-	    this.highlighter.removeAllHighlights();
 	    this.highlights.forEach((annotation, i)=>{
 	      if (annotation instanceof Highlight){
 	        if (undefined != referenceId) {
 	          if (referenceId == annotation.getReferenceId()) {
-	            this.highlights.remove(i);
+	            this._remove(annotation, i);
 	          }
 	        } else {
-	          this.highlights.remove(i);
+	          this._remove(annotation, i);
 	        }
 	      }
 	    });
 	  }
 	
+	  _remove(annotation, index) {
+	    let rangySelection = rangy.getSelection();
+	    annotation.elements.forEach((rangyHighlight) => {
+	      let range = rangy.createRange();
+	      range.selectNodeContents(rangyHighlight);
+	      rangySelection.addRange(range);
+	    });
+	    this.highlighter.unhighlightSelection(rangySelection);
+	    this.highlights.remove(index);
+	  }
+	
 	  removeAnnotation(highlight){
 	    this.highlights.remove(highlight);
+	  }
+	
+	  // TODO: Anno-UI events 辺りで提供してほしい
+	  dispatchWindowEvent(eventName, data) {
+	    let event = document.createEvent('CustomEvent')
+	    event.initCustomEvent(eventName, true, true, data)
+	    window.dispatchEvent(event)
 	  }
 	}
 	
@@ -18093,8 +18170,8 @@
 	    this.annotations.add(data);
 	  }
 	
-	  createRelation(id, startingCircle, endingCircle, direction, text){
-	    let relation = new RelationAnnotation(id, startingCircle, endingCircle, direction);
+	  createRelation(id, startingCircle, endingCircle, direction, text, referenceId){
+	    let relation = new RelationAnnotation(id, startingCircle, endingCircle, direction, referenceId);
 	    this.annotations.add(relation);
 	    relation.setContent(text);
 	
