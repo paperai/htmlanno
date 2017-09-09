@@ -242,8 +242,9 @@ class Htmlanno{
   }
 
   handleAddSpan(label){
-    this.highlighter.highlight(label.text);
+    let span = this.highlighter.highlight(label.text);
     this.dispatchWindowEvent('annotationrendered');
+    span.select();
   }
 
   handleAddRelation(params) {

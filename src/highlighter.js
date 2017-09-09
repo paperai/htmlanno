@@ -6,7 +6,6 @@ require("rangy/lib/rangy-serializer.js");
 
 const Highlight = require("./highlight.js");
 const Annotation = require("./annotation.js");
-const globalEvent = window.globalEvent;
 
 class Highlighter{
   constructor(annotationContainer){
@@ -89,7 +88,7 @@ class Highlighter{
     return this.create(id, startOffset, endOffset, label);
   }
 
-  create(id, startOffset, endOffset, text, referenceId, addOnly){
+  create(id, startOffset, endOffset, text, referenceId){
     this.selectRange(startOffset, endOffset);
     const selection = rangy.getSelection();
     if (selection.isCollapsed){
@@ -116,12 +115,6 @@ class Highlighter{
       );
       highlight.setContent(text);
 
-      if (undefined == addOnly || !addOnly) {
-        globalEvent.emit(
-          "highlightselect", {event: undefined, annotation: highlight}
-        );
-      }
-
       // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
       this.highlights.add(highlight);
     }
@@ -137,7 +130,7 @@ class Highlighter{
       const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
       const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
       let span = this.create(
-        parseInt(id), startOffset, endOffset, toml.label, referenceId, true
+        parseInt(id), startOffset, endOffset, toml.label, referenceId
       );
       span.blur();
 
