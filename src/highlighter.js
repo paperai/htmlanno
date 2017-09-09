@@ -149,18 +149,28 @@ class Highlighter{
   }
 
   remove(referenceId){
-    this.highlighter.removeAllHighlights();
     this.highlights.forEach((annotation, i)=>{
       if (annotation instanceof Highlight){
         if (undefined != referenceId) {
           if (referenceId == annotation.getReferenceId()) {
-            this.highlights.remove(i);
+            this._remove(annotation, i);
           }
         } else {
-          this.highlights.remove(i);
+          this._remove(annotation, i);
         }
       }
     });
+  }
+
+  _remove(annotation, index) {
+    let rangySelection = rangy.getSelection();
+    annotation.elements.forEach((rangyHighlight) => {
+      let range = rangy.createRange();
+      range.selectNodeContents(rangyHighlight);
+      rangySelection.addRange(range);
+    });
+    this.highlighter.unhighlightSelection(rangySelection);
+    this.highlights.remove(index);
   }
 
   removeAnnotation(highlight){

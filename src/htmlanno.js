@@ -146,7 +146,7 @@ class Htmlanno{
       this.handleMouseDown(e);
     });
 
-    window.addEventListener('open-alsert-dialog', (e) => {
+    window.addEventListener('open-alert-dialog', (e) => {
       AnnoUI.ui.alertDialog.show(e.detail);
     });
   }
@@ -275,7 +275,7 @@ class Htmlanno{
       relation.select();
     } else {
       this.dispatchWindowEvent(
-        'open-alsert-dialog',
+        'open-alert-dialog',
         {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
       );
     }
@@ -290,13 +290,11 @@ class Htmlanno{
   displayPrimaryAnnotation(fileName) {
     let annotation = this.fileLoader.getAnnotation(fileName);
     annotation.primary = true;
-    this.remove();
     TomlTool.loadToml(
       annotation.content,
       this.highlighter,
       this.arrowConnector
     );
-    
     this.dispatchWindowEvent('annotationrendered');
   }
 
@@ -315,7 +313,13 @@ class Htmlanno{
     let selectedUiAnnotations = this.getUiAnnotations(false);
     selectedUiAnnotations.forEach((uiAnnotation) => {
       let annotation = this.fileLoader.getAnnotation(uiAnnotation.name);
-      if (!annotation.primary && !annotation.reference) {
+      if (annotation.reference) {
+        this.annotations.forEach((annotationObj) => {
+          if (uiAnnotation.name == annotationObj.referenceId) {
+            annotationObj.setColor(uiAnnotation.color);
+          }
+        });
+      } else {
         annotation.reference = true;
         TomlTool.loadToml(
           annotation.content,
@@ -324,12 +328,6 @@ class Htmlanno{
           uiAnnotation.name,
           uiAnnotation.color
         );
-      } else if (annotation.reference) {
-        this.annotations.forEach((annotationObj) => {
-          if (uiAnnotation.name == annotationObj.referenceId) {
-            annotationObj.setColor(uiAnnotation.color);
-          }
-        });
       }
     });
     this.dispatchWindowEvent('annotationrendered');
