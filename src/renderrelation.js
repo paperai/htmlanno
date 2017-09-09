@@ -150,6 +150,16 @@ class RenderRelation{
   extension(){
     return this.jObject[0].getAttribute('data-ext');
   }
+
+  setColor(color) {
+    this.jObject[0].style.stroke = color;
+    this.jObject[0].setAttribute('opacity', '0.2');
+  }
+
+  removeColor() {
+    this.jObject[0].style.stroke = undefined;
+    this.jObject[0].removeAttribute('opacity');
+  }
 }
 
 module.exports = RenderRelation;

@@ -119,6 +119,14 @@ class RelationAnnotation extends Annotation {
     return this.arrow.domId();
   }
 
+  setColor(color) {
+    this.arrow.setColor(color);
+  }
+
+  removeColor() {
+    this.arrow.removeColor();
+  }
+
   get type() {
     return 'relation';
   }
