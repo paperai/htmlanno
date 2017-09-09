@@ -93,9 +93,11 @@ class Highlight extends Annotation {
   remove(){
     this.blur();
     this.circle.remove();
-    this.jObject.each(() => {
-      $(this).replaceWith(this.childNodes);
+    // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
+    $(`.${this.getClassName()}`).each((i, elm) => {
+      $(elm).replaceWith(elm.childNodes);
     });
+    this.jObject = null;
     this.dispatchWindowEvent('annotationDeleted', this);
   }
 

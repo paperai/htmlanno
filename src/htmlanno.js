@@ -309,41 +309,60 @@ class Htmlanno{
     this.remove();
   }
 
-  // TODO: 色設定
   displayReferenceAnnotation(fileNames) {
-    // TODO: この処理はanno-ui側に入れてもらいたい
-    let hideAnnoNames = [];
-    $('#dropdownAnnoReference a').each((index, element) => {
-      let $elm = $(element);
-      if ($elm.find('.fa-check').hasClass('no-visible') === true) {
-        hideAnnoNames.push($elm.find('.js-annoname').text());
-      }
-    });
-    this.hideReferenceAnnotation(hideAnnoNames);
+    this.hideReferenceAnnotation(this.getUiAnnotations(true));
 
-    let annotations = this.fileLoader.getAnnotations(fileNames);
-    annotations.forEach((annotation) => {
+    let selectedUiAnnotations = this.getUiAnnotations(false);
+    selectedUiAnnotations.forEach((uiAnnotation) => {
+      let annotation = this.fileLoader.getAnnotation(uiAnnotation.name);
       if (!annotation.primary && !annotation.reference) {
         annotation.reference = true;
         TomlTool.loadToml(
           annotation.content,
           this.highlighter,
           this.arrowConnector,
-          annotation.name
+          uiAnnotation.name,
+          uiAnnotation.color
         );
+      } else if (annotation.reference) {
+        this.annotations.forEach((annotationObj) => {
+          if (uiAnnotation.name == annotationObj.referenceId) {
+            annotationObj.setColor(uiAnnotation.color);
+          }
+        });
       }
     });
     this.dispatchWindowEvent('annotationrendered');
   }
 
-  hideReferenceAnnotation(fileNames) {
-    let annotations = this.fileLoader.getAnnotations(fileNames);
+  hideReferenceAnnotation(uiAnnotations) {
+    let annotations = this.fileLoader.getAnnotations(
+      uiAnnotations.map((ann) => {
+        return ann.name;
+      })
+    );
     annotations.forEach((annotation) => {
       if (annotation.reference) {
         annotation.reference = false;
         this.remove(annotation.name);
       }
     });
+  }
+
+  // TODO: この処理はanno-ui側に入れてもらいたい
+  getUiAnnotations(not_selected) {
+    not_selected = undefined == not_selected ? true: not_selected;
+    let uiAnnotations = [];
+    $('#dropdownAnnoReference a').each((index, element) => {
+      let $elm = $(element);
+      if ($elm.find('.fa-check').hasClass('no-visible') === not_selected) {
+        uiAnnotations.push({
+          name: $elm.find('.js-annoname').text(),
+          color: $elm.find('.sp-preview-inner').css('background-color')
+        });
+      }
+    });
+    return uiAnnotations;
   }
 
   loadFiles(files) {
