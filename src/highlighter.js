@@ -80,7 +80,7 @@ class Highlighter{
     const selection = rangy.getSelection();
     if (0 == selection.rangeCount){
       this.dispatchWindowEvent(
-        'open-alsert-dialog', {message: 'Text span is not selected.'}
+        'open-alert-dialog', {message: 'Text span is not selected.'}
       );
       return;
     }
