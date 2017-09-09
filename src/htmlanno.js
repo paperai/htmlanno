@@ -145,6 +145,10 @@ class Htmlanno{
     windowObj.on("mousedown", (e) =>{
       this.handleMouseDown(e);
     });
+
+    window.addEventListener('open-alsert-dialog', (e) => {
+      AnnoUI.ui.alertDialog.show(e.detail);
+    });
   }
 
   handleResize(){
@@ -243,8 +247,10 @@ class Htmlanno{
 
   handleAddSpan(label){
     let span = this.highlighter.highlight(label.text);
-    this.dispatchWindowEvent('annotationrendered');
-    span.select();
+    if (undefined != span) {
+      this.dispatchWindowEvent('annotationrendered');
+      span.select();
+    }
   }
 
   handleAddRelation(params) {
@@ -267,6 +273,11 @@ class Htmlanno{
       this.unselectHighlight();
       this.dispatchWindowEvent('annotationrendered');
       relation.select();
+    } else {
+      this.dispatchWindowEvent(
+        'open-alsert-dialog',
+        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
+      );
     }
   }
 

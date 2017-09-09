@@ -78,6 +78,12 @@ class Highlighter{
 
   highlight(label){
     const selection = rangy.getSelection();
+    if (0 == selection.rangeCount){
+      this.dispatchWindowEvent(
+        'open-alsert-dialog', {message: 'Text span is not selected.'}
+      );
+      return;
+    }
     if (selection.isCollapsed){
       return;
     }
@@ -159,6 +165,13 @@ class Highlighter{
 
   removeAnnotation(highlight){
     this.highlights.remove(highlight);
+  }
+
+  // TODO: Anno-UI events 辺りで提供してほしい
+  dispatchWindowEvent(eventName, data) {
+    let event = document.createEvent('CustomEvent')
+    event.initCustomEvent(eventName, true, true, data)
+    window.dispatchEvent(event)
   }
 }
 
