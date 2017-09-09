@@ -145,6 +145,10 @@ class Htmlanno{
     windowObj.on("mousedown", (e) =>{
       this.handleMouseDown(e);
     });
+
+    window.addEventListener('open-alert-dialog', (e) => {
+      AnnoUI.ui.alertDialog.show(e.detail);
+    });
   }
 
   handleResize(){
@@ -242,8 +246,11 @@ class Htmlanno{
   }
 
   handleAddSpan(label){
-    this.highlighter.highlight(label.text);
-    this.dispatchWindowEvent('annotationrendered');
+    let span = this.highlighter.highlight(label.text);
+    if (undefined != span) {
+      this.dispatchWindowEvent('annotationrendered');
+      span.select();
+    }
   }
 
   handleAddRelation(params) {
@@ -266,6 +273,11 @@ class Htmlanno{
       this.unselectHighlight();
       this.dispatchWindowEvent('annotationrendered');
       relation.select();
+    } else {
+      this.dispatchWindowEvent(
+        'open-alert-dialog',
+        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
+      );
     }
   }
 
@@ -278,13 +290,11 @@ class Htmlanno{
   displayPrimaryAnnotation(fileName) {
     let annotation = this.fileLoader.getAnnotation(fileName);
     annotation.primary = true;
-    this.remove();
     TomlTool.loadToml(
       annotation.content,
       this.highlighter,
       this.arrowConnector
     );
-    
     this.dispatchWindowEvent('annotationrendered');
   }
 
@@ -297,41 +307,60 @@ class Htmlanno{
     this.remove();
   }
 
-  // TODO: 色設定
   displayReferenceAnnotation(fileNames) {
-    // TODO: この処理はanno-ui側に入れてもらいたい
-    let hideAnnoNames = [];
-    $('#dropdownAnnoReference a').each((index, element) => {
-      let $elm = $(element);
-      if ($elm.find('.fa-check').hasClass('no-visible') === true) {
-        hideAnnoNames.push($elm.find('.js-annoname').text());
-      }
-    });
-    this.hideReferenceAnnotation(hideAnnoNames);
+    this.hideReferenceAnnotation(this.getUiAnnotations(true));
 
-    let annotations = this.fileLoader.getAnnotations(fileNames);
-    annotations.forEach((annotation) => {
-      if (!annotation.primary && !annotation.reference) {
+    let selectedUiAnnotations = this.getUiAnnotations(false);
+    selectedUiAnnotations.forEach((uiAnnotation) => {
+      let annotation = this.fileLoader.getAnnotation(uiAnnotation.name);
+      if (annotation.reference) {
+        this.annotations.forEach((annotationObj) => {
+          if (uiAnnotation.name == annotationObj.referenceId) {
+            annotationObj.setColor(uiAnnotation.color);
+          }
+        });
+      } else {
         annotation.reference = true;
         TomlTool.loadToml(
           annotation.content,
           this.highlighter,
           this.arrowConnector,
-          annotation.name
+          uiAnnotation.name,
+          uiAnnotation.color
         );
       }
     });
     this.dispatchWindowEvent('annotationrendered');
   }
 
-  hideReferenceAnnotation(fileNames) {
-    let annotations = this.fileLoader.getAnnotations(fileNames);
+  hideReferenceAnnotation(uiAnnotations) {
+    let annotations = this.fileLoader.getAnnotations(
+      uiAnnotations.map((ann) => {
+        return ann.name;
+      })
+    );
     annotations.forEach((annotation) => {
       if (annotation.reference) {
         annotation.reference = false;
         this.remove(annotation.name);
       }
     });
+  }
+
+  // TODO: この処理はanno-ui側に入れてもらいたい
+  getUiAnnotations(not_selected) {
+    not_selected = undefined == not_selected ? true: not_selected;
+    let uiAnnotations = [];
+    $('#dropdownAnnoReference a').each((index, element) => {
+      let $elm = $(element);
+      if ($elm.find('.fa-check').hasClass('no-visible') === not_selected) {
+        uiAnnotations.push({
+          name: $elm.find('.js-annoname').text(),
+          color: $elm.find('.sp-preview-inner').css('background-color')
+        });
+      }
+    });
+    return uiAnnotations;
   }
 
   loadFiles(files) {

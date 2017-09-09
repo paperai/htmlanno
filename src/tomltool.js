@@ -2,6 +2,7 @@ const TomlParser = require("toml");
 const rangy = require("rangy");
 const Highlight = require("./highlight.js");
 const RelationAnnotation = require("./relationannotation.js");
+const Annotation = require("./annotation.js");
 
 exports.saveToml = (annotationSet)=>{
   let data = ["version = 0.1"];
@@ -19,7 +20,7 @@ exports.saveToml = (annotationSet)=>{
  * @param arrowConnector ... Relation annotation container.
  * @param referenceId (optional) ... Used to identify annotations.
  */
-exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId)=>{
+exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId, color)=>{
   const renderAnnotation = (toml)=>{
     let data = TomlParser.parse(toml);
     for(key in data) {
@@ -34,6 +35,9 @@ exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId)=>{
       // Relation(one-way, two-way, or link)
       if (RelationAnnotation.isMydata(data[key])) {
         annotation = arrowConnector.addToml(key, data[key], referenceId);
+      }
+      if (undefined != color) {
+        annotation.setColor(color);
       }
     }
   };

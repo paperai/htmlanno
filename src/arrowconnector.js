@@ -14,8 +14,8 @@ class ArrowConnector{
     this.annotations.add(data);
   }
 
-  createRelation(id, startingCircle, endingCircle, direction, text){
-    let relation = new RelationAnnotation(id, startingCircle, endingCircle, direction);
+  createRelation(id, startingCircle, endingCircle, direction, text, referenceId){
+    let relation = new RelationAnnotation(id, startingCircle, endingCircle, direction, referenceId);
     this.annotations.add(relation);
     relation.setContent(text);
 

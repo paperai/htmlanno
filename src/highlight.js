@@ -14,7 +14,9 @@ class Highlight extends Annotation {
 
     this.addCircle();
     this.setClass();
-    $(`.${this.getClassName()}`).hover(
+    this.jObject = $(`.${this.getClassName()}`);
+
+    this.jObject.hover(
         this.handleHoverIn.bind(this),
         this.handleHoverOut.bind(this)
     );
@@ -91,9 +93,11 @@ class Highlight extends Annotation {
   remove(){
     this.blur();
     this.circle.remove();
-    $(`.${this.getClassName()}`).each(function() {
-      $(this).replaceWith(this.childNodes);
+    // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
+    $(`.${this.getClassName()}`).each((i, elm) => {
+      $(elm).replaceWith(elm.childNodes);
     });
+    this.jObject = null;
     this.dispatchWindowEvent('annotationDeleted', this);
   }
 
@@ -121,11 +125,11 @@ class Highlight extends Annotation {
   }
 
   setContent(text){
-    $(`.${this.getClassName()}`)[0].setAttribute('data-label', text);
+    this.jObject[0].setAttribute('data-label', text);
   }
 
   content(){
-    return $(`.${this.getClassName()}`)[0].getAttribute('data-label');
+    return this.jObject[0].getAttribute('data-label');
   }
 
   get type() {
@@ -142,6 +146,14 @@ class Highlight extends Annotation {
       this.circle.jObject.removeClass('htmlanno-circle-hover');
     }, 1000);
   }
+
+  setColor(color) {
+    this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
+  }
+
+  removeColor() {
+    this.jObject[0].style.backgroundColor = undefined;
+  } 
 }
 
 module.exports = Highlight;

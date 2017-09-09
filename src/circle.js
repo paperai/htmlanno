@@ -18,14 +18,6 @@ class Circle{
       this.highlight.select();
     });
 
-    this.resetHoverEvent();
-  }
-
-  disableHoverAction(){
-    this.jObject.off("mouseenter").off("mouseleave");
-  }
-
-  resetHoverEvent(){
     this.jObject.hover(
       this.handleHoverIn.bind(this),
       this.handleHoverOut.bind(this)

@@ -6,7 +6,6 @@ require("rangy/lib/rangy-serializer.js");
 
 const Highlight = require("./highlight.js");
 const Annotation = require("./annotation.js");
-const globalEvent = window.globalEvent;
 
 class Highlighter{
   constructor(annotationContainer){
@@ -79,6 +78,12 @@ class Highlighter{
 
   highlight(label){
     const selection = rangy.getSelection();
+    if (0 == selection.rangeCount){
+      this.dispatchWindowEvent(
+        'open-alsert-dialog', {message: 'Text span is not selected.'}
+      );
+      return;
+    }
     if (selection.isCollapsed){
       return;
     }
@@ -89,7 +94,7 @@ class Highlighter{
     return this.create(id, startOffset, endOffset, label);
   }
 
-  create(id, startOffset, endOffset, text, referenceId, addOnly){
+  create(id, startOffset, endOffset, text, referenceId){
     this.selectRange(startOffset, endOffset);
     const selection = rangy.getSelection();
     if (selection.isCollapsed){
@@ -116,12 +121,6 @@ class Highlighter{
       );
       highlight.setContent(text);
 
-      if (undefined == addOnly || !addOnly) {
-        globalEvent.emit(
-          "highlightselect", {event: undefined, annotation: highlight}
-        );
-      }
-
       // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
       this.highlights.add(highlight);
     }
@@ -137,7 +136,7 @@ class Highlighter{
       const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
       const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
       let span = this.create(
-        parseInt(id), startOffset, endOffset, toml.label, referenceId, true
+        parseInt(id), startOffset, endOffset, toml.label, referenceId
       );
       span.blur();
 
@@ -150,22 +149,39 @@ class Highlighter{
   }
 
   remove(referenceId){
-    this.highlighter.removeAllHighlights();
     this.highlights.forEach((annotation, i)=>{
       if (annotation instanceof Highlight){
         if (undefined != referenceId) {
           if (referenceId == annotation.getReferenceId()) {
-            this.highlights.remove(i);
+            this._remove(annotation, i);
           }
         } else {
-          this.highlights.remove(i);
+          this._remove(annotation, i);
         }
       }
     });
   }
 
+  _remove(annotation, index) {
+    let rangySelection = rangy.getSelection();
+    annotation.elements.forEach((rangyHighlight) => {
+      let range = rangy.createRange();
+      range.selectNodeContents(rangyHighlight);
+      rangySelection.addRange(range);
+    });
+    this.highlighter.unhighlightSelection(rangySelection);
+    this.highlights.remove(index);
+  }
+
   removeAnnotation(highlight){
     this.highlights.remove(highlight);
+  }
+
+  // TODO: Anno-UI events 辺りで提供してほしい
+  dispatchWindowEvent(eventName, data) {
+    let event = document.createEvent('CustomEvent')
+    event.initCustomEvent(eventName, true, true, data)
+    window.dispatchEvent(event)
   }
 }
 

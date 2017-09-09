@@ -87,6 +87,12 @@ class Annotation {
     return;
   }
 
+  setColor(color) {
+  }
+
+  removeColor() {
+  }
+
   // TODO: Anno-UI events 辺りで提供してほしい
   dispatchWindowEvent(eventName, data) {
     let event = document.createEvent('CustomEvent')
