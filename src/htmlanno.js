@@ -91,7 +91,7 @@ class Htmlanno{
 
     AnnoUI.contentDropdown.setup({
       initialText: 'PDF File',
-      overrideWarningMessage: 'Are you sure to load another HTML ?',
+      overrideWarningMessage: 'Are you sure to load another Content ?',
       contentReloadHandler: this.reloadContent.bind(this)
       
     });
@@ -114,7 +114,10 @@ class Htmlanno{
 
     AnnoUI.downloadButton.setup({
       getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
-      getCurrentContentName: ()=>{ return "export.htmlanno"; },
+      getCurrentContentName: ()=> {
+         let contentFileName = this.getCurrentContentFileName();
+         return undefined === contentFileName ?  "export.htmlanno" : contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
+      },
       unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
     });
 
@@ -389,7 +392,10 @@ class Htmlanno{
         break;
 
       default:
-        alertn('Unknown content type; ' + content.content); // TODO: UIに合わせたエラーメッセージにする
+        this.dispatchWindowEvent(
+          'open-alert-dialog',
+          {message: 'Unknown content type; ' + content.content}
+        );
     }
     this.handleResize();
   }  
@@ -431,9 +437,15 @@ class Htmlanno{
   // For Anno-ui.
   // TODO: Anno-UI events 辺りで提供してほしい
   dispatchWindowEvent(eventName, data) {
-    var event = document.createEvent('CustomEvent');
+    let event = document.createEvent('CustomEvent');
     event.initCustomEvent(eventName, true, true, data);
     window.dispatchEvent(event);
+  }
+
+  // TODO: Anno-UI contentDropdown辺りで提供してほしい
+  getCurrentContentFileName() {
+    let value = $('#dropdownPdf .js-text').text();
+    return value === 'PDF File' ? undefined : value;  // TODO: Anno-UI 対応後data-initial-textに切替
   }
 }
 
