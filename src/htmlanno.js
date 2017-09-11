@@ -383,7 +383,7 @@ class Htmlanno{
     switch(content.type) {
       case 'html':
         this.remove();
-        $('#viewer').html(content.content).on('click', false);
+        $('#viewer').html(content.content);
         break;
 
       case 'text':
