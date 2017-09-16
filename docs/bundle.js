@@ -88,6 +88,7 @@
 	    this.annotations = new AnnotationContainer();
 	    this.highlighter = new Highlighter(this.annotations);
 	    this.arrowConnector = new ArrowConnector(this.annotations);
+	    this.viewer = $('#viewer');
 	    this.handleResize();
 	
 	    // The contents and annotations from files.
@@ -218,6 +219,32 @@
 	
 	    window.addEventListener('open-alert-dialog', (e) => {
 	      AnnoUI.ui.alertDialog.show(e.detail);
+	    });
+	
+	    $('#adjust_css > li').each((index, elm) => {
+	      let style_name = elm.getAttribute('data-style');
+	      let default_value = parseInt($('#viewer').css(style_name));
+	      $(elm).find('input:text').val(default_value);
+	
+	      this.handleAdjustCss(elm);
+	    });
+	  }
+	
+	  handleAdjustCss(adjuster) {
+	    let style_name = adjuster.getAttribute('data-style');
+	    let adjusterObj = $(adjuster);
+	    let form = adjusterObj.find('input:text');
+	
+	    form.on('change', (event) => {
+	      $('#viewer').css(style_name, form.val() + 'px');
+	    });
+	    adjusterObj.find('.btn.increment').on('click', (event) => {
+	      form.val(parseInt(form.val()) + 1);
+	      form.change();
+	    });
+	    adjusterObj.find('.btn.decrement').on('click', (event) => {
+	      form.val(parseInt(form.val()) - 1);
+	      form.change();
 	    });
 	  }
 	
