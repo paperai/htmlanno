@@ -88,7 +88,6 @@
 	    this.annotations = new AnnotationContainer();
 	    this.highlighter = new Highlighter(this.annotations);
 	    this.arrowConnector = new ArrowConnector(this.annotations);
-	    this.viewer = $('#viewer');
 	    this.handleResize();
 	
 	    // The contents and annotations from files.
@@ -237,6 +236,7 @@
 	
 	    form.on('change', (event) => {
 	      $('#viewer').css(style_name, form.val() + 'px');
+	      this.handleResize();
 	    });
 	    adjusterObj.find('.btn.increment').on('click', (event) => {
 	      form.val(parseInt(form.val()) + 1);
@@ -263,6 +263,11 @@
 	        cir.reposition();
 	      });
 	    }
+	    this.annotations.forEach((annotation) => {
+	      if (annotation instanceof RelationAnnotation) {
+	        annotation.reposition();
+	      }
+	    });
 	  }
 	
 	  // HtmlAnno only, NEED.
@@ -380,7 +385,9 @@
 	
 	  handleExportAnnotation(){
 	    return new Promise((resolve, reject) => {
-	      resolve(TomlTool.saveToml(this.annotations));
+	      resolve(TomlTool.saveToml(this.annotations.filter((annotation) => {
+	        return undefined === annotation.referenceId;
+	      })));
 	    });
 	  }
 	
@@ -18322,6 +18329,16 @@
 	
 	  // TODO: pdfanno only
 	  destroy(){
+	  }
+	
+	  filter(callback) {
+	    let newContainer = new AnnotationContainer();
+	    this.set.forEach((elm) => {
+	      if (callback(elm)) {
+	        newContainer.add(elm);
+	      }
+	    });
+	    return newContainer;
 	  }
 	
 	  /**
