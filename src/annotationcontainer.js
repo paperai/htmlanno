@@ -65,6 +65,16 @@ class AnnotationContainer{
   destroy(){
   }
 
+  filter(callback) {
+    let newContainer = new AnnotationContainer();
+    this.set.forEach((elm) => {
+      if (callback(elm)) {
+        newContainer.add(elm);
+      }
+    });
+    return newContainer;
+  }
+
   /**
    * Get all annotations from the container.
    */
