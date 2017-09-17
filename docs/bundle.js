@@ -224,8 +224,15 @@
 	      let style_name = elm.getAttribute('data-style');
 	      let default_value = parseInt($('#viewer').css(style_name));
 	      $(elm).find('input:text').val(default_value);
+	      $(elm).find('input:text')[0].setAttribute('data-default-value', default_value);
 	
 	      this.handleAdjustCss(elm);
+	    });
+	    $('#adjust_css_reset').on('click', (event) => {
+	      $('#adjust_css input:text').each((index, form) => {
+	        form.value = form.getAttribute('data-default-value');
+	        $(form).change();
+	      });
 	    });
 	  }
 	
@@ -16060,7 +16067,8 @@
 	      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
 	      {
 	        ignoreWhiteSpace: true,
-	        onElementCreate: (element)=>{temporaryElements.push(element)}
+	        onElementCreate: (element)=>{temporaryElements.push(element)},
+	        useExistingElements: false
 	      }
 	    ));
 	
