@@ -193,6 +193,70 @@
 
 
 /* Override bootstrap. */
+#viewer {
+  background-color: white;
+}
+
+#viewer h1, #viewer h2, #viewer h3, #viewer h4, #viewer h5, #viewer h6 {
+  font-weight: bolder;
+  padding-top: 1em;
+  color: black;
+}
+
+#viewer h1 {
+  font-size: xx-large;
+}
+
+#viewer h2 {
+  font-size: x-large;
+}
+
+#viewer h3 {
+  font-size: large;
+}
+
+#viewer h4 {
+  font-size: small;
+}
+
+#viewer h5 {
+  font-size: x-small;
+}
+
+#viewer h6 {
+  font-size: xx-small;
+}
+
+#viewer ul, #viewer ol {
+  padding-left: 40px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+#viewer ul li {
+  list-style-type: disc;
+}
+
+#viewer li ul li {
+  list-style-type: circle; 
+}
+
+#viewer li li ul li {
+  list-style-type: square; 
+}
+
+#viewer ol li {
+  list-style-type: decimal;
+}
+
+#viewer dl dt, #viewer dl dd {
+  font-weight: normal;
+}
+
+#viewer dl dd {
+  margin-left: 40px;
+}
+
 #viewer .row {
   margin-right: 0px;
   margin-left: 0px;
