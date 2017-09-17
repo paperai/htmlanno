@@ -34,8 +34,8 @@ class Htmlanno{
       this.arrowConnector.removeAnnotation(data);
       this.unselectRelation();
     });
-
     this.wrapGlobalEvents();
+    this.loadDefaultData();
   }
 
   storageKey(){
@@ -86,7 +86,7 @@ class Htmlanno{
       displayCurrentPrimaryAnnotations :   this.displayPrimaryAnnotation.bind(this),
       getContentFiles :                    this.getContentFiles.bind(this),
       getAnnoFiles :                       this.getAnnoFiles.bind(this),
-      closePDFViewer : () => {} //window.annoPage.closePDFViewer
+      closePDFViewer :                     this.clearViewer.bind(this)
     });
 
     AnnoUI.contentDropdown.setup({
@@ -473,6 +473,22 @@ class Htmlanno{
 
     // TODO: labelInput内、treatAnnotationDeleted(e.detail)。編集中のアノテーションが削除された場合の対応
     this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+  }
+
+  loadDefaultData() {
+    $.get({
+      url: './sample/sample.xhtml',
+      dataType: 'html',
+      success: function(htmlData) {
+        let content = FileLoader.htmlLoader(htmlData);
+        $('#viewer').html(content);
+      }
+    });
+  }
+
+  clearViewer() {
+    this.remove();
+    $('#viewer').html('');
   }
 
   // For Anno-ui.
