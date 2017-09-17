@@ -25,10 +25,6 @@ merchantability or fitness for any particular purpose.
 
 /* page and text defaults */
 
-#viewer {
-     background-color: #f8f8f8 }
-
-
 #viewer div > *:first-child { margin-top:0em }
 
 #viewer div { margin-top: 0.5em }
