@@ -21,7 +21,6 @@ class Htmlanno{
     this.annotations = new AnnotationContainer();
     this.highlighter = new Highlighter(this.annotations);
     this.arrowConnector = new ArrowConnector(this.annotations);
-    this.viewer = $('#viewer');
     this.handleResize();
 
     // The contents and annotations from files.
@@ -160,8 +159,15 @@ class Htmlanno{
       let style_name = elm.getAttribute('data-style');
       let default_value = parseInt($('#viewer').css(style_name));
       $(elm).find('input:text').val(default_value);
+      $(elm).find('input:text')[0].setAttribute('data-default-value', default_value);
 
       this.handleAdjustCss(elm);
+    });
+    $('#adjust_css_reset').on('click', (event) => {
+      $('#adjust_css input:text').each((index, form) => {
+        form.value = form.getAttribute('data-default-value');
+        $(form).change();
+      });
     });
   }
 
@@ -172,6 +178,7 @@ class Htmlanno{
 
     form.on('change', (event) => {
       $('#viewer').css(style_name, form.val() + 'px');
+      this.handleResize();
     });
     adjusterObj.find('.btn.increment').on('click', (event) => {
       form.val(parseInt(form.val()) + 1);
@@ -198,6 +205,11 @@ class Htmlanno{
         cir.reposition();
       });
     }
+    this.annotations.forEach((annotation) => {
+      if (annotation instanceof RelationAnnotation) {
+        annotation.reposition();
+      }
+    });
   }
 
   // HtmlAnno only, NEED.
@@ -315,7 +327,9 @@ class Htmlanno{
 
   handleExportAnnotation(){
     return new Promise((resolve, reject) => {
-      resolve(TomlTool.saveToml(this.annotations));
+      resolve(TomlTool.saveToml(this.annotations.filter((annotation) => {
+        return undefined === annotation.referenceId;
+      })));
     });
   }
 
