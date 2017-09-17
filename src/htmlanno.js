@@ -318,7 +318,9 @@ class Htmlanno{
 
   handleExportAnnotation(){
     return new Promise((resolve, reject) => {
-      resolve(TomlTool.saveToml(this.annotations));
+      resolve(TomlTool.saveToml(this.annotations.filter((annotation) => {
+        return undefined === annotation.referenceId;
+      })));
     });
   }
 
