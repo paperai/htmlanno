@@ -191,6 +191,9 @@
     padding: 2px 5px;
 }
 
+#adjust_css li, #adjust_css_reset {
+  margin-top: 5px;
+}
 
 /* Override bootstrap. */
 #viewer .row {
