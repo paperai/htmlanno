@@ -21,7 +21,6 @@ class Htmlanno{
     this.annotations = new AnnotationContainer();
     this.highlighter = new Highlighter(this.annotations);
     this.arrowConnector = new ArrowConnector(this.annotations);
-    this.viewer = $('#viewer');
     this.handleResize();
 
     // The contents and annotations from files.
@@ -170,6 +169,7 @@ class Htmlanno{
 
     form.on('change', (event) => {
       $('#viewer').css(style_name, form.val() + 'px');
+      this.handleResize();
     });
     adjusterObj.find('.btn.increment').on('click', (event) => {
       form.val(parseInt(form.val()) + 1);
@@ -196,6 +196,11 @@ class Htmlanno{
         cir.reposition();
       });
     }
+    this.annotations.forEach((annotation) => {
+      if (annotation instanceof RelationAnnotation) {
+        annotation.reposition();
+      }
+    });
   }
 
   // HtmlAnno only, NEED.
