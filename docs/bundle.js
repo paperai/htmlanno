@@ -102,9 +102,7 @@
 	      this.arrowConnector.removeAnnotation(data);
 	      this.unselectRelation();
 	    });
-	
 	    this.wrapGlobalEvents();
-	
 	    this.loadDefaultData();
 	  }
 	
