@@ -106,15 +106,7 @@ class FileLoader{
         let reader = new FileReader();
         reader.onload = ()=>{
           if (reader.result.match(/<html\s?.*>/i)){
-            let html = reader.result;
-            let bodyStart = html.match(/<body\s?.*>/im);
-            let bodyEnd   = html.search(/<\/body>/im);
-            if (null != bodyStart && -1 != bodyEnd){
-              html = html.substring(
-                (bodyStart.index + bodyStart[0].length), bodyEnd
-              );
-            }
-            html = html.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
+            let html = FileLoader.htmlLoader(reader.result);
 
             resolve({
               type   : 'html',
@@ -133,6 +125,15 @@ class FileLoader{
       }));
     });
     return promises;
+  }
+
+  static htmlLoader(html) {
+    let bodyStart = html.match(/<body\s?.*>/im);
+    let bodyEnd   = html.search(/<\/body>/im);
+    if (null != bodyStart && -1 != bodyEnd){
+      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
+    }
+    return html.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
   }
 
   _createTextLoadingPromiseList(files) {
