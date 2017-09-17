@@ -1,9 +1,17 @@
-This is under development...
-
 # HTMLAnno
-HTMLAnno is a linguistic annotation tool for html/xml.
+HTMLAnno is a web-based linguistic annotation tool for xhtml/txt documents.  
+It offers functions for annotating the documents with labels and relations.  
+For natural language processing and machine learning, it is suitable for development of gold-standard data with named entity spans, dependency relations, and coreference chains.  
 
 [Online Demo](https://paperai.github.io/htmlanno/)
+
+## Annotation Tools
+| Icon | Description |
+|:---:|:---:|
+| <img src="https://github.com/paperai/pdfanno/blob/master/icons/fa-pencil.png" width="7%"> | Span highlighting. |
+| <img src="https://github.com/paperai/pdfanno/blob/master/icons/fa-long-arrow-right.png" width="7%"> | One-way relation. This is used for annotating dependency relation between spans. |
+| <img src="https://github.com/paperai/pdfanno/blob/master/icons/fa-arrows-h.png" width="7%"> | Two-way relation. |
+| <img src="https://github.com/paperai/pdfanno/blob/master/icons/fa-minus.png" width="7%"> | Link relation. If you want to add non-directional relation between spans, use this. |
 
 ## Developer's Guide
 
