@@ -106,7 +106,8 @@ class Highlighter{
       `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
       {
         ignoreWhiteSpace: true,
-        onElementCreate: (element)=>{temporaryElements.push(element)}
+        onElementCreate: (element)=>{temporaryElements.push(element)},
+        useExistingElements: false
       }
     ));
 
