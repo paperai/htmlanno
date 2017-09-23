@@ -486,6 +486,7 @@ class Htmlanno{
         let content = FileLoader.htmlLoader(htmlData);
         $('#viewer').html(content);
         $('#dropdownPdf .js-text').text(defaultDataName);
+        globalEvent.emit('resizewindow');
       }
     });
   }
