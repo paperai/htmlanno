@@ -42,12 +42,15 @@ class ArrowConnector{
         if (undefined != referenceId) {
           if (referenceId == annotation.getReferenceId()) {
             this.annotations.remove(i);
+            return annotation;
            }
         } else {
           this.annotations.remove(i);
+          return annotation;
         }
       }
     });
+    return undefined;
   }
 
   removeAnnotation(arrow){
