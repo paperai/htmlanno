@@ -155,12 +155,15 @@ class Highlighter{
         if (undefined != referenceId) {
           if (referenceId == annotation.getReferenceId()) {
             this._remove(annotation, i);
+            return annotation;
           }
         } else {
           this._remove(annotation, i);
+          return annotation;
         }
       }
     });
+    return undefined;
   }
 
   _remove(annotation, index) {
