@@ -202,12 +202,6 @@
 	      scrollToAnnotation: this.scrollToAnnotation.bind(this)
 	    });
 	
-	    $(document).on("dragover", (e)=>{
-	      if (e.originalEvent.pageX && e.originalEvent.pageY){
-	        globalEvent.emit("drag", e);
-	      }
-	    });
-	
 	    $(document).on("keydown", (e)=>{
 	      globalEvent.emit("keydown", e);
 	    });
@@ -227,6 +221,10 @@
 	
 	    window.addEventListener('open-alert-dialog', (e) => {
 	      AnnoUI.ui.alertDialog.show(e.detail);
+	    });
+	
+	    $('#tools').on('resizestop', (e) => {
+	      globalEvent.emit("resizewindow", e);
 	    });
 	
 	    $('#adjust_css > li').each((index, elm) => {
@@ -268,6 +266,7 @@
 	    let viewWrapper = $('#viewerWrapper');
 	    // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
 	    let height = $(window).height() - viewWrapper[0].offsetTop - 10;
+	    viewWrapper.css('height', '');
 	    viewWrapper.css('max-height', `${height}px`);
 	    $('#htmlanno-svg-screen').css('height', `${$('#viewer').height()}px`);
 	
