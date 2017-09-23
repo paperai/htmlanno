@@ -116,7 +116,16 @@ class Htmlanno{
       getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
       getCurrentContentName: ()=> {
          let contentFileName = this.getCurrentContentFileName();
-         return undefined === contentFileName ?  "export.htmlanno" : contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
+         if (undefined == contentFileName) {
+           this.dispatchWindowEvent(
+             'open-alert-dialog',
+             {message: 'Cannot determine the filename for download.'}
+           );
+           return undefined;
+         }
+         else {
+           return contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
+         }
       },
       unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
     });
