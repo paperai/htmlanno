@@ -292,33 +292,22 @@
 	      let lastSelected = selected.sort(
 	        (a, b) => { return a - b; }
 	      ).pop();
-	      if (lastSelected instanceof Highlight) {
-	        // esc
-	        if (e.keyCode === 27) {
+	
+	      // delete or back space
+	      if (e.keyCode === 46 || e.keyCode == 8) {
+	        if (document.body == e.target){
+	          e.preventDefault();
+	          lastSelected.remove();
+	          this.annotations.remove(lastSelected);
+	          let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
+	          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: uuid} });
+	        }
+	      // esc
+	      } else if (e.keyCode === 27) {
+	        if (lastSelected instanceof Highlight) {
 	          this.unselectHighlight(lastSelected);
-	        }
-	
-	        // delete or back space
-	        if (e.keyCode === 46 || e.keyCode == 8) {
-	          if (document.body == e.target){
-	            e.preventDefault();
-	            lastSelected.remove();
-	            this.annotations.remove(lastSelected);
-	          }
-	        }
-	      } else if (lastSelected instanceof RelationAnnotation) {
-	        // esc
-	        if (e.keyCode == 27) {
+	        } else if (lastSelected instanceof RelationAnnotation) {
 	          this.unselectRelation();
-	        }
-	
-	        // delete or back space
-	        if (e.keyCode === 46 || e.keyCode == 8) {
-	          if (document.body == e.target){
-	            e.preventDefault();
-	            lastSelected.remove();
-	            this.annotations.remove(lastSelected);
-	          }
 	        }
 	      }
 	    }
@@ -543,11 +532,15 @@
 	  }
 	
 	  remove(referenceId) {
-	    this.highlighter.remove(referenceId);
-	    this.arrowConnector.remove(referenceId);
+	    let deleted = this.highlighter.remove(referenceId);
+	    if (undefined == deleted) {
+	      deleted = this.arrowConnector.remove(referenceId);
+	    }
 	
-	    // TODO: labelInput内、treatAnnotationDeleted(e.detail)。編集中のアノテーションが削除された場合の対応
-	    this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: 'DUMMY'} });
+	    if (undefined != deleted) {
+	      let uuid = deleted.uuid; // deleted.uuid(getter) is accessed after deleted it maybe.
+	      this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: uuid} });
+	    }
 	  }
 	
 	  loadDefaultData() {
@@ -560,6 +553,7 @@
 	        let content = FileLoader.htmlLoader(htmlData);
 	        $('#viewer').html(content);
 	        $('#dropdownPdf .js-text').text(defaultDataName);
+	        globalEvent.emit('resizewindow');
 	      }
 	    });
 	  }
@@ -16150,12 +16144,15 @@
 	        if (undefined != referenceId) {
 	          if (referenceId == annotation.getReferenceId()) {
 	            this._remove(annotation, i);
+	            return annotation;
 	          }
 	        } else {
 	          this._remove(annotation, i);
+	          return annotation;
 	        }
 	      }
 	    });
+	    return undefined;
 	  }
 	
 	  _remove(annotation, index) {
@@ -18286,12 +18283,15 @@
 	        if (undefined != referenceId) {
 	          if (referenceId == annotation.getReferenceId()) {
 	            this.annotations.remove(i);
+	            return annotation;
 	           }
 	        } else {
 	          this.annotations.remove(i);
+	          return annotation;
 	        }
 	      }
 	    });
+	    return undefined;
 	  }
 	
 	  removeAnnotation(arrow){
