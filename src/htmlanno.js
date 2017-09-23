@@ -484,13 +484,15 @@ class Htmlanno{
   }
 
   loadDefaultData() {
+    let defaultDataUri = './sample/sample.xhtml';
+    let defaultDataName = this.excludeBaseUriName(defaultDataUri);
     $.get({
-      url: './sample/sample.xhtml',
+      url: defaultDataUri,
       dataType: 'html',
       success: function(htmlData) {
         let content = FileLoader.htmlLoader(htmlData);
         $('#viewer').html(content);
-        $('#dropdownPdf .js-text').text('sample.xhtml');
+        $('#dropdownPdf .js-text').text(defaultDataName);
       }
     });
   }
@@ -499,6 +501,13 @@ class Htmlanno{
     this.remove();
     $('#viewer').html('');
   }
+
+  // TODO: FileLoader#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
+  excludeBaseUriName(uri) {
+    let fragments = uri.split('/');
+    return fragments[fragments.length - 1];
+  }
+
 
   // For Anno-ui.
   // TODO: Anno-UI events 辺りで提供してほしい
