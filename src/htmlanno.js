@@ -491,6 +491,7 @@ class Htmlanno{
       success: function(htmlData) {
         let content = FileLoader.htmlLoader(htmlData);
         $('#viewer').html(content);
+        $('#dropdownPdf .js-text').text('sample.xhtml');
       }
     });
   }
