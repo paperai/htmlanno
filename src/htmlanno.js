@@ -477,6 +477,9 @@ class Htmlanno{
     if (undefined != deleted) {
       let uuid = deleted.uuid; // deleted.uuid(getter) is accessed after deleted it maybe.
       this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: uuid} });
+    } else {
+      // All remove maybe.
+      this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: undefined} });
     }
   }
 
