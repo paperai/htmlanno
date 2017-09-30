@@ -17,6 +17,9 @@ const RelationAnnotation = require("./relationannotation.js");
 
 class Htmlanno{
   constructor(){
+    this.defaultDataUri = './sample/sample.xhtml';
+    this.defaultDataName = this.excludeBaseUriName(this.defaultDataUri); // これは固定値だが指示都合上定数にしてはならない
+    this.useDefaultData = true;
     this.setupHtml();
     this.annotations = new AnnotationContainer();
     this.highlighter = new Highlighter(this.annotations);
@@ -417,6 +420,7 @@ class Htmlanno{
   }
 
   reloadContent(fileName) {
+    this.useDefaultData = false;
     let content = this.fileLoader.getContent(fileName);
     switch(content.type) {
       case 'html':
@@ -477,15 +481,12 @@ class Htmlanno{
   }
 
   loadDefaultData() {
-    let defaultDataUri = './sample/sample.xhtml';
-    let defaultDataName = this.excludeBaseUriName(defaultDataUri);
     $.get({
-      url: defaultDataUri,
+      url: this.defaultDataUri,
       dataType: 'html',
       success: function(htmlData) {
         let content = FileLoader.htmlLoader(htmlData);
         $('#viewer').html(content);
-        $('#dropdownPdf .js-text').text(defaultDataName);
         globalEvent.emit('resizewindow');
       }
     });
@@ -514,7 +515,15 @@ class Htmlanno{
   // TODO: Anno-UI contentDropdown辺りで提供してほしい
   getCurrentContentFileName() {
     let value = $('#dropdownPdf .js-text').text();
-    return value === 'PDF File' ? undefined : value;  // TODO: Anno-UI 対応後data-initial-textに切替
+    if (value === 'PDF File') {  // TODO: Anno-UI 対応後data-initial-textに切替
+      if (this.useDefaultData) {
+        return this.defaultDataName;
+      } else {
+        return undefined;
+      }
+    } else {
+      return value;
+    }
   }
 }
 
