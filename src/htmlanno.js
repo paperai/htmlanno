@@ -425,12 +425,42 @@ class Htmlanno{
     switch(content.type) {
       case 'html':
         this.remove();
-        $('#viewer').html(content.content);
+        if (undefined != content.source) {
+          FileLoader.htmlLoader(content.source, ((html) => {
+            if (undefined != html) {
+              content.content = html;
+              content.source = undefined;
+              $('#viewer').html(content.content);
+              this.handleResize();
+            } else {
+              this.dispatchWindowEvent(
+                'open-alert-dialog', {message: 'Read error.'}
+              );
+            }
+          }).bind(this));
+        } else {
+          $('#viewer').html(content.content);
+        }
         break;
 
       case 'text':
         this.remove();
-        $("#viewer").text(content.content);
+        if (undefined != content.source) {
+          FileLoader.textLoader(content.source, ((text) => {
+            if (undefined != text) {
+              content.content = text;
+              content.source = undefined;
+              $('#viewer').text(content.content);
+              this.handleResize();
+            } else {
+              this.dispatchWindowEvent(
+                'open-alert-dialog', {message: 'Read error.'}
+              );
+            }
+          }).bind(this));
+        } else {
+          $('#viewer').text(content.content);
+        }
         break;
 
       default:
@@ -488,8 +518,10 @@ class Htmlanno{
       url: this.defaultDataUri,
       dataType: 'html',
       success: function(htmlData) {
-        let content = FileLoader.htmlLoader(htmlData);
-        $('#viewer').html(content);
+        let content = FileLoader.parseHtml(htmlData);
+        if (undefined != content) {
+          $('#viewer').html(content);
+        }
         globalEvent.emit('resizewindow');
       }
     });
