@@ -492,12 +492,42 @@
 	    switch(content.type) {
 	      case 'html':
 	        this.remove();
-	        $('#viewer').html(content.content);
+	        if (undefined != content.source) {
+	          FileLoader.htmlLoader(content.source, ((html) => {
+	            if (undefined != html) {
+	              content.content = html;
+	              content.source = undefined;
+	              $('#viewer').html(content.content);
+	              this.handleResize();
+	            } else {
+	              this.dispatchWindowEvent(
+	                'open-alert-dialog', {message: 'Read error.'}
+	              );
+	            }
+	          }).bind(this));
+	        } else {
+	          $('#viewer').html(content.content);
+	        }
 	        break;
 	
 	      case 'text':
 	        this.remove();
-	        $("#viewer").text(content.content);
+	        if (undefined != content.source) {
+	          FileLoader.textLoader(content.source, ((text) => {
+	            if (undefined != text) {
+	              content.content = text;
+	              content.source = undefined;
+	              $('#viewer').text(content.content);
+	              this.handleResize();
+	            } else {
+	              this.dispatchWindowEvent(
+	                'open-alert-dialog', {message: 'Read error.'}
+	              );
+	            }
+	          }).bind(this));
+	        } else {
+	          $('#viewer').text(content.content);
+	        }
 	        break;
 	
 	      default:
@@ -555,8 +585,10 @@
 	      url: this.defaultDataUri,
 	      dataType: 'html',
 	      success: function(htmlData) {
-	        let content = FileLoader.htmlLoader(htmlData);
-	        $('#viewer').html(content);
+	        let content = FileLoader.parseHtml(htmlData);
+	        if (undefined != content) {
+	          $('#viewer').html(content);
+	        }
 	        globalEvent.emit('resizewindow');
 	      }
 	    });
@@ -18478,9 +18510,11 @@
 	   * contents[n] = {
 	   *   type    : 'html' or 'text'
 	   *   name    : fileName
-	   *   content : HTML soruce or Plain text
+	   *   content : undefined or HTML soruce or Plain text
+	   *   source  : File object or undefined
 	   *   selected: boolean 
 	   * }
+	   * If content is undefined, you need get content by source. and after load, set the content to content, and set undefined to source.
 	   */
 	  getContent(fileName) {
 	    return this._getItem(fileName, this._contents);
@@ -18531,62 +18565,70 @@
 	  }
 	
 	  _createHtmlLoadingPromiseList(files) {
-	    let promises = [];
-	    files.forEach((file) => {
-	      promises.push(new Promise((resolve, reject) => {
-	        let reader = new FileReader();
-	        reader.onload = ()=>{
-	          if (reader.result.match(/<html\s?.*>/i)){
-	            let html = FileLoader.htmlLoader(reader.result);
-	
-	            resolve({
-	              type   : 'html',
-	              name   : this._excludeBaseDirName(file.webkitRelativePath),
-	              content: html,
-	              selected: false
-	            });
-	          } else{
-	            reject(file); // must read as Plain text.
-	          }
-	        };
-	        reader.onerror = this._loadError;
-	        reader.onabort = this._loadAbort;
-	
-	        reader.readAsText(file);
-	      }));
+	    return files.map((file) => {
+	      return new Promise((resolve, reject) => {
+	        resolve({
+	          type   : 'html',
+	          name   : this._excludeBaseDirName(file.webkitRelativePath),
+	          content: undefined,
+	          source : file,
+	          selected: false
+	        });
+	      });
 	    });
-	    return promises;
 	  }
 	
-	  static htmlLoader(html) {
-	    let bodyStart = html.match(/<body\s?.*>/im);
-	    let bodyEnd   = html.search(/<\/body>/im);
-	    if (null != bodyStart && -1 != bodyEnd){
-	      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
+	  static htmlLoader(file, callback) {
+	    let reader = new FileReader();
+	    reader.onload = () => {
+	      callback(FileLoader.parseHtml(reader.result));
+	    };
+	    reader.onerror = () => {callback(undefined); };
+	    reader.onabort = () => {callback(undefined); };
+	
+	    reader.readAsText(file);
+	  }
+	
+	  static parseHtml(html) {
+	    let sgmlFunc  = new RegExp(/<\?.+\?>/g);
+	    let comment   = new RegExp(/<!--.+-->/g);
+	    let htmlTag = new RegExp(/<html\s?.*>/i);
+	
+	    if (null != html.match(htmlTag)) {
+	      let bodyStart = html.match(/<body\s?.*>/im);
+	      let bodyEnd   = html.search(/<\/body>/im);
+	      if (null != bodyStart && -1 != bodyEnd){
+	        html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
+	      }
+	      return html.replace(sgmlFunc, '').replace(comment, '');
+	    } else {
+	      return undefined;
 	    }
-	    return html.replace(/<\?.+\?>/g, '').replace(/<!--.+-->/g, '');
 	  }
 	
 	  _createTextLoadingPromiseList(files) {
-	    let promises = [];
-	    files.forEach((file) => {
-	      promises.push(new Promise((resolve, reject) => {
-	        let reader = new FileReader();
-	        reader.onload = ()=>{
-	          resolve({
-	            type   : 'text',
-	            name   : this._excludeBaseDirName(file.webkitRelativePath),
-	            content: reader.result,
-	            selected: false
-	          });
-	        };
-	        reader.onerror = this._loadError;
-	        reader.onabort = this._loadAbort;
-	
-	        reader.readAsText(file);
-	      }));
+	    return files.map((file) => {
+	      return new Promise((resolve, reject) => {
+	        resolve({
+	          type   : 'text',
+	          name   : this._excludeBaseDirName(file.webkitRelativePath),
+	          content: undefined,
+	          source: file,
+	          selected: false
+	        });
+	      });
 	    });
-	    return promises;
+	  }
+	
+	  static textLoader(file, callback) {
+	    let reader = new FileReader();
+	    reader.onload = ()=>{
+	      callback(reader.result);
+	    };
+	    reader.onerror = () => {callback(undefined); };
+	    reader.onabort = () => {callback(undefined); };
+	
+	    reader.readAsText(file);
 	  }
 	
 	  _createAnnotationLoadingPromiseList(files) {
