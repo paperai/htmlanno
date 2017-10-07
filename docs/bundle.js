@@ -86,12 +86,15 @@
 	  constructor(){
 	    this.defaultDataUri = './sample/sample.xhtml';
 	    this.defaultDataName = this.excludeBaseUriName(this.defaultDataUri); // これは固定値だが指示都合上定数にしてはならない
+	    /**
+	     * @see #reloadContent
+	     * @see #loadDefaultData
+	     */
 	    this.useDefaultData = true;
 	    this.setupHtml();
 	    this.annotations = new AnnotationContainer();
 	    this.highlighter = new Highlighter(this.annotations);
 	    this.arrowConnector = new ArrowConnector(this.annotations);
-	    this.handleResize();
 	
 	    // The contents and annotations from files.
 	    this.fileLoader = new FileLoader();
@@ -160,7 +163,7 @@
 	    });
 	
 	    AnnoUI.contentDropdown.setup({
-	      initialText: 'PDF File',
+	      initialText: 'Content File',
 	      overrideWarningMessage: 'Are you sure to load another Content ?',
 	      contentReloadHandler: this.reloadContent.bind(this)
 	      
@@ -196,8 +199,7 @@
 	         else {
 	           return contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
 	         }
-	      },
-	      unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
+	      }
 	    });
 	
 	    AnnoUI.annoListDropdown.setup({
@@ -587,6 +589,7 @@
 	      success: function(htmlData) {
 	        let content = FileLoader.parseHtml(htmlData);
 	        if (undefined != content) {
+	          this.useDefaultData = true;
 	          $('#viewer').html(content);
 	        }
 	        globalEvent.emit('resizewindow');
@@ -617,7 +620,7 @@
 	  // TODO: Anno-UI contentDropdown辺りで提供してほしい
 	  getCurrentContentFileName() {
 	    let value = $('#dropdownPdf .js-text').text();
-	    if (value === 'PDF File') {  // TODO: Anno-UI 対応後data-initial-textに切替
+	    if (value === 'Content File') {
 	      if (this.useDefaultData) {
 	        return this.defaultDataName;
 	      } else {
@@ -1718,8 +1721,8 @@
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__components_annoSpanButton__ = __webpack_require__(18);
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__components_labelInput__ = __webpack_require__(19);
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__components_uploadButton__ = __webpack_require__(25);
-	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__uis__ = __webpack_require__(26);
-	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__events__ = __webpack_require__(27);
+	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__uis__ = __webpack_require__(27);
+	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__events__ = __webpack_require__(28);
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_13__utils__ = __webpack_require__(3);
 	/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "browseButton", function() { return __WEBPACK_IMPORTED_MODULE_0__components_browseButton__; });
 	/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "contentDropdown", function() { return __WEBPACK_IMPORTED_MODULE_1__components_contentDropdown__; });
@@ -2097,7 +2100,7 @@
 	
 	    // a PDF name.
 	    text = $('#dropdownPdf .js-text').text()
-	    let pdfName = (text !== 'PDF File' ? text : null)
+	    let pdfName = (text !== getContentDropdownInitialText() ? text : null)
 	
 	    // a Primary anno.
 	    text = $('#dropdownAnnoPrimary .js-text').text()
@@ -2129,7 +2132,7 @@
 	function setPDFDropdownList () {
 	
 	    // Reset the state of the PDF dropdown.
-	    $('#dropdownPdf .js-text').text('PDF File')
+	    $('#dropdownPdf .js-text').text(getContentDropdownInitialText())
 	    $('#dropdownPdf li').remove()
 	
 	    // Create and setup the dropdown menu.
@@ -2184,6 +2187,11 @@
 	
 	    // Setup color pallets.
 	    setupColorPicker()
+	}
+	
+	function getContentDropdownInitialText () {
+	    let value = $('#dropdownPdf .js-text').data('initial-text')
+	    return (value === undefined || value === '') ? 'PDF File' : value
 	}
 	
 	
@@ -2253,6 +2261,7 @@
 	}) {
 	
 	    $('#dropdownPdf .js-text').text(initialText)
+	    $('#dropdownPdf .js-text').data('initial-text', initialText)
 	
 	    // TODO pdfという単語を削除したい..
 	
@@ -2511,7 +2520,7 @@
 	function setup ({
 	    getAnnotationTOMLString,
 	    getCurrentContentName,
-	    unlistenWindowLeaveEvent
+	    didDownloadCallback = function () {}
 	}) {
 	    $('#downloadButton').off('click').on('click', e => {
 	        $(e.currentTarget).blur()
@@ -2527,7 +2536,7 @@
 	            a.parentNode.removeChild(a)
 	        })
 	
-	        unlistenWindowLeaveEvent()
+	        didDownloadCallback()
 	
 	        return false
 	    })
@@ -7129,94 +7138,68 @@
 	"use strict";
 	Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 	/* harmony export (immutable) */ __webpack_exports__["setup"] = setup;
+	/* harmony export (immutable) */ __webpack_exports__["uploadPDF"] = uploadPDF;
 	/* harmony export (immutable) */ __webpack_exports__["setResult"] = setResult;
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__ = __webpack_require__(0);
+	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__funcs_upload__ = __webpack_require__(26);
 	/**
 	 * UI parts - Upload Button.
 	 */
 	
 	
+	
 	function setup ({
-	        getCurrentDisplayContentFile
-	    }) {
+	    getCurrentDisplayContentFile,
+	    uploadFinishCallback = function () {}
+	}) {
 	    $('.js-btn-upload').off('click').on('click', () => {
 	        const contentFile = getCurrentDisplayContentFile()
-	        if (!contentFile) {
-	            return __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : 'Display a content before upload.' })
-	        }
-	
-	        function arrayBufferToBase64 (buffer) {
-	            var s = ''
-	            var bytes = new Uint8Array(buffer)
-	            var len = bytes.byteLength
-	            for (var i = 0; i < len; i++) {
-	                s += String.fromCharCode(bytes[i])
-	            }
-	            return window.btoa(s)
-	        }
-	
-	        const contentBase64 = arrayBufferToBase64(contentFile.content)
-	
-	        const $progressBar = $('.js-upload-progress')
-	
-	        const url = window.API_ROOT + '/api/pdf_upload'
-	
-	        setResult('Waiting for response...')
-	
-	        let data = {
-	            filename : contentFile.name,
-	            pdf      : contentBase64
-	        }
-	
-	        $.ajax({
-	            xhr : function () {
-	                var xhr = new window.XMLHttpRequest()
-	                // Upload progress
-	                xhr.upload.addEventListener('progress', function (evt) {
-	                    if (evt.lengthComputable) {
-	                        var percentComplete = evt.loaded / evt.total
-	                        // Do something with upload progress
-	                        console.log('uploadProgress:', percentComplete)
-	                        let percent = Math.floor(percentComplete * 100)
-	                        $progressBar.find('.progress-bar').css('width', percent + '%').attr('aria-valuenow', percent).text(percent + '%')
-	                        if (percent === 100) {
-	                            setTimeout(() => {
-	                                $progressBar.addClass('hidden')
-	                            }, 2000)
-	                        }
-	                    }
-	                }, false)
-	                // Download progress
-	                xhr.addEventListener('progress', function (evt) {
-	                    if (evt.lengthComputable) {
-	                        var percentComplete = evt.loaded / evt.total
-	                        // Do something with download progress
-	                        console.log('downloadProgress:', percentComplete)
-	                    }
-	                }, false)
-	                return xhr
-	            },
-	            url      : url,
-	            method   : 'POST',
-	            dataType : 'json',
-	            data
-	
-	        }).then(result => {
-	            if (result.status === 'failure') {
-	                alert('ERROR!!')
-	                setResult(result.err.stderr)
-	                return
-	            }
-	
-	            setTimeout(() => {
-	                setResult(result.text)
-	            }, 500) // wait for progress bar animation.
+	        uploadPDF({
+	            contentFile,
+	            successCallback : uploadFinishCallback
 	        })
-	
-	        // Show.
-	        $progressBar.removeClass('hidden').find('.progress-bar').css('width', '0%').attr('aria-valuenow', 0).text('0%')
-	
 	        return false
+	    })
+	}
+	
+	function uploadPDF ({
+	    contentFile,
+	    successCallback = function () {}
+	}) {
+	
+	    if (!contentFile) {
+	        return __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : 'Display a content before upload.' })
+	    }
+	
+	    // Progress bar.
+	    const $progressBar = $('.js-upload-progress')
+	
+	    // Upload and analyze the PDF.
+	    __WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */]({
+	        contentFile,
+	        willStartCallback : () => {
+	            // Reset the result text.
+	            setResult('Waiting for response...')
+	            // Show the progress bar.
+	            $progressBar.removeClass('hidden').find('.progress-bar').css('width', '0%').attr('aria-valuenow', 0).text('0%')
+	        },
+	        progressCallback : percent => {
+	            $progressBar.find('.progress-bar').css('width', percent + '%').attr('aria-valuenow', percent).text(percent + '%')
+	            if (percent === 100) {
+	                setTimeout(() => {
+	                    $progressBar.addClass('hidden')
+	                }, 2000)
+	            }
+	        },
+	        successCallback : resultText => {
+	            setResult(resultText)
+	            successCallback(resultText)
+	        },
+	        failedCallback : err => {
+	            const message = 'Failed to upload and analyze your PDF.<br>Reason: ' + err
+	            __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message })
+	            setResult(err)
+	        }
 	    })
 	}
 	
@@ -7233,6 +7216,83 @@
 	/***/ (function(module, __webpack_exports__, __webpack_require__) {
 	
 	"use strict";
+	/* harmony export (immutable) */ __webpack_exports__["a"] = upload;
+	/**
+	 * Functions - upload and analyze a PDF.
+	 */
+	function upload ({
+	    contentFile,
+	    willStartCallback = function () {},
+	    progressCallback = function () {},
+	    successCallback = function () {},
+	    failedCallback = function () {}
+	} = {}) {
+	
+	    // Convert PDF to base64 string.
+	    const contentBase64 = arrayBufferToBase64(contentFile.content)
+	
+	    // API endpoint.
+	    const url = window.API_ROOT + '/api/pdf_upload'
+	
+	    // API params.
+	    let data = {
+	        filename : contentFile.name,
+	        pdf      : contentBase64
+	    }
+	
+	    // Callback before ajax call.
+	    willStartCallback()
+	
+	    // Call the API.
+	    $.ajax({
+	        xhr : function () {
+	            var xhr = new window.XMLHttpRequest()
+	            // Upload progress
+	            xhr.upload.addEventListener('progress', function (evt) {
+	                if (evt.lengthComputable) {
+	                    var percentComplete = evt.loaded / evt.total
+	                    // Do something with upload progress
+	                    console.log('uploadProgress:', percentComplete)
+	                    let percent = Math.floor(percentComplete * 100)
+	                    progressCallback(percent)
+	                }
+	            }, false)
+	
+	            return xhr
+	        },
+	        url      : url,
+	        method   : 'POST',
+	        dataType : 'json',
+	        data
+	
+	    }).then(result => {
+	        if (result.status === 'failure') {
+	            failedCallback(result.err.stderr || result.err || result)
+	            return
+	        }
+	
+	        setTimeout(() => {
+	            successCallback(result.text)
+	        }, 500) // wait for progress bar animation.
+	    })
+	}
+	
+	function arrayBufferToBase64 (buffer) {
+	    var s = ''
+	    var bytes = new Uint8Array(buffer)
+	    var len = bytes.byteLength
+	    for (var i = 0; i < len; i++) {
+	        s += String.fromCharCode(bytes[i])
+	    }
+	    return window.btoa(s)
+	}
+	
+	
+	/***/ }),
+	/* 27 */
+	/***/ (function(module, __webpack_exports__, __webpack_require__) {
+	
+	"use strict";
 	Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__alertDialog__ = __webpack_require__(0);
 	/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "alertDialog", function() { return __WEBPACK_IMPORTED_MODULE_0__alertDialog__; });
@@ -7242,7 +7302,7 @@
 	
 	
 	/***/ }),
-	/* 27 */
+	/* 28 */
 	/***/ (function(module, __webpack_exports__, __webpack_require__) {
 	
 	"use strict";

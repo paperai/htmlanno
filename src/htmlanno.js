@@ -96,7 +96,7 @@ class Htmlanno{
     });
 
     AnnoUI.contentDropdown.setup({
-      initialText: 'PDF File',
+      initialText: 'Content File',
       overrideWarningMessage: 'Are you sure to load another Content ?',
       contentReloadHandler: this.reloadContent.bind(this)
       
@@ -132,8 +132,7 @@ class Htmlanno{
          else {
            return contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
          }
-      },
-      unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
+      }
     });
 
     AnnoUI.annoListDropdown.setup({
@@ -554,7 +553,7 @@ class Htmlanno{
   // TODO: Anno-UI contentDropdown辺りで提供してほしい
   getCurrentContentFileName() {
     let value = $('#dropdownPdf .js-text').text();
-    if (value === 'PDF File') {  // TODO: Anno-UI 対応後data-initial-textに切替
+    if (value === 'Content File') {
       if (this.useDefaultData) {
         return this.defaultDataName;
       } else {
