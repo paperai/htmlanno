@@ -19,12 +19,15 @@ class Htmlanno{
   constructor(){
     this.defaultDataUri = './sample/sample.xhtml';
     this.defaultDataName = this.excludeBaseUriName(this.defaultDataUri); // これは固定値だが指示都合上定数にしてはならない
+    /**
+     * @see #reloadContent
+     * @see #loadDefaultData
+     */
     this.useDefaultData = true;
     this.setupHtml();
     this.annotations = new AnnotationContainer();
     this.highlighter = new Highlighter(this.annotations);
     this.arrowConnector = new ArrowConnector(this.annotations);
-    this.handleResize();
 
     // The contents and annotations from files.
     this.fileLoader = new FileLoader();
@@ -520,6 +523,7 @@ class Htmlanno{
       success: function(htmlData) {
         let content = FileLoader.parseHtml(htmlData);
         if (undefined != content) {
+          this.useDefaultData = true;
           $('#viewer').html(content);
         }
         globalEvent.emit('resizewindow');
