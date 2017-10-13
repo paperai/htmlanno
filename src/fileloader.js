@@ -29,6 +29,11 @@ class FileLoader{
         this._createAnnotationLoadingPromiseList(categoraizedFiles[2])
       ).then(
         (results) => { _this._merge(results, _this._annotations); }
+      ),
+      Promise.all(
+        this._createBioesLoadingPromiseList(categoraizedFiles[3])
+      ).then(
+        (results) => { _this._merge(results, _this._contents); }
       )
     ]).then(
       (all_results) => {
@@ -168,6 +173,20 @@ class FileLoader{
     reader.readAsText(file);
   }
 
+  _createBioesLoadingPromiseList(files) {
+    return files.map((file) => {
+      return new Promise((resolve, reject) => {
+        resolve({
+          type    : 'bioes',
+          name    : this._excludeBaseDirName(file.webkitRelativePath),
+          content : undefined,
+          source  : file,
+          selected: false
+        });
+      });
+    });
+  }
+
   _createAnnotationLoadingPromiseList(files) {
     let promises = [];
     files.forEach((file) => {
@@ -194,11 +213,13 @@ class FileLoader{
   _categorize(files){
     let htmlMatcher  = new RegExp(/.+\.xhtml$/i);
     let textMatcher  = new RegExp(/.+\.txt$/i);
-    let annoMatcher = new RegExp(/.+\.htmlanno$/i);
+    let annoMatcher  = new RegExp(/.+\.htmlanno$/i);
+    let bioesMatcher = new RegExp(/.+\.BIOES$/i);
 
-    let htmlNames = [];
-    let textNames = [];
-    let annoNames = [];
+    let htmlNames  = [];
+    let textNames  = [];
+    let annoNames  = [];
+    let bioesNames = [];
     for(let i = 0;i < files.length; i ++ ){
       let file = files[i];
 
@@ -211,6 +232,8 @@ class FileLoader{
           textNames.push(file);
         } else if (annoMatcher.test(fileName)){
           annoNames.push(file);
+        } else if (bioesMatcher.test(fileName)){
+          bioesNames.push(file);
         }
       }        
       // else, skip it.
@@ -218,7 +241,8 @@ class FileLoader{
     return [
       htmlNames,
       textNames,
-      annoNames
+      annoNames,
+      bioesNames
     ];
   }
 
