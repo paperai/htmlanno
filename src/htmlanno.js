@@ -14,6 +14,7 @@ const AnnotationContainer = require("./annotationcontainer.js");
 const FileLoader = require("./fileloader.js");
 const Highlight = require("./highlight.js");
 const RelationAnnotation = require("./relationannotation.js");
+const Bioes = require("./bioes.js");
 
 class Htmlanno{
   constructor(){
@@ -423,53 +424,71 @@ class Htmlanno{
 
   reloadContent(fileName) {
     this.useDefaultData = false;
+    const showReadError = () => {
+      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+    };
+    const loadContent = (content, readResult, _this) => {
+      if (undefined != readResult) {
+        _this.remove();
+        content.content = readResult;
+        content.source = undefined;
+        $('#viewer').html(content.content);
+        _this.handleResize();
+      } else {
+        showReadError();
+      }
+    };
+
     let content = this.fileLoader.getContent(fileName);
-    switch(content.type) {
-      case 'html':
-        this.remove();
-        if (undefined != content.source) {
+    if (undefined != content.content) {
+      this.remove();
+      $('#viewer').html(content.content);
+      // TODO BIOESの場合はアノテーションもレンダリング
+    } else {
+      switch(content.type) {
+        case 'html':
           FileLoader.htmlLoader(content.source, ((html) => {
-            if (undefined != html) {
-              content.content = html;
-              content.source = undefined;
-              $('#viewer').html(content.content);
-              this.handleResize();
-            } else {
-              this.dispatchWindowEvent(
-                'open-alert-dialog', {message: 'Read error.'}
-              );
-            }
+            loadContent(content, html, this);
           }).bind(this));
-        } else {
-          $('#viewer').html(content.content);
-        }
-        break;
+          break;
 
-      case 'text':
-        this.remove();
-        if (undefined != content.source) {
+        case 'bioes':
+          let reader = new FileReader();
+          reader.onload = () => {
+            let bioes = new Bioes();
+            if (bioes.parse(reader.result)) {
+              loadContent(content, bioes.content, this);
+              console.log("BIOES annotation is " + bioes.annotations.length);
+              console.log(bioes.annotations);
+              TomlTool.renderAnnotation(
+                bioes.annotations.slice(0, 100), // TODO 個数が多すぎるので適当に切り出す
+                this.highlighter,
+                this.arrowConnector
+              );
+              this.dispatchWindowEvent('annotationrendered');
+            } else {
+              showReadError();
+            }
+          };
+          reader.onerror = showReadError;
+          reader.onabort = showReadError;
+
+          reader.readAsText(content.source);
+          break;
+
+        case 'text':
+          this.remove();
           FileLoader.textLoader(content.source, ((text) => {
-            if (undefined != text) {
-              content.content = text;
-              content.source = undefined;
-              $('#viewer').text(content.content);
-              this.handleResize();
-            } else {
-              this.dispatchWindowEvent(
-                'open-alert-dialog', {message: 'Read error.'}
-              );
-            }
+            loadContent(content, text, this);
           }).bind(this));
-        } else {
-          $('#viewer').text(content.content);
-        }
-        break;
+          break;
 
-      default:
-        this.dispatchWindowEvent(
-          'open-alert-dialog',
-          {message: 'Unknown content type; ' + content.content}
-        );
+        default:
+          this.dispatchWindowEvent(
+            'open-alert-dialog',
+            {message: 'Unknown content type; ' + content.content}
+          );
+      }
     }
     this.handleResize();
   }  
