@@ -165,7 +165,7 @@ class FileLoader{
   static textLoader(file, callback) {
     let reader = new FileReader();
     reader.onload = ()=>{
-      callback(reader.result);
+      callback('<p>' + reader.result + '</p>');
     };
     reader.onerror = () => {callback(undefined); };
     reader.onabort = () => {callback(undefined); };
