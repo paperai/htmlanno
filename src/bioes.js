@@ -1,6 +1,6 @@
 class Bioes {
   constrcutor() {
-    this._context = undefined;
+    this._content = undefined;
     this._annotations = undefined;
   }
 
@@ -12,14 +12,14 @@ class Bioes {
   }
 
   /**
-   * Line Separator
+   * Line Separator (Regular Expression)
    */
   get LS() {
-    return "\n";
+    return /\r\n|\n|\r/;
   }
 
-  get context() {
-    return this._context;
+  get content() {
+    return this._content;
   }
 
   get annotations() {
@@ -34,30 +34,28 @@ class Bioes {
       return undefined;
     }
 
-    this._context = '';
+    this._content = '';
     this._annotations = [];
 
-    let contextArray = [];
+    let contentArray = [];
+    let currentContentArray = [];
     let currentSpan = undefined;
     bioes.split(this.LS).forEach((line) => {
       if (0 == line.length) {
-        this._context =
-          this._context +
-          this._contextArrayToString(contextArray) + 
-          "\n";
-        contextArray = [];
+        contentArray.push(this._contentArrayToString(currentContentArray));
+        currentContentArray = [];
       }
       let fsIndex = line.indexOf(this.FS);
       if (-1 != fsIndex) {
         let word = line.substring(0, fsIndex);
         let type = line.substring(fsIndex+1);
 
-        contextArray.push(word);
+        currentContentArray.push(word);
         switch(type[0]) {
            case 'B': // Begin span.
              if (undefined == currentSpan) {
                currentSpan = this._createSpanObject(
-                 this._parseLabel(type), contextArray
+                 this._parseLabel(type), currentContentArray
                );
              } else {
                // TODO: フォーマットエラー
@@ -72,7 +70,7 @@ class Bioes {
            case 'E': // End span.
              if (undefined != currentSpan) {
                this._annotations.push(
-                 this._createTomlObj(currentSpan, contextArray)
+                 this._createTomlObj(currentSpan, currentContentArray, contentArray)
                );
                currentSpan = undefined;
              } else {
@@ -82,8 +80,9 @@ class Bioes {
            case 'S': // Single a span.
              this._annotations.push(
                this._createTomlObj(
-                 this._createSpanObject(this._parseLabel(type)),
-                 [word]
+                 this._createSpanObject(this._parseLabel(type), currentContentArray),
+                 currentContentArray,
+                 contentArray
                )
              );
              break;
@@ -92,18 +91,17 @@ class Bioes {
            default:
              // Invalid tag, ignore.
         }
-      } else {
-        // TODO: フォーマットエラー
-        return undefined;
       }
+      // TODO: フォーマットエラー
     });
-    this._context = this._context + this._contextArrayToString(contextArray);
+    this._content = '<p>' + contentArray.join('</p><p>') + '</p>';
+    this._content = this._content.replace(/<p>\s*<\/p>/, '');
     return true;
   }
 
-  _createSpanObject(label, contextArray = undefined) {
+  _createSpanObject(label, contentArray) {
     return {
-      startIndex: (undefined == contextArray ? 0 : (contextArray.length - 1)),
+      startIndex: (contentArray.length - 1),
       label: label
     };
   }
@@ -112,24 +110,26 @@ class Bioes {
     return 1 == tag.length ? tag : tag.substring(2);
   }
 
-  _createTomlObj(spanObject, contextArray) {
-    let beforeContext = this._contextArrayToString(
-      contextArray.slice(0, spanObject.startIndex)
+  _createTomlObj(spanObject, currentContentArray, contentArray) {
+    let beforeContext = this._contentArrayToString(contentArray) + this._contentArrayToString(
+      currentContentArray.slice(0, spanObject.startIndex)
     );
-    let context = this._contextArrayToString(
-      contextArray.slice(spanObject.startIndex)
+    let content = this._contentArrayToString(
+      currentContentArray.slice(spanObject.startIndex)
     );
-    let start = this._context.length + beforeContext.length;
+//console.log(beforeContext);
+//console.log(content);
+    let start = beforeContext.replace(/\s+/g, '').length + 1;
     return {
       type: 'span',
-      position: [start, (start + context.length)],
-      text: context,
+      position: [start, (start + content.replace(/\s+/g, '').length + 1)],
+      text: content,
       label: spanObject.label
     };
   }
 
-  _contextArrayToString(contextArray) {
-    return contextArray.join(' ');
+  _contentArrayToString(contentArray) {
+    return contentArray.join(' ');
   }
 }
 
