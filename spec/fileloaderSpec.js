@@ -104,4 +104,27 @@ describe('FileLoader', () => {
       });
     });
   });
+  describe('_createBioesLoadingPromiseList', () => {
+    it('should return an Array that includes Object; {type: "bioes", name: fileName(without basepath), content: undefined, source: fileBlob, selected: false }.', () => {
+      // This process does not accessed file in real.
+      let files = [
+        new DummyFileObj('fixtures/fileloaders/sample.BIOES'),
+        new DummyFileObj('sample.BIOES'),
+        new DummyFileObj('/sample.BIOES')
+      ];
+      let result = instance._createBioesLoadingPromiseList(files);
+
+      expect(result.length).toBe(3);
+      result.forEach((elm, index) => {
+        expect(elm instanceof Promise).toBeTruthy();
+        elm.then((result) => {
+          expect(result.type).toBe('bioes');
+          expect(result.name).toBe('sample.BIOES');
+          expect(result.content).toBeUndefined();
+          expect(result.source).toBe(files[index]);
+          expect(result.selected).toBeFalsy();
+        });
+      });
+    });
+  });
 });
