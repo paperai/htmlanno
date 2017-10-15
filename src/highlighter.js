@@ -139,8 +139,9 @@ class Highlighter{
       let span = this.create(
         parseInt(id), startOffset, endOffset, toml.label, referenceId
       );
-      span.blur();
-
+      if (null != span) {
+        span.blur();
+      }
       return span;
     }
   }
