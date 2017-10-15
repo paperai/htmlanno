@@ -13,36 +13,24 @@ class FileContainer {
     this._contents = [];
     this._annotations = [];
     let categoraizedFiles = this._categorize(files);
-    let _this = this;
+
     return Promise.all([
-      Promise.all(
-        this._createHtmlLoadingPromiseList(categoraizedFiles[0])
-      ).then(
-        (results) => { _this._merge(results, _this._contents); }
-      ),
-      Promise.all(
-        this._createTextLoadingPromiseList(categoraizedFiles[1])
-      ).then(
-        (results) => { _this._merge(results, _this._contents); }
-      ),
+      new Promise((resolve, reject) => {
+        this._createHtmlContents(categoraizedFiles[0]);
+        resolve(true);
+      }).then(),
+      new Promise((resolve, reject) => {
+        this._createTextContents(categoraizedFiles[1])
+        resolve(true);
+      }).then(),
       Promise.all(
         this._createAnnotationLoadingPromiseList(categoraizedFiles[2])
-      ).then(
-        (results) => { _this._merge(results, _this._annotations); }
-      ),
-      Promise.all(
-        this._createBioesLoadingPromiseList(categoraizedFiles[3])
-      ).then(
-        (results) => { _this._merge(results, _this._contents); }
-      )
-    ]).then(
-      (all_results) => {
-        return Promise.resolve({
-          contents: _this._contents,
-          annotations: _this._annotations
-        });
-      }
-    );
+      ).then(this._mergeAnnotations.bind(this)),
+      new Promise((resolve, reject) => {
+        this._createBioesContents(categoraizedFiles[3]);
+        resolve(true);
+      })
+    ]).then(this._allResult.bind(this));
   }
 
   /**
@@ -89,6 +77,22 @@ class FileContainer {
     return annotations;
   }
 
+  addAnnotation(fileName, annotation) {
+    let old = this.getAnnotation(fileName);
+    if (null == old) {
+      this._annotations.push({
+        type: 'annotation',
+        name: fileName,
+        content: annotation,
+        primary: false,
+        reference: false
+      });
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   get contents() {
     return this._contents;
   }
@@ -106,16 +110,14 @@ class FileContainer {
     return null;
   }
 
-  _createHtmlLoadingPromiseList(files) {
-    return files.map((file) => {
-      return new Promise((resolve, reject) => {
-        resolve({
-          type   : 'html',
-          name   : this._excludeBaseDirName(file.webkitRelativePath),
-          content: undefined,
-          source : file,
-          selected: false
-        });
+  _createHtmlContents(files) {
+    files.forEach((file) => {
+      this._contents.push({
+        type   : 'html',
+        name   : this._excludeBaseDirName(file.webkitRelativePath),
+        content: undefined,
+        source : file,
+        selected: false
       });
     });
   }
@@ -148,16 +150,14 @@ class FileContainer {
     }
   }
 
-  _createTextLoadingPromiseList(files) {
-    return files.map((file) => {
-      return new Promise((resolve, reject) => {
-        resolve({
-          type   : 'text',
-          name   : this._excludeBaseDirName(file.webkitRelativePath),
-          content: undefined,
-          source: file,
-          selected: false
-        });
+  _createTextContents(files) {
+    files.forEach((file) => {
+      this._contents.push({
+        type   : 'text',
+        name   : this._excludeBaseDirName(file.webkitRelativePath),
+        content: undefined,
+        source: file,
+        selected: false
       });
     });
   }
@@ -173,16 +173,14 @@ class FileContainer {
     reader.readAsText(file);
   }
 
-  _createBioesLoadingPromiseList(files) {
-    return files.map((file) => {
-      return new Promise((resolve, reject) => {
-        resolve({
-          type    : 'bioes',
-          name    : this._excludeBaseDirName(file.webkitRelativePath),
-          content : undefined,
-          source  : file,
-          selected: false
-        });
+  _createBioesContents(files) {
+    files.forEach((file) => {
+      this._contents.push({
+        type    : 'bioes',
+        name    : this._excludeBaseDirName(file.webkitRelativePath),
+        content : undefined,
+        source  : file,
+        selected: false
       });
     });
   }
@@ -259,9 +257,33 @@ class FileContainer {
     alert("Load aborted."); // TODO: UI実装後に適宜変更
   }
 
+  /**
+   * For loadFiles()
+   */
   _merge(fromArray, toArray) {
     fromArray.forEach((elm) => {
       toArray.push(elm);
+    });
+  }
+  /**
+   * For loadFiles()
+   */
+  _mergeContents(results) {
+    this._merge(results, this._contents);
+  }
+  /**
+   * For loadFiles()
+   */
+  _mergeAnnotations(results) {
+    this._merge(results, this._annotations);
+  }
+  /**
+   * For loadFiles()
+   */
+  _allResult(all_results) {
+    return Promise.resolve({
+      contents: this._contents,
+      annotations: this._annotations
     });
   }
 
