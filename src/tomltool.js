@@ -14,6 +14,26 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
+exports.renderAnnotation = (tomlObj, highlighter, arrowConnector, referenceId, color) => {
+  for(key in tomlObj) {
+    if ("version" == key) {
+      continue;
+    }
+    let annotation = undefined;
+    // Span.
+    if (Highlight.isMydata(tomlObj[key])) {
+      annotation = highlighter.addToml(key, tomlObj[key], referenceId);
+    }
+    // Relation(one-way, two-way, or link)
+    if (RelationAnnotation.isMydata(tomlObj[key])) {
+      annotation = arrowConnector.addToml(key, tomlObj[key], referenceId);
+    }
+    if (undefined != color) {
+      annotation.setColor(color);
+    }
+  }
+};
+
 /**
  * @param fileBlobOrText ... File(Blob) object that created by &lt;file&gt; tag.
  * @param highlighter ... Highlight annotation containr.
@@ -21,33 +41,12 @@ exports.saveToml = (annotationSet)=>{
  * @param referenceId (optional) ... Used to identify annotations.
  */
 exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId, color)=>{
-  const renderAnnotation = (toml)=>{
-    let data = TomlParser.parse(toml);
-    for(key in data) {
-      if ("version" == key) {
-        continue;
-      }
-      let annotation = undefined;
-      // Span.
-      if (Highlight.isMydata(data[key])) {
-        annotation = highlighter.addToml(key, data[key], referenceId);
-      }
-      // Relation(one-way, two-way, or link)
-      if (RelationAnnotation.isMydata(data[key])) {
-        annotation = arrowConnector.addToml(key, data[key], referenceId);
-      }
-      if (undefined != color) {
-        annotation.setColor(color);
-      }
-    }
-  };
-
   if ('string' == typeof(fileBlobOrText)) {
-    renderAnnotation(fileBlobOrText);
+    exports.renderAnnotation(TomlParser.parse(fileBlobOrText), highlighter, arrowConnector, referenceId, color);
   } else{
     let reader = new FileReader();
     reader.onload = ()=>{
-      renderAnnotation(reader.result);
+      exports.renderAnnotation(TomlParser.parse(reader.result), highlighter, arrowConnector, referenceId, color);
     }
     reader.onerror = ()=>{
       alert("Import failed.");  // TODO: UI実装後に適時変更
@@ -59,4 +58,3 @@ exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId, co
     reader.readAsText(fileBlob);
   }
 };
-

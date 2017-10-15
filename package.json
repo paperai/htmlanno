@@ -1,7 +1,9 @@
 {
   "scripts": {
     "watch": "webpack --progress --colors --watch --config ./webpack.config.js",
-    "build": "webpack --progress --colors --config ./webpack.config.js"
+    "build": "webpack --progress --colors --config ./webpack.config.js",
+    "test": "jasmine",
+    "webtest": "karma start karma.conf.js"
   },
   "dependencies": {
     "events": "^1.1.1",
@@ -11,6 +13,17 @@
     "anno-ui": "github:paperai/anno-ui"
   },
   "devDependencies": {
+    "jasmine-core": "^2.7.0",
+    "karma": "^1.7.0",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-html2js-preprocessor": "^1.1.0",
+    "karma-jasmine": "^1.1.0",
+    "karma-jquery": "^0.2.2",
+    "karma-nodeunit": "^0.2.0",
+    "karma-phantomjs-launcher": "^1.0.4",
+    "karma-spec-reporter": "^0.0.31",
+    "phantomjs-prebuilt": "2.1.14",
+    "filereader": "^0.10.3",
     "webpack": "^1.13.2"
   }
 }

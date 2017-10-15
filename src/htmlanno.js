@@ -14,17 +14,21 @@ const AnnotationContainer = require("./annotationcontainer.js");
 const FileLoader = require("./fileloader.js");
 const Highlight = require("./highlight.js");
 const RelationAnnotation = require("./relationannotation.js");
+const Bioes = require("./bioes.js");
 
 class Htmlanno{
   constructor(){
     this.defaultDataUri = './sample/sample.xhtml';
     this.defaultDataName = this.excludeBaseUriName(this.defaultDataUri); // これは固定値だが指示都合上定数にしてはならない
+    /**
+     * @see #reloadContent
+     * @see #loadDefaultData
+     */
     this.useDefaultData = true;
     this.setupHtml();
     this.annotations = new AnnotationContainer();
     this.highlighter = new Highlighter(this.annotations);
     this.arrowConnector = new ArrowConnector(this.annotations);
-    this.handleResize();
 
     // The contents and annotations from files.
     this.fileLoader = new FileLoader();
@@ -93,7 +97,7 @@ class Htmlanno{
     });
 
     AnnoUI.contentDropdown.setup({
-      initialText: 'PDF File',
+      initialText: 'Content File',
       overrideWarningMessage: 'Are you sure to load another Content ?',
       contentReloadHandler: this.reloadContent.bind(this)
       
@@ -129,8 +133,7 @@ class Htmlanno{
          else {
            return contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
          }
-      },
-      unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
+      }
     });
 
     AnnoUI.annoListDropdown.setup({
@@ -421,53 +424,73 @@ class Htmlanno{
 
   reloadContent(fileName) {
     this.useDefaultData = false;
+    const showReadError = () => {
+      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+    };
+    const loadContent = (content, readResult, _this) => {
+      if (undefined != readResult) {
+        _this.remove();
+        content.content = readResult;
+        content.source = undefined;
+        $('#viewer').html(content.content);
+        _this.handleResize();
+      } else {
+        showReadError();
+      }
+    };
+
     let content = this.fileLoader.getContent(fileName);
-    switch(content.type) {
-      case 'html':
-        this.remove();
-        if (undefined != content.source) {
+    if (undefined != content.content) {
+      this.remove();
+      $('#viewer').html(content.content);
+      // TODO BIOESの場合はアノテーションもレンダリング
+    } else {
+      switch(content.type) {
+        case 'html':
           FileLoader.htmlLoader(content.source, ((html) => {
-            if (undefined != html) {
-              content.content = html;
-              content.source = undefined;
-              $('#viewer').html(content.content);
-              this.handleResize();
-            } else {
-              this.dispatchWindowEvent(
-                'open-alert-dialog', {message: 'Read error.'}
-              );
-            }
+            loadContent(content, html, this);
           }).bind(this));
-        } else {
-          $('#viewer').html(content.content);
-        }
-        break;
+          break;
 
-      case 'text':
-        this.remove();
-        if (undefined != content.source) {
+        case 'bioes':
+          let reader = new FileReader();
+          reader.onload = () => {
+            let bioes = new Bioes();
+            if (bioes.parse(reader.result)) {
+              loadContent(content, bioes.content, this);
+              console.log("BIOES annotation is " + bioes.annotations.length);
+              console.log(bioes.annotations);
+              console.log(new Date());
+              TomlTool.renderAnnotation(
+                bioes.annotations, // .slice(0, 100), // TODO 個数が多すぎるので適当に切り出す
+                this.highlighter,
+                this.arrowConnector
+              );
+              console.log(new Date());
+              this.dispatchWindowEvent('annotationrendered');
+            } else {
+              showReadError();
+            }
+          };
+          reader.onerror = showReadError;
+          reader.onabort = showReadError;
+
+          reader.readAsText(content.source);
+          break;
+
+        case 'text':
+          this.remove();
           FileLoader.textLoader(content.source, ((text) => {
-            if (undefined != text) {
-              content.content = text;
-              content.source = undefined;
-              $('#viewer').text(content.content);
-              this.handleResize();
-            } else {
-              this.dispatchWindowEvent(
-                'open-alert-dialog', {message: 'Read error.'}
-              );
-            }
+            loadContent(content, text, this);
           }).bind(this));
-        } else {
-          $('#viewer').text(content.content);
-        }
-        break;
+          break;
 
-      default:
-        this.dispatchWindowEvent(
-          'open-alert-dialog',
-          {message: 'Unknown content type; ' + content.content}
-        );
+        default:
+          this.dispatchWindowEvent(
+            'open-alert-dialog',
+            {message: 'Unknown content type; ' + content.content}
+          );
+      }
     }
     this.handleResize();
   }  
@@ -520,6 +543,7 @@ class Htmlanno{
       success: function(htmlData) {
         let content = FileLoader.parseHtml(htmlData);
         if (undefined != content) {
+          this.useDefaultData = true;
           $('#viewer').html(content);
         }
         globalEvent.emit('resizewindow');
@@ -550,7 +574,7 @@ class Htmlanno{
   // TODO: Anno-UI contentDropdown辺りで提供してほしい
   getCurrentContentFileName() {
     let value = $('#dropdownPdf .js-text').text();
-    if (value === 'PDF File') {  // TODO: Anno-UI 対応後data-initial-textに切替
+    if (value === 'Content File') {
       if (this.useDefaultData) {
         return this.defaultDataName;
       } else {

@@ -1,0 +1,73 @@
+version = 0.1
+
+[1]
+type = "span"
+position = [26, 34]
+text = "Journal "
+label = "A"
+
+[2]
+type = "span"
+position = [3376, 3383]
+text = "However"
+label = "B"
+
+[3]
+type = "relation"
+dir = "one-way"
+ids = ["2", "1"]
+label = "B to A"
+
+[4]
+type = "span"
+position = [754, 764]
+text = "Publisher "
+label = "D"
+
+[5]
+type = "span"
+position = [904, 913]
+text = "Research "
+label = "C"
+
+[6]
+type = "relation"
+dir = "two-way"
+ids = ["5", "4"]
+label = "D <> C"
+
+[7]
+type = "span"
+position = [10864, 10873]
+text = "Computer "
+label = "E"
+
+[8]
+type = "span"
+position = [477, 490]
+text = "unrestricted "
+label = "F"
+
+[9]
+type = "relation"
+dir = "link"
+ids = ["8", "7"]
+label = ""
+
+[10]
+type = "span"
+position = [641, 653]
+text = "Publication "
+label = "X1"
+
+[11]
+type = "span"
+position = [674, 682]
+text = "January "
+label = "X32"
+
+[12]
+type = "relation"
+dir = "two-way"
+ids = ["11", "10"]
+label = "XX XX"

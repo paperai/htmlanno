@@ -81,17 +81,21 @@
 	const FileLoader = __webpack_require__(22);
 	const Highlight = __webpack_require__(11);
 	const RelationAnnotation = __webpack_require__(14);
+	const Bioes = __webpack_require__(23);
 	
 	class Htmlanno{
 	  constructor(){
 	    this.defaultDataUri = './sample/sample.xhtml';
 	    this.defaultDataName = this.excludeBaseUriName(this.defaultDataUri); // これは固定値だが指示都合上定数にしてはならない
+	    /**
+	     * @see #reloadContent
+	     * @see #loadDefaultData
+	     */
 	    this.useDefaultData = true;
 	    this.setupHtml();
 	    this.annotations = new AnnotationContainer();
 	    this.highlighter = new Highlighter(this.annotations);
 	    this.arrowConnector = new ArrowConnector(this.annotations);
-	    this.handleResize();
 	
 	    // The contents and annotations from files.
 	    this.fileLoader = new FileLoader();
@@ -160,7 +164,7 @@
 	    });
 	
 	    AnnoUI.contentDropdown.setup({
-	      initialText: 'PDF File',
+	      initialText: 'Content File',
 	      overrideWarningMessage: 'Are you sure to load another Content ?',
 	      contentReloadHandler: this.reloadContent.bind(this)
 	      
@@ -196,8 +200,7 @@
 	         else {
 	           return contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
 	         }
-	      },
-	      unlistenWindowLeaveEvent: () => {} // TODO: 処理内容保留。 see: pdfanno/src/page/util/window.js
+	      }
 	    });
 	
 	    AnnoUI.annoListDropdown.setup({
@@ -488,53 +491,73 @@
 	
 	  reloadContent(fileName) {
 	    this.useDefaultData = false;
+	    const showReadError = () => {
+	      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+	    };
+	    const loadContent = (content, readResult, _this) => {
+	      if (undefined != readResult) {
+	        _this.remove();
+	        content.content = readResult;
+	        content.source = undefined;
+	        $('#viewer').html(content.content);
+	        _this.handleResize();
+	      } else {
+	        showReadError();
+	      }
+	    };
+	
 	    let content = this.fileLoader.getContent(fileName);
-	    switch(content.type) {
-	      case 'html':
-	        this.remove();
-	        if (undefined != content.source) {
+	    if (undefined != content.content) {
+	      this.remove();
+	      $('#viewer').html(content.content);
+	      // TODO BIOESの場合はアノテーションもレンダリング
+	    } else {
+	      switch(content.type) {
+	        case 'html':
 	          FileLoader.htmlLoader(content.source, ((html) => {
-	            if (undefined != html) {
-	              content.content = html;
-	              content.source = undefined;
-	              $('#viewer').html(content.content);
-	              this.handleResize();
-	            } else {
-	              this.dispatchWindowEvent(
-	                'open-alert-dialog', {message: 'Read error.'}
-	              );
-	            }
+	            loadContent(content, html, this);
 	          }).bind(this));
-	        } else {
-	          $('#viewer').html(content.content);
-	        }
-	        break;
+	          break;
 	
-	      case 'text':
-	        this.remove();
-	        if (undefined != content.source) {
+	        case 'bioes':
+	          let reader = new FileReader();
+	          reader.onload = () => {
+	            let bioes = new Bioes();
+	            if (bioes.parse(reader.result)) {
+	              loadContent(content, bioes.content, this);
+	              console.log("BIOES annotation is " + bioes.annotations.length);
+	              console.log(bioes.annotations);
+	              console.log(new Date());
+	              TomlTool.renderAnnotation(
+	                bioes.annotations, // .slice(0, 100), // TODO 個数が多すぎるので適当に切り出す
+	                this.highlighter,
+	                this.arrowConnector
+	              );
+	              console.log(new Date());
+	              this.dispatchWindowEvent('annotationrendered');
+	            } else {
+	              showReadError();
+	            }
+	          };
+	          reader.onerror = showReadError;
+	          reader.onabort = showReadError;
+	
+	          reader.readAsText(content.source);
+	          break;
+	
+	        case 'text':
+	          this.remove();
 	          FileLoader.textLoader(content.source, ((text) => {
-	            if (undefined != text) {
-	              content.content = text;
-	              content.source = undefined;
-	              $('#viewer').text(content.content);
-	              this.handleResize();
-	            } else {
-	              this.dispatchWindowEvent(
-	                'open-alert-dialog', {message: 'Read error.'}
-	              );
-	            }
+	            loadContent(content, text, this);
 	          }).bind(this));
-	        } else {
-	          $('#viewer').text(content.content);
-	        }
-	        break;
+	          break;
 	
-	      default:
-	        this.dispatchWindowEvent(
-	          'open-alert-dialog',
-	          {message: 'Unknown content type; ' + content.content}
-	        );
+	        default:
+	          this.dispatchWindowEvent(
+	            'open-alert-dialog',
+	            {message: 'Unknown content type; ' + content.content}
+	          );
+	      }
 	    }
 	    this.handleResize();
 	  }  
@@ -587,6 +610,7 @@
 	      success: function(htmlData) {
 	        let content = FileLoader.parseHtml(htmlData);
 	        if (undefined != content) {
+	          this.useDefaultData = true;
 	          $('#viewer').html(content);
 	        }
 	        globalEvent.emit('resizewindow');
@@ -617,7 +641,7 @@
 	  // TODO: Anno-UI contentDropdown辺りで提供してほしい
 	  getCurrentContentFileName() {
 	    let value = $('#dropdownPdf .js-text').text();
-	    if (value === 'PDF File') {  // TODO: Anno-UI 対応後data-initial-textに切替
+	    if (value === 'Content File') {
 	      if (this.useDefaultData) {
 	        return this.defaultDataName;
 	      } else {
@@ -1718,8 +1742,8 @@
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__components_annoSpanButton__ = __webpack_require__(18);
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__components_labelInput__ = __webpack_require__(19);
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__components_uploadButton__ = __webpack_require__(25);
-	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__uis__ = __webpack_require__(26);
-	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__events__ = __webpack_require__(27);
+	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__uis__ = __webpack_require__(27);
+	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__events__ = __webpack_require__(28);
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_13__utils__ = __webpack_require__(3);
 	/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "browseButton", function() { return __WEBPACK_IMPORTED_MODULE_0__components_browseButton__; });
 	/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "contentDropdown", function() { return __WEBPACK_IMPORTED_MODULE_1__components_contentDropdown__; });
@@ -2097,7 +2121,7 @@
 	
 	    // a PDF name.
 	    text = $('#dropdownPdf .js-text').text()
-	    let pdfName = (text !== 'PDF File' ? text : null)
+	    let pdfName = (text !== getContentDropdownInitialText() ? text : null)
 	
 	    // a Primary anno.
 	    text = $('#dropdownAnnoPrimary .js-text').text()
@@ -2129,7 +2153,7 @@
 	function setPDFDropdownList () {
 	
 	    // Reset the state of the PDF dropdown.
-	    $('#dropdownPdf .js-text').text('PDF File')
+	    $('#dropdownPdf .js-text').text(getContentDropdownInitialText())
 	    $('#dropdownPdf li').remove()
 	
 	    // Create and setup the dropdown menu.
@@ -2184,6 +2208,11 @@
 	
 	    // Setup color pallets.
 	    setupColorPicker()
+	}
+	
+	function getContentDropdownInitialText () {
+	    let value = $('#dropdownPdf .js-text').data('initial-text')
+	    return (value === undefined || value === '') ? 'PDF File' : value
 	}
 	
 	
@@ -2253,6 +2282,7 @@
 	}) {
 	
 	    $('#dropdownPdf .js-text').text(initialText)
+	    $('#dropdownPdf .js-text').data('initial-text', initialText)
 	
 	    // TODO pdfという単語を削除したい..
 	
@@ -2511,7 +2541,7 @@
 	function setup ({
 	    getAnnotationTOMLString,
 	    getCurrentContentName,
-	    unlistenWindowLeaveEvent
+	    didDownloadCallback = function () {}
 	}) {
 	    $('#downloadButton').off('click').on('click', e => {
 	        $(e.currentTarget).blur()
@@ -2527,7 +2557,7 @@
 	            a.parentNode.removeChild(a)
 	        })
 	
-	        unlistenWindowLeaveEvent()
+	        didDownloadCallback()
 	
 	        return false
 	    })
@@ -7129,94 +7159,68 @@
 	"use strict";
 	Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 	/* harmony export (immutable) */ __webpack_exports__["setup"] = setup;
+	/* harmony export (immutable) */ __webpack_exports__["uploadPDF"] = uploadPDF;
 	/* harmony export (immutable) */ __webpack_exports__["setResult"] = setResult;
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__ = __webpack_require__(0);
+	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__funcs_upload__ = __webpack_require__(26);
 	/**
 	 * UI parts - Upload Button.
 	 */
 	
 	
+	
 	function setup ({
-	        getCurrentDisplayContentFile
-	    }) {
+	    getCurrentDisplayContentFile,
+	    uploadFinishCallback = function () {}
+	}) {
 	    $('.js-btn-upload').off('click').on('click', () => {
 	        const contentFile = getCurrentDisplayContentFile()
-	        if (!contentFile) {
-	            return __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : 'Display a content before upload.' })
-	        }
-	
-	        function arrayBufferToBase64 (buffer) {
-	            var s = ''
-	            var bytes = new Uint8Array(buffer)
-	            var len = bytes.byteLength
-	            for (var i = 0; i < len; i++) {
-	                s += String.fromCharCode(bytes[i])
-	            }
-	            return window.btoa(s)
-	        }
-	
-	        const contentBase64 = arrayBufferToBase64(contentFile.content)
-	
-	        const $progressBar = $('.js-upload-progress')
-	
-	        const url = window.API_ROOT + '/api/pdf_upload'
-	
-	        setResult('Waiting for response...')
-	
-	        let data = {
-	            filename : contentFile.name,
-	            pdf      : contentBase64
-	        }
-	
-	        $.ajax({
-	            xhr : function () {
-	                var xhr = new window.XMLHttpRequest()
-	                // Upload progress
-	                xhr.upload.addEventListener('progress', function (evt) {
-	                    if (evt.lengthComputable) {
-	                        var percentComplete = evt.loaded / evt.total
-	                        // Do something with upload progress
-	                        console.log('uploadProgress:', percentComplete)
-	                        let percent = Math.floor(percentComplete * 100)
-	                        $progressBar.find('.progress-bar').css('width', percent + '%').attr('aria-valuenow', percent).text(percent + '%')
-	                        if (percent === 100) {
-	                            setTimeout(() => {
-	                                $progressBar.addClass('hidden')
-	                            }, 2000)
-	                        }
-	                    }
-	                }, false)
-	                // Download progress
-	                xhr.addEventListener('progress', function (evt) {
-	                    if (evt.lengthComputable) {
-	                        var percentComplete = evt.loaded / evt.total
-	                        // Do something with download progress
-	                        console.log('downloadProgress:', percentComplete)
-	                    }
-	                }, false)
-	                return xhr
-	            },
-	            url      : url,
-	            method   : 'POST',
-	            dataType : 'json',
-	            data
-	
-	        }).then(result => {
-	            if (result.status === 'failure') {
-	                alert('ERROR!!')
-	                setResult(result.err.stderr)
-	                return
-	            }
-	
-	            setTimeout(() => {
-	                setResult(result.text)
-	            }, 500) // wait for progress bar animation.
+	        uploadPDF({
+	            contentFile,
+	            successCallback : uploadFinishCallback
 	        })
-	
-	        // Show.
-	        $progressBar.removeClass('hidden').find('.progress-bar').css('width', '0%').attr('aria-valuenow', 0).text('0%')
-	
 	        return false
+	    })
+	}
+	
+	function uploadPDF ({
+	    contentFile,
+	    successCallback = function () {}
+	}) {
+	
+	    if (!contentFile) {
+	        return __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : 'Display a content before upload.' })
+	    }
+	
+	    // Progress bar.
+	    const $progressBar = $('.js-upload-progress')
+	
+	    // Upload and analyze the PDF.
+	    __WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */]({
+	        contentFile,
+	        willStartCallback : () => {
+	            // Reset the result text.
+	            setResult('Waiting for response...')
+	            // Show the progress bar.
+	            $progressBar.removeClass('hidden').find('.progress-bar').css('width', '0%').attr('aria-valuenow', 0).text('0%')
+	        },
+	        progressCallback : percent => {
+	            $progressBar.find('.progress-bar').css('width', percent + '%').attr('aria-valuenow', percent).text(percent + '%')
+	            if (percent === 100) {
+	                setTimeout(() => {
+	                    $progressBar.addClass('hidden')
+	                }, 2000)
+	            }
+	        },
+	        successCallback : resultText => {
+	            setResult(resultText)
+	            successCallback(resultText)
+	        },
+	        failedCallback : err => {
+	            const message = 'Failed to upload and analyze your PDF.<br>Reason: ' + err
+	            __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message })
+	            setResult(err)
+	        }
 	    })
 	}
 	
@@ -7233,6 +7237,83 @@
 	/***/ (function(module, __webpack_exports__, __webpack_require__) {
 	
 	"use strict";
+	/* harmony export (immutable) */ __webpack_exports__["a"] = upload;
+	/**
+	 * Functions - upload and analyze a PDF.
+	 */
+	function upload ({
+	    contentFile,
+	    willStartCallback = function () {},
+	    progressCallback = function () {},
+	    successCallback = function () {},
+	    failedCallback = function () {}
+	} = {}) {
+	
+	    // Convert PDF to base64 string.
+	    const contentBase64 = arrayBufferToBase64(contentFile.content)
+	
+	    // API endpoint.
+	    const url = window.API_ROOT + '/api/pdf_upload'
+	
+	    // API params.
+	    let data = {
+	        filename : contentFile.name,
+	        pdf      : contentBase64
+	    }
+	
+	    // Callback before ajax call.
+	    willStartCallback()
+	
+	    // Call the API.
+	    $.ajax({
+	        xhr : function () {
+	            var xhr = new window.XMLHttpRequest()
+	            // Upload progress
+	            xhr.upload.addEventListener('progress', function (evt) {
+	                if (evt.lengthComputable) {
+	                    var percentComplete = evt.loaded / evt.total
+	                    // Do something with upload progress
+	                    console.log('uploadProgress:', percentComplete)
+	                    let percent = Math.floor(percentComplete * 100)
+	                    progressCallback(percent)
+	                }
+	            }, false)
+	
+	            return xhr
+	        },
+	        url      : url,
+	        method   : 'POST',
+	        dataType : 'json',
+	        data
+	
+	    }).then(result => {
+	        if (result.status === 'failure') {
+	            failedCallback(result.err.stderr || result.err || result)
+	            return
+	        }
+	
+	        setTimeout(() => {
+	            successCallback(result.text)
+	        }, 500) // wait for progress bar animation.
+	    })
+	}
+	
+	function arrayBufferToBase64 (buffer) {
+	    var s = ''
+	    var bytes = new Uint8Array(buffer)
+	    var len = bytes.byteLength
+	    for (var i = 0; i < len; i++) {
+	        s += String.fromCharCode(bytes[i])
+	    }
+	    return window.btoa(s)
+	}
+	
+	
+	/***/ }),
+	/* 27 */
+	/***/ (function(module, __webpack_exports__, __webpack_require__) {
+	
+	"use strict";
 	Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 	/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__alertDialog__ = __webpack_require__(0);
 	/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "alertDialog", function() { return __WEBPACK_IMPORTED_MODULE_0__alertDialog__; });
@@ -7242,7 +7323,7 @@
 	
 	
 	/***/ }),
-	/* 27 */
+	/* 28 */
 	/***/ (function(module, __webpack_exports__, __webpack_require__) {
 	
 	"use strict";
@@ -7315,6 +7396,26 @@
 	  return [data.join("\n")];
 	};
 	
+	exports.renderAnnotation = (tomlObj, highlighter, arrowConnector, referenceId, color) => {
+	  for(key in tomlObj) {
+	    if ("version" == key) {
+	      continue;
+	    }
+	    let annotation = undefined;
+	    // Span.
+	    if (Highlight.isMydata(tomlObj[key])) {
+	      annotation = highlighter.addToml(key, tomlObj[key], referenceId);
+	    }
+	    // Relation(one-way, two-way, or link)
+	    if (RelationAnnotation.isMydata(tomlObj[key])) {
+	      annotation = arrowConnector.addToml(key, tomlObj[key], referenceId);
+	    }
+	    if (undefined != color) {
+	      annotation.setColor(color);
+	    }
+	  }
+	};
+	
 	/**
 	 * @param fileBlobOrText ... File(Blob) object that created by &lt;file&gt; tag.
 	 * @param highlighter ... Highlight annotation containr.
@@ -7322,33 +7423,12 @@
 	 * @param referenceId (optional) ... Used to identify annotations.
 	 */
 	exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId, color)=>{
-	  const renderAnnotation = (toml)=>{
-	    let data = TomlParser.parse(toml);
-	    for(key in data) {
-	      if ("version" == key) {
-	        continue;
-	      }
-	      let annotation = undefined;
-	      // Span.
-	      if (Highlight.isMydata(data[key])) {
-	        annotation = highlighter.addToml(key, data[key], referenceId);
-	      }
-	      // Relation(one-way, two-way, or link)
-	      if (RelationAnnotation.isMydata(data[key])) {
-	        annotation = arrowConnector.addToml(key, data[key], referenceId);
-	      }
-	      if (undefined != color) {
-	        annotation.setColor(color);
-	      }
-	    }
-	  };
-	
 	  if ('string' == typeof(fileBlobOrText)) {
-	    renderAnnotation(fileBlobOrText);
+	    exports.renderAnnotation(TomlParser.parse(fileBlobOrText), highlighter, arrowConnector, referenceId, color);
 	  } else{
 	    let reader = new FileReader();
 	    reader.onload = ()=>{
-	      renderAnnotation(reader.result);
+	      exports.renderAnnotation(TomlParser.parse(reader.result), highlighter, arrowConnector, referenceId, color);
 	    }
 	    reader.onerror = ()=>{
 	      alert("Import failed.");  // TODO: UI実装後に適時変更
@@ -7360,7 +7440,6 @@
 	    reader.readAsText(fileBlob);
 	  }
 	};
-	
 
 
 /***/ }),
@@ -18492,6 +18571,11 @@
 	        this._createAnnotationLoadingPromiseList(categoraizedFiles[2])
 	      ).then(
 	        (results) => { _this._merge(results, _this._annotations); }
+	      ),
+	      Promise.all(
+	        this._createBioesLoadingPromiseList(categoraizedFiles[3])
+	      ).then(
+	        (results) => { _this._merge(results, _this._contents); }
 	      )
 	    ]).then(
 	      (all_results) => {
@@ -18623,12 +18707,26 @@
 	  static textLoader(file, callback) {
 	    let reader = new FileReader();
 	    reader.onload = ()=>{
-	      callback(reader.result);
+	      callback('<p>' + reader.result + '</p>');
 	    };
 	    reader.onerror = () => {callback(undefined); };
 	    reader.onabort = () => {callback(undefined); };
 	
 	    reader.readAsText(file);
+	  }
+	
+	  _createBioesLoadingPromiseList(files) {
+	    return files.map((file) => {
+	      return new Promise((resolve, reject) => {
+	        resolve({
+	          type    : 'bioes',
+	          name    : this._excludeBaseDirName(file.webkitRelativePath),
+	          content : undefined,
+	          source  : file,
+	          selected: false
+	        });
+	      });
+	    });
 	  }
 	
 	  _createAnnotationLoadingPromiseList(files) {
@@ -18657,11 +18755,13 @@
 	  _categorize(files){
 	    let htmlMatcher  = new RegExp(/.+\.xhtml$/i);
 	    let textMatcher  = new RegExp(/.+\.txt$/i);
-	    let annoMatcher = new RegExp(/.+\.htmlanno$/i);
+	    let annoMatcher  = new RegExp(/.+\.htmlanno$/i);
+	    let bioesMatcher = new RegExp(/.+\.BIOES$/i);
 	
-	    let htmlNames = [];
-	    let textNames = [];
-	    let annoNames = [];
+	    let htmlNames  = [];
+	    let textNames  = [];
+	    let annoNames  = [];
+	    let bioesNames = [];
 	    for(let i = 0;i < files.length; i ++ ){
 	      let file = files[i];
 	
@@ -18674,6 +18774,8 @@
 	          textNames.push(file);
 	        } else if (annoMatcher.test(fileName)){
 	          annoNames.push(file);
+	        } else if (bioesMatcher.test(fileName)){
+	          bioesNames.push(file);
 	        }
 	      }        
 	      // else, skip it.
@@ -18681,7 +18783,8 @@
 	    return [
 	      htmlNames,
 	      textNames,
-	      annoNames
+	      annoNames,
+	      bioesNames
 	    ];
 	  }
 	
@@ -18706,6 +18809,154 @@
 	
 	}
 	module.exports = FileLoader;
+
+
+/***/ }),
+/* 23 */
+/***/ (function(module, exports) {
+
+	class Bioes {
+	  constrcutor() {
+	    this._content = undefined;
+	    this._annotations = undefined;
+	  }
+	
+	  /**
+	   * Field Separator
+	   */
+	  get FS() {
+	    return "\t";
+	  }
+	
+	  /**
+	   * Line Separator (Regular Expression)
+	   */
+	  get LS() {
+	    return /\r\n|\n|\r/;
+	  }
+	
+	  get content() {
+	    return this._content;
+	  }
+	
+	  get annotations() {
+	    return this._annotations;
+	  }
+	
+	  /**
+	   * @params bioes ... String object of BIOES format.
+	   */
+	  parse(bioes) {
+	    if (undefined === bioes) {
+	      return undefined;
+	    }
+	
+	    // '<p>xxx<p><p>yyy zzz</p><p>111</p>
+	    this._content = '';
+	    // The array includes Toml Object.
+	    this._annotations = [];
+	
+	    // ['xxx', 'yyy zzz, '111', ...]
+	    let contentArray = [];
+	    // ['yyy', 'zzz']
+	    let currentContentArray = [];
+	    // Toml object
+	    let currentSpan = undefined;
+	    bioes.split(this.LS).forEach((line) => {
+	      if (0 == line.length) {
+	        // Next paragraph.
+	        contentArray.push(currentContentArray.join(' '));
+	        currentContentArray = [];
+	      }
+	      let fsIndex = line.indexOf(this.FS);
+	      if (-1 != fsIndex) {
+	        let word = line.substring(0, fsIndex);
+	        let type = line.substring(fsIndex+1);
+	
+	        currentContentArray.push(word);
+	        switch(type[0]) {
+	           case 'B': // Begin span.
+	             if (undefined == currentSpan) {
+	               currentSpan = this._createSpanObject(
+	                 this._parseLabel(type), currentContentArray
+	               );
+	             } else {
+	               // TODO: フォーマットエラー
+	               // ignore inner span.
+	             }
+	             break;
+	           case 'I': // Internal of span.
+	             // if (undefined == currentSpan) {
+	             // TODO: フォーマットエラー
+	             // }
+	             break;
+	           case 'E': // End span.
+	             if (undefined != currentSpan) {
+	               this._annotations.push(
+	                 this._createTomlObj(currentSpan, currentContentArray, contentArray)
+	               );
+	               currentSpan = undefined;
+	             } else {
+	               // TODO: フォーマットエラー
+	             }
+	             break;
+	           case 'S': // Single a span.
+	             this._annotations.push(
+	               this._createTomlObj(
+	                 this._createSpanObject(this._parseLabel(type), currentContentArray),
+	                 currentContentArray,
+	                 contentArray
+	               )
+	             );
+	             break;
+	           case 'O': // Other.
+	             break;
+	           default:
+	             // Invalid tag, ignore.
+	        }
+	      }
+	      // TODO: フォーマットエラー
+	    });
+	    this._content = '<p>' + contentArray.join('</p><p>') + '</p>';
+	    this._content = this._content.replace(/<p>\s*<\/p>/, '');
+	    return true;
+	  }
+	
+	  _createSpanObject(label, contentArray) {
+	    return {
+	      startIndex: (contentArray.length - 1),
+	      label: label
+	    };
+	  }
+	
+	  _parseLabel(tag) {
+	    return 1 == tag.length ? tag : tag.substring(2);
+	  }
+	
+	  _createTomlObj(spanObject, currentContentArray, contentArray) {
+	    let beforeContent =
+	      this._contentArrayToString(contentArray) +
+	      '<p>' + 
+	      currentContentArray.slice(0, spanObject.startIndex).join(' ');
+	    let content = currentContentArray.slice(spanObject.startIndex).join(' ');
+	    
+	    let start = beforeContent.replace(/<p>|<\/p>/g, '').length;
+	    // Add the last space before context.
+	    start += 0 == spanObject.startIndex ? 0: 1;
+	    return {
+	      type: 'span',
+	      position: [start, (start + content.length)],
+	      text: content,
+	      label: spanObject.label
+	    };
+	  }
+	
+	  _contentArrayToString(contentArray) {
+	    return `<p>${contentArray.join('</p><p>')}</p>`;
+	  }
+	}
+	
+	module.exports = Bioes;
 
 
 /***/ })
