@@ -1,5 +1,4 @@
 const TomlParser = require("toml");
-const rangy = require("rangy");
 const Highlight = require("./highlight.js");
 const RelationAnnotation = require("./relationannotation.js");
 const Annotation = require("./annotation.js");
@@ -28,33 +27,24 @@ exports.renderAnnotation = (tomlObj, highlighter, arrowConnector, referenceId, c
     if (RelationAnnotation.isMydata(tomlObj[key])) {
       annotation = arrowConnector.addToml(key, tomlObj[key], referenceId);
     }
-    if (undefined != color) {
+    if (null == annotation) {
+      console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
+      console.log(tomlObj[key]);
+    } else if (undefined != color) {
       annotation.setColor(color);
     }
   }
 };
 
 /**
- * @param fileBlobOrText ... File(Blob) object that created by &lt;file&gt; tag.
+ * @param objectOrText ... TomlObject(Hash) or Toml source text.
  * @param highlighter ... Highlight annotation containr.
  * @param arrowConnector ... Relation annotation container.
  * @param referenceId (optional) ... Used to identify annotations.
  */
-exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId, color)=>{
-  if ('string' == typeof(fileBlobOrText)) {
-    exports.renderAnnotation(TomlParser.parse(fileBlobOrText), highlighter, arrowConnector, referenceId, color);
-  } else{
-    let reader = new FileReader();
-    reader.onload = ()=>{
-      exports.renderAnnotation(TomlParser.parse(reader.result), highlighter, arrowConnector, referenceId, color);
-    }
-    reader.onerror = ()=>{
-      alert("Import failed.");  // TODO: UI実装後に適時変更
-    };
-    reader.onabort = ()=>{
-      alert("Import aborted."); // TODO: UI実装後に適宜変更
-    };
-
-    reader.readAsText(fileBlob);
+exports.loadToml = (objectOrText, highlighter, arrowConnector, referenceId, color)=>{
+  if ('string' == typeof(objectOrText)) {
+    objectOrText = TomlParser.parse(objectOrText);
   }
+  exports.renderAnnotation(objectOrText, highlighter, arrowConnector, referenceId, color);
 };
