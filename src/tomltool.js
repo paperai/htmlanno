@@ -1,5 +1,4 @@
 const TomlParser = require("toml");
-const rangy = require("rangy");
 const Highlight = require("./highlight.js");
 const RelationAnnotation = require("./relationannotation.js");
 const Annotation = require("./annotation.js");
@@ -45,8 +44,7 @@ exports.renderAnnotation = (tomlObj, highlighter, arrowConnector, referenceId, c
  */
 exports.loadToml = (objectOrText, highlighter, arrowConnector, referenceId, color)=>{
   if ('string' == typeof(objectOrText)) {
-    exports.renderAnnotation(TomlParser.parse(objectOrText), highlighter, arrowConnector, referenceId, color);
-  } else{
-    exports.renderAnnotation(objectOrText, highlighter, arrowConnector, referenceId, color);
+    objectOrText = TomlParser.parse(objectOrText);
   }
+  exports.renderAnnotation(objectOrText, highlighter, arrowConnector, referenceId, color);
 };
