@@ -81,6 +81,7 @@
 	const FileLoader = __webpack_require__(22);
 	const Highlight = __webpack_require__(11);
 	const RelationAnnotation = __webpack_require__(14);
+	const Bioes = __webpack_require__(23);
 	
 	class Htmlanno{
 	  constructor(){
@@ -490,53 +491,73 @@
 	
 	  reloadContent(fileName) {
 	    this.useDefaultData = false;
+	    const showReadError = () => {
+	      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+	    };
+	    const loadContent = (content, readResult, _this) => {
+	      if (undefined != readResult) {
+	        _this.remove();
+	        content.content = readResult;
+	        content.source = undefined;
+	        $('#viewer').html(content.content);
+	        _this.handleResize();
+	      } else {
+	        showReadError();
+	      }
+	    };
+	
 	    let content = this.fileLoader.getContent(fileName);
-	    switch(content.type) {
-	      case 'html':
-	        this.remove();
-	        if (undefined != content.source) {
+	    if (undefined != content.content) {
+	      this.remove();
+	      $('#viewer').html(content.content);
+	      // TODO BIOESの場合はアノテーションもレンダリング
+	    } else {
+	      switch(content.type) {
+	        case 'html':
 	          FileLoader.htmlLoader(content.source, ((html) => {
-	            if (undefined != html) {
-	              content.content = html;
-	              content.source = undefined;
-	              $('#viewer').html(content.content);
-	              this.handleResize();
-	            } else {
-	              this.dispatchWindowEvent(
-	                'open-alert-dialog', {message: 'Read error.'}
-	              );
-	            }
+	            loadContent(content, html, this);
 	          }).bind(this));
-	        } else {
-	          $('#viewer').html(content.content);
-	        }
-	        break;
+	          break;
 	
-	      case 'text':
-	        this.remove();
-	        if (undefined != content.source) {
+	        case 'bioes':
+	          let reader = new FileReader();
+	          reader.onload = () => {
+	            let bioes = new Bioes();
+	            if (bioes.parse(reader.result)) {
+	              loadContent(content, bioes.content, this);
+	              console.log("BIOES annotation is " + bioes.annotations.length);
+	              console.log(bioes.annotations);
+	              console.log(new Date());
+	              TomlTool.renderAnnotation(
+	                bioes.annotations, // .slice(0, 100), // TODO 個数が多すぎるので適当に切り出す
+	                this.highlighter,
+	                this.arrowConnector
+	              );
+	              console.log(new Date());
+	              this.dispatchWindowEvent('annotationrendered');
+	            } else {
+	              showReadError();
+	            }
+	          };
+	          reader.onerror = showReadError;
+	          reader.onabort = showReadError;
+	
+	          reader.readAsText(content.source);
+	          break;
+	
+	        case 'text':
+	          this.remove();
 	          FileLoader.textLoader(content.source, ((text) => {
-	            if (undefined != text) {
-	              content.content = text;
-	              content.source = undefined;
-	              $('#viewer').text(content.content);
-	              this.handleResize();
-	            } else {
-	              this.dispatchWindowEvent(
-	                'open-alert-dialog', {message: 'Read error.'}
-	              );
-	            }
+	            loadContent(content, text, this);
 	          }).bind(this));
-	        } else {
-	          $('#viewer').text(content.content);
-	        }
-	        break;
+	          break;
 	
-	      default:
-	        this.dispatchWindowEvent(
-	          'open-alert-dialog',
-	          {message: 'Unknown content type; ' + content.content}
-	        );
+	        default:
+	          this.dispatchWindowEvent(
+	            'open-alert-dialog',
+	            {message: 'Unknown content type; ' + content.content}
+	          );
+	      }
 	    }
 	    this.handleResize();
 	  }  
@@ -7375,6 +7396,26 @@
 	  return [data.join("\n")];
 	};
 	
+	exports.renderAnnotation = (tomlObj, highlighter, arrowConnector, referenceId, color) => {
+	  for(key in tomlObj) {
+	    if ("version" == key) {
+	      continue;
+	    }
+	    let annotation = undefined;
+	    // Span.
+	    if (Highlight.isMydata(tomlObj[key])) {
+	      annotation = highlighter.addToml(key, tomlObj[key], referenceId);
+	    }
+	    // Relation(one-way, two-way, or link)
+	    if (RelationAnnotation.isMydata(tomlObj[key])) {
+	      annotation = arrowConnector.addToml(key, tomlObj[key], referenceId);
+	    }
+	    if (undefined != color) {
+	      annotation.setColor(color);
+	    }
+	  }
+	};
+	
 	/**
 	 * @param fileBlobOrText ... File(Blob) object that created by &lt;file&gt; tag.
 	 * @param highlighter ... Highlight annotation containr.
@@ -7382,33 +7423,12 @@
 	 * @param referenceId (optional) ... Used to identify annotations.
 	 */
 	exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId, color)=>{
-	  const renderAnnotation = (toml)=>{
-	    let data = TomlParser.parse(toml);
-	    for(key in data) {
-	      if ("version" == key) {
-	        continue;
-	      }
-	      let annotation = undefined;
-	      // Span.
-	      if (Highlight.isMydata(data[key])) {
-	        annotation = highlighter.addToml(key, data[key], referenceId);
-	      }
-	      // Relation(one-way, two-way, or link)
-	      if (RelationAnnotation.isMydata(data[key])) {
-	        annotation = arrowConnector.addToml(key, data[key], referenceId);
-	      }
-	      if (undefined != color) {
-	        annotation.setColor(color);
-	      }
-	    }
-	  };
-	
 	  if ('string' == typeof(fileBlobOrText)) {
-	    renderAnnotation(fileBlobOrText);
+	    exports.renderAnnotation(TomlParser.parse(fileBlobOrText), highlighter, arrowConnector, referenceId, color);
 	  } else{
 	    let reader = new FileReader();
 	    reader.onload = ()=>{
-	      renderAnnotation(reader.result);
+	      exports.renderAnnotation(TomlParser.parse(reader.result), highlighter, arrowConnector, referenceId, color);
 	    }
 	    reader.onerror = ()=>{
 	      alert("Import failed.");  // TODO: UI実装後に適時変更
@@ -7420,7 +7440,6 @@
 	    reader.readAsText(fileBlob);
 	  }
 	};
-	
 
 
 /***/ }),
@@ -18552,6 +18571,11 @@
 	        this._createAnnotationLoadingPromiseList(categoraizedFiles[2])
 	      ).then(
 	        (results) => { _this._merge(results, _this._annotations); }
+	      ),
+	      Promise.all(
+	        this._createBioesLoadingPromiseList(categoraizedFiles[3])
+	      ).then(
+	        (results) => { _this._merge(results, _this._contents); }
 	      )
 	    ]).then(
 	      (all_results) => {
@@ -18683,12 +18707,26 @@
 	  static textLoader(file, callback) {
 	    let reader = new FileReader();
 	    reader.onload = ()=>{
-	      callback(reader.result);
+	      callback('<p>' + reader.result + '</p>');
 	    };
 	    reader.onerror = () => {callback(undefined); };
 	    reader.onabort = () => {callback(undefined); };
 	
 	    reader.readAsText(file);
+	  }
+	
+	  _createBioesLoadingPromiseList(files) {
+	    return files.map((file) => {
+	      return new Promise((resolve, reject) => {
+	        resolve({
+	          type    : 'bioes',
+	          name    : this._excludeBaseDirName(file.webkitRelativePath),
+	          content : undefined,
+	          source  : file,
+	          selected: false
+	        });
+	      });
+	    });
 	  }
 	
 	  _createAnnotationLoadingPromiseList(files) {
@@ -18717,11 +18755,13 @@
 	  _categorize(files){
 	    let htmlMatcher  = new RegExp(/.+\.xhtml$/i);
 	    let textMatcher  = new RegExp(/.+\.txt$/i);
-	    let annoMatcher = new RegExp(/.+\.htmlanno$/i);
+	    let annoMatcher  = new RegExp(/.+\.htmlanno$/i);
+	    let bioesMatcher = new RegExp(/.+\.BIOES$/i);
 	
-	    let htmlNames = [];
-	    let textNames = [];
-	    let annoNames = [];
+	    let htmlNames  = [];
+	    let textNames  = [];
+	    let annoNames  = [];
+	    let bioesNames = [];
 	    for(let i = 0;i < files.length; i ++ ){
 	      let file = files[i];
 	
@@ -18734,6 +18774,8 @@
 	          textNames.push(file);
 	        } else if (annoMatcher.test(fileName)){
 	          annoNames.push(file);
+	        } else if (bioesMatcher.test(fileName)){
+	          bioesNames.push(file);
 	        }
 	      }        
 	      // else, skip it.
@@ -18741,7 +18783,8 @@
 	    return [
 	      htmlNames,
 	      textNames,
-	      annoNames
+	      annoNames,
+	      bioesNames
 	    ];
 	  }
 	
@@ -18766,6 +18809,154 @@
 	
 	}
 	module.exports = FileLoader;
+
+
+/***/ }),
+/* 23 */
+/***/ (function(module, exports) {
+
+	class Bioes {
+	  constrcutor() {
+	    this._content = undefined;
+	    this._annotations = undefined;
+	  }
+	
+	  /**
+	   * Field Separator
+	   */
+	  get FS() {
+	    return "\t";
+	  }
+	
+	  /**
+	   * Line Separator (Regular Expression)
+	   */
+	  get LS() {
+	    return /\r\n|\n|\r/;
+	  }
+	
+	  get content() {
+	    return this._content;
+	  }
+	
+	  get annotations() {
+	    return this._annotations;
+	  }
+	
+	  /**
+	   * @params bioes ... String object of BIOES format.
+	   */
+	  parse(bioes) {
+	    if (undefined === bioes) {
+	      return undefined;
+	    }
+	
+	    // '<p>xxx<p><p>yyy zzz</p><p>111</p>
+	    this._content = '';
+	    // The array includes Toml Object.
+	    this._annotations = [];
+	
+	    // ['xxx', 'yyy zzz, '111', ...]
+	    let contentArray = [];
+	    // ['yyy', 'zzz']
+	    let currentContentArray = [];
+	    // Toml object
+	    let currentSpan = undefined;
+	    bioes.split(this.LS).forEach((line) => {
+	      if (0 == line.length) {
+	        // Next paragraph.
+	        contentArray.push(currentContentArray.join(' '));
+	        currentContentArray = [];
+	      }
+	      let fsIndex = line.indexOf(this.FS);
+	      if (-1 != fsIndex) {
+	        let word = line.substring(0, fsIndex);
+	        let type = line.substring(fsIndex+1);
+	
+	        currentContentArray.push(word);
+	        switch(type[0]) {
+	           case 'B': // Begin span.
+	             if (undefined == currentSpan) {
+	               currentSpan = this._createSpanObject(
+	                 this._parseLabel(type), currentContentArray
+	               );
+	             } else {
+	               // TODO: フォーマットエラー
+	               // ignore inner span.
+	             }
+	             break;
+	           case 'I': // Internal of span.
+	             // if (undefined == currentSpan) {
+	             // TODO: フォーマットエラー
+	             // }
+	             break;
+	           case 'E': // End span.
+	             if (undefined != currentSpan) {
+	               this._annotations.push(
+	                 this._createTomlObj(currentSpan, currentContentArray, contentArray)
+	               );
+	               currentSpan = undefined;
+	             } else {
+	               // TODO: フォーマットエラー
+	             }
+	             break;
+	           case 'S': // Single a span.
+	             this._annotations.push(
+	               this._createTomlObj(
+	                 this._createSpanObject(this._parseLabel(type), currentContentArray),
+	                 currentContentArray,
+	                 contentArray
+	               )
+	             );
+	             break;
+	           case 'O': // Other.
+	             break;
+	           default:
+	             // Invalid tag, ignore.
+	        }
+	      }
+	      // TODO: フォーマットエラー
+	    });
+	    this._content = '<p>' + contentArray.join('</p><p>') + '</p>';
+	    this._content = this._content.replace(/<p>\s*<\/p>/, '');
+	    return true;
+	  }
+	
+	  _createSpanObject(label, contentArray) {
+	    return {
+	      startIndex: (contentArray.length - 1),
+	      label: label
+	    };
+	  }
+	
+	  _parseLabel(tag) {
+	    return 1 == tag.length ? tag : tag.substring(2);
+	  }
+	
+	  _createTomlObj(spanObject, currentContentArray, contentArray) {
+	    let beforeContent =
+	      this._contentArrayToString(contentArray) +
+	      '<p>' + 
+	      currentContentArray.slice(0, spanObject.startIndex).join(' ');
+	    let content = currentContentArray.slice(spanObject.startIndex).join(' ');
+	    
+	    let start = beforeContent.replace(/<p>|<\/p>/g, '').length;
+	    // Add the last space before context.
+	    start += 0 == spanObject.startIndex ? 0: 1;
+	    return {
+	      type: 'span',
+	      position: [start, (start + content.length)],
+	      text: content,
+	      label: spanObject.label
+	    };
+	  }
+	
+	  _contentArrayToString(contentArray) {
+	    return `<p>${contentArray.join('</p><p>')}</p>`;
+	  }
+	}
+	
+	module.exports = Bioes;
 
 
 /***/ })
