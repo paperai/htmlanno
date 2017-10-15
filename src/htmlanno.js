@@ -460,11 +460,13 @@ class Htmlanno{
               loadContent(content, bioes.content, this);
               console.log("BIOES annotation is " + bioes.annotations.length);
               console.log(bioes.annotations);
+              console.log(new Date());
               TomlTool.renderAnnotation(
-                bioes.annotations.slice(0, 100), // TODO 個数が多すぎるので適当に切り出す
+                bioes.annotations, // .slice(0, 100), // TODO 個数が多すぎるので適当に切り出す
                 this.highlighter,
                 this.arrowConnector
               );
+              console.log(new Date());
               this.dispatchWindowEvent('annotationrendered');
             } else {
               showReadError();
