@@ -1,3 +1,5 @@
+const Bioes = require('./bioes.js');
+
 class FileContainer {
   constructor() {
     this._contents = [];
@@ -114,35 +116,53 @@ class FileContainer {
 
   /**
    * Read `file`, parse read result as HTML, and call `callback` with parse result.
-   * @param file ... HTML file name
+   * @param file ... HTML file object
    * @param callback ... callback(read result) or callback(undefined)
    * @see FileContainer.parseHtml
    */ 
   static htmlLoader(file, callback) {
-    let reader = new FileReader();
-    reader.onload = () => {
-      callback(FileContainer.parseHtml(reader.result));
-    };
-    reader.onerror = () => {callback(undefined); };
-    reader.onabort = () => {callback(undefined); };
-
-    reader.readAsText(file);
+    FileContainer._fileReader(file, (read_result) => {
+      if (undefined == read_result) {
+        callback(undefined);
+      } else {
+        callback(FileContainer.parseHtml(read_result));
+      }
+    });
   }
 
   /**
    * Read `file`, and call `callback` with read result that wrapped `<p>` tag.
-   * @param file ... Plain text file name
+   * @param file ... Plain text file object
    * @param callback ... callback(read result) or callback(undefined)
    */
   static textLoader(file, callback) {
-    let reader = new FileReader();
-    reader.onload = ()=>{
-      callback('<p>' + reader.result + '</p>');
-    };
-    reader.onerror = () => {callback(undefined); };
-    reader.onabort = () => {callback(undefined); };
+    FileContainer._fileReader(file, (read_result) => {
+      if (undefined == read_result) {
+        callback(undefined);
+      } else {
+        callback(`<p>${read_result}</p>`);
+      }
+    });
+  }
 
-    reader.readAsText(file);
+  /**
+   * Read `file`, parse read result as BIOES, and call `callback` with Bioes object.
+   * @param file ... BIOES file object
+   * @param callback ... callback(Bioes object) or callback(undefined)
+   */
+  static bioesLoader(file, callback) {
+    FileContainer._fileReader(file, (read_result) => {
+      if (undefined == read_result) {
+        callback(undefined);
+      } else {
+        let bioes = new Bioes();
+        if (bioes.parse(read_result)) {
+          callback(bioes);
+        } else {
+          callback(undefined);
+        }
+      }
+    });
   }
 
   static parseHtml(html) {
@@ -160,6 +180,17 @@ class FileContainer {
     } else {
       return undefined;
     }
+  }
+
+  static _fileReader(file, callback) {
+    let reader = new FileReader();
+    reader.onload = () => {
+      callback(reader.result);
+    };
+    reader.onerror = () => {callback(undefined); };
+    reader.onabort = () => {callback(undefined); };
+
+    reader.readAsText(file);
   }
 
   _getItem(name, container) {
