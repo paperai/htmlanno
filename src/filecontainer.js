@@ -56,8 +56,10 @@ class FileContainer {
    *
    * annotation[n] = {
    *   type     : 'annotation'
+   *   subtype  : 'bioes' or undefined (Using only BIOES annotation)
    *   name     : fileName
-   *   content  : TOML source
+   *   content  : TOML source or undefined (When it is undefined, source must be defined.)
+   *   source   : File object or undefined
    *   primary  : boolean
    *   reference: boolean
    * }
@@ -182,6 +184,15 @@ class FileContainer {
         source  : file,
         selected: false
       });
+      this._annotations.push({
+        type     : 'annotation',
+        subtype  : 'bioes',
+        name     : this._excludeBaseDirName(file.webkitRelativePath),
+        content  : undefined,
+        source   : file,
+        primary  : false,
+        reference: false
+      });
     });
   }
 
@@ -192,10 +203,12 @@ class FileContainer {
         let reader = new FileReader();
         reader.onload = ()=>{
           resolve({
-            type   : 'annotation',
-            name   : this._excludeBaseDirName(file.webkitRelativePath),
-            content: reader.result,
-            primary: false,
+            type     : 'annotation',
+            subtype  : undefined,
+            name     : this._excludeBaseDirName(file.webkitRelativePath),
+            content  : reader.result,
+            source   : undefined,
+            primary  : false,
             reference: false
           });
         };
