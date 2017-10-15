@@ -104,26 +104,24 @@ describe('FileContainer', () => {
       });
     });
   });
-  describe('_createBioesLoadingPromiseList', () => {
-    it('should return an Array that includes Object; {type: "bioes", name: fileName(without basepath), content: undefined, source: fileBlob, selected: false }.', () => {
+  describe('_createBioesContents', () => {
+    it('should add content object to this._contents, Object is {type: "bioes", name: fileName(without basepath), content: undefined, source: fileBlob, selected: false }.', () => {
       // This process does not accessed file in real.
       let files = [
         new DummyFileObj('fixtures/fileloaders/sample.BIOES'),
         new DummyFileObj('sample.BIOES'),
         new DummyFileObj('/sample.BIOES')
       ];
-      let result = instance._createBioesLoadingPromiseList(files);
+      expect(instance.contents.length).toBe(0);
+      let result = instance._createBioesContents(files);
 
-      expect(result.length).toBe(3);
-      result.forEach((elm, index) => {
-        expect(elm instanceof Promise).toBeTruthy();
-        elm.then((result) => {
-          expect(result.type).toBe('bioes');
-          expect(result.name).toBe('sample.BIOES');
-          expect(result.content).toBeUndefined();
-          expect(result.source).toBe(files[index]);
-          expect(result.selected).toBeFalsy();
-        });
+      expect(instance._contents.length).toBe(3);
+      instance.contents.forEach((elm, index) => {
+        expect(elm.type).toBe('bioes');
+        expect(elm.name).toBe('sample.BIOES');
+        expect(elm.content).toBeUndefined();
+        expect(elm.source).toBe(files[index]);
+        expect(elm.selected).toBeFalsy();
       });
     });
   });
