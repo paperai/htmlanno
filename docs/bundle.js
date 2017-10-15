@@ -74,13 +74,13 @@
 	const AnnoUI = __webpack_require__(5);
 	
 	const TomlTool = __webpack_require__(6);
-	const Highlighter = __webpack_require__(16);
-	const Circle = __webpack_require__(12);
+	const Highlighter = __webpack_require__(15);
+	const Circle = __webpack_require__(11);
 	const ArrowConnector = __webpack_require__(20);
 	const AnnotationContainer = __webpack_require__(21);
 	const FileContainer = __webpack_require__(22);
-	const Highlight = __webpack_require__(11);
-	const RelationAnnotation = __webpack_require__(14);
+	const Highlight = __webpack_require__(10);
+	const RelationAnnotation = __webpack_require__(13);
 	const Bioes = __webpack_require__(23);
 	
 	class Htmlanno{
@@ -427,10 +427,6 @@
 	  }
 	
 	  displayReferenceAnnotation(fileNames) {
-	    // TODO: reloadContent() にもあるので共通化。ファイルロード処理自体を別の場所に移動したい
-	    const showReadError = () => {
-	      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
-	    };
 	    this.hideReferenceAnnotation(this.getUiAnnotations(true));
 	
 	    let selectedUiAnnotations = this.getUiAnnotations(false);
@@ -445,10 +441,10 @@
 	      } else {
 	        annotation.reference = true;
 	        if (undefined == annotation.content) {
-	          let reader = new FileReader();
-	          reader.onload = () => {
-	            let bioes = new Bioes();
-	            if (bioes.parse(reader.result)) {
+	          FileContainer.bioesLoader(annotation.source, (bioes) => {
+	            if (undefined == bioes) {
+	              this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+	            } else {
 	              annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
 	              annotation.source = undefined;
 	              TomlTool.renderAnnotation(
@@ -458,14 +454,8 @@
 	                uiAnnotation.name,
 	                uiAnnotation.color
 	              );
-	            } else {
-	              showReadError();
 	            }
-	          };
-	          reader.onerror = showReadError;
-	          reader.onabort = showReadError;
-	
-	          reader.readAsText(annotation.source);
+	          });
 	        } else { 
 	          TomlTool.loadToml(
 	            annotation.content,
@@ -523,9 +513,6 @@
 	  }
 	
 	  reloadContent(fileName) {
-	    const showReadError = () => {
-	      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
-	    };
 	    const loadContent = (content, readResult, _this) => {
 	      if (undefined != readResult) {
 	        _this.remove();
@@ -534,7 +521,7 @@
 	        document.getElementById('viewer').innerHTML = content.content;
 	        _this.handleResize();
 	      } else {
-	        showReadError();
+	        _this.showReadError();
 	      }
 	    };
 	    this.useDefaultData = false;
@@ -567,10 +554,10 @@
 	          break;
 	
 	        case 'bioes':
-	          let reader = new FileReader();
-	          reader.onload = () => {
-	            let bioes = new Bioes();
-	            if (bioes.parse(reader.result)) {
+	          FileContainer.bioesLoader(content.source, ((bioes) => {
+	            if (undefined == bioes) {
+	              this.showReadError();
+	            } else {
 	              loadContent(content, bioes.content, this);
 	              let annotation = this.fileContainer.getAnnotation(content.name);
 	              annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
@@ -587,14 +574,8 @@
 	              );
 	              console.log(new Date()); // TODO: temporary
 	              this.dispatchWindowEvent('annotationrendered');
-	            } else {
-	              showReadError();
 	            }
-	          };
-	          reader.onerror = showReadError;
-	          reader.onabort = showReadError;
-	
-	          reader.readAsText(content.source);
+	          }).bind(this));
 	          break;
 	
 	        case 'text':
@@ -673,6 +654,10 @@
 	  clearViewer() {
 	    this.remove();
 	    $('#viewer').html('');
+	  }
+	
+	  showReadError() {
+	      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
 	  }
 	
 	  // TODO: FileContainer#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
@@ -7433,10 +7418,9 @@
 /***/ (function(module, exports, __webpack_require__) {
 
 	const TomlParser = __webpack_require__(7);
-	const rangy = __webpack_require__(10);
-	const Highlight = __webpack_require__(11);
-	const RelationAnnotation = __webpack_require__(14);
-	const Annotation = __webpack_require__(13);
+	const Highlight = __webpack_require__(10);
+	const RelationAnnotation = __webpack_require__(13);
+	const Annotation = __webpack_require__(12);
 	
 	exports.saveToml = (annotationSet)=>{
 	  let data = ["version = 0.1"];
@@ -7479,10 +7463,9 @@
 	 */
 	exports.loadToml = (objectOrText, highlighter, arrowConnector, referenceId, color)=>{
 	  if ('string' == typeof(objectOrText)) {
-	    exports.renderAnnotation(TomlParser.parse(objectOrText), highlighter, arrowConnector, referenceId, color);
-	  } else{
-	    exports.renderAnnotation(objectOrText, highlighter, arrowConnector, referenceId, color);
+	    objectOrText = TomlParser.parse(objectOrText);
 	  }
+	  exports.renderAnnotation(objectOrText, highlighter, arrowConnector, referenceId, color);
 	};
 
 
@@ -11555,6 +11538,954 @@
 /* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
+	const $ = __webpack_require__(1);
+	const Circle = __webpack_require__(11);
+	const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
+	const Annotation = __webpack_require__(12);
+	
+	class Highlight extends Annotation {
+	  constructor(id, startOffset, endOffset, elements, referenceId){
+	    super(id, referenceId);
+	    this.startOffset = startOffset;
+	    this.endOffset = endOffset;
+	
+	    this.elements = elements;
+	    this.topElement = elements[0];
+	
+	    this.addCircle();
+	    this.setClass();
+	    this.jObject = $(`.${this.getClassName()}`);
+	
+	    this.jObject.hover(
+	        this.handleHoverIn.bind(this),
+	        this.handleHoverOut.bind(this)
+	    );
+	  }
+	
+	  handleHoverIn(e){
+	    this.elements.forEach((e)=>{
+	      $(e).addClass("htmlanno-border");
+	    });
+	    this.dispatchWindowEvent('annotationHoverIn', this);
+	  }
+	
+	  handleHoverOut(e){
+	    this.elements.forEach((e)=>{
+	      $(e).removeClass("htmlanno-border");
+	    });
+	    this.dispatchWindowEvent('annotationHoverOut', this);
+	  }
+	
+	  addCircle(){
+	    this.topElement.setAttribute("style", "position:relative;");
+	    this.circle = new Circle(this.id, this);
+	    this.circle.appendTo(this.topElement);
+	  }
+	
+	  getClassName(){
+	    return `htmlanno-hl-${Highlight.createId(this.id, this.referenceId)}`;
+	  }
+	
+	  getBoundingClientRect(){
+	    const rect = {top:999999, bottom:0, left:999999, right:0};
+	    this.elements.forEach((e)=>{
+	      const r = e.getBoundingClientRect();
+	      rect.top = Math.min(rect.top, r.top);
+	      rect.bottom = Math.max(rect.bottom, r.bottom);
+	      rect.left = Math.min(rect.left, r.left);
+	      rect.right = Math.max(rect.right, r.right);
+	    });
+	    return rect;
+	  }
+	
+	  setClass(){
+	    this.addClass(this.getClassName());
+	    this.addClass("htmlanno-highlight");
+	  }
+	
+	  addClass(name){
+	    this.elements.forEach((e)=>{
+	      $(e).addClass(name);
+	    });
+	  }
+	
+	  removeClass(name){
+	    this.elements.forEach((e)=>{
+	      $(e).removeClass(name);
+	    });
+	  }
+	
+	  select(){
+	    if (this.selected) {
+	      this.blur();
+	    } else {
+	      this.addClass("htmlanno-highlight-selected");
+	      this.selected = true;
+	      this.dispatchWindowEvent('annotationSelected', this);
+	    }
+	  }
+	
+	  blur(){
+	    this.removeClass("htmlanno-highlight-selected");
+	    super.blur();
+	  }
+	
+	  remove(){
+	    this.blur();
+	    this.circle.remove();
+	    // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
+	    $(`.${this.getClassName()}`).each((i, elm) => {
+	      $(elm).replaceWith(elm.childNodes);
+	    });
+	    this.jObject = null;
+	    this.dispatchWindowEvent('annotationDeleted', this);
+	  }
+	
+	  saveToml(){
+	    return [
+	      'type = "span"',
+	      `position = [${this.startOffset}, ${this.endOffset}]`,
+	      'text = "' + $(this.elements).text() + '"',
+	      `label = "${this.content()}"`
+	    ].join("\n");
+	  }
+	
+	  equals(obj){
+	    if (undefined == obj || this !== obj) {
+	      return false;
+	    }
+	    else {
+	      // TODO: 同一ID、同一選択範囲等でチェックするか？
+	      return true;
+	    }
+	  }
+	
+	  static isMydata(toml){
+	    return (undefined != toml && "span" == toml.type);
+	  }
+	
+	  setContent(text){
+	    this.jObject[0].setAttribute('data-label', text);
+	  }
+	
+	  content(){
+	    return this.jObject[0].getAttribute('data-label');
+	  }
+	
+	  get type() {
+	    return 'span';
+	  }
+	
+	  get scrollTop() {
+	    return this.circle.positionCenter().top;
+	  }
+	
+	  blink() {
+	    this.circle.jObject.addClass('htmlanno-circle-hover');
+	    setTimeout(() => {
+	      this.circle.jObject.removeClass('htmlanno-circle-hover');
+	    }, 1000);
+	  }
+	
+	  setColor(color) {
+	    this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
+	  }
+	
+	  removeColor() {
+	    this.jObject[0].style.backgroundColor = undefined;
+	  } 
+	}
+	
+	module.exports = Highlight;
+
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	const $ = __webpack_require__(1);
+	const globalEvent = window.globalEvent;
+	
+	class Circle{
+	  constructor(id, highlight){
+	    if (!Circle.instances){
+	      Circle.instances = [];
+	    }
+	
+	    Circle.instances.push(this);
+	    this.id = id;
+	    this.highlight = highlight;
+	    this.size = 10;
+	
+	    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
+	
+	    this.jObject.on("click", (e)=>{
+	      this.highlight.select();
+	    });
+	
+	    this.jObject.hover(
+	      this.handleHoverIn.bind(this),
+	      this.handleHoverOut.bind(this)
+	    );
+	  }
+	
+	  handleHoverIn(e){
+	    e.stopPropagation();
+	    this.highlight.dispatchWindowEvent('annotationHoverIn', this.highlight);
+	  }
+	
+	  handleHoverOut(e){
+	    e.stopPropagation();
+	    this.highlight.dispatchWindowEvent('annotationHoverOut', this.highlight);
+	  }
+	
+	  domId(){
+	    return "circle-"+this.id;
+	  }
+	
+	  emptyImg(){
+	    const img = document.createElement('img');
+	    // empty image
+	    img.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+	
+	    return img;
+	  }
+	
+	  originalPosition(){
+	    return this.basePosition;
+	  }
+	
+	  samePositionCircles(){
+	    let n = 0;
+	    for (let i = 0; i < Circle.instances.length; i++){
+	      const cir = Circle.instances[i];
+	      if (cir === this){
+	        break;
+	      }
+	      const l1 = cir.originalPosition().left;
+	      const t1 = cir.originalPosition().top;
+	      const l2 = this.originalPosition().left;
+	      const t2 = this.originalPosition().top;
+	      if (Math.abs(Math.floor(l1-l2)) <= 3 && Math.abs(Math.floor(t1-t2)) <= 3) {
+	        n += 1;
+	      }
+	    }
+	
+	    return n;
+	  }
+	
+	  divPosition(){
+	    return {left: -this.size/2, top: -this.size -5 -(this.samePositionCircles() * 12)}
+	  }
+	
+	  positionCenter(){
+	    const pos = this.divPosition();
+	    const p = this.originalPosition();
+	    pos.left += p.left;
+	    pos.top += p.top;
+	    pos.left += 15;
+	    pos.top += 5;
+	
+	    return pos;
+	  }
+	
+	  appendTo(target){
+	    this.jObject.appendTo(target);
+	    this.jObject.css("left", `0px`);
+	    this.jObject.css("top", `0px`);
+	    // this.jObject.css("transition", "0.0s");
+	    this.basePosition = this.jObject.offset();
+	    this.basePosition.top -= $("#viewer").offset().top;
+	    this.basePosition.left -= $("#viewer").offset().left;
+	    const pos = this.divPosition();
+	    this.jObject.css("left", `${pos.left}px`);
+	    this.jObject.css("top", `${pos.top}px`);
+	  }
+	
+	  isHit(x, y){
+	    const c = this.positionCenter();
+	    return c.left <= x+this.size && c.left >= x-this.size && c.top <= y+this.size && c.top >= y-this.size;
+	  }
+	
+	  resetPosition(){
+	    this.jObject.css("transition", "0.0s");
+	    this.jObject.css("left", `0px`);
+	    this.jObject.css("top", `0px`);
+	    this.basePosition = this.jObject.offset();
+	    this.basePosition.top -= $("#viewer").offset().top;
+	    this.basePosition.left -= $("#viewer").offset().left;
+	  }
+	
+	  reposition(){
+	    const pos = this.divPosition();
+	    this.jObject.css("left", `${pos.left}px`);
+	    this.jObject.css("top", `${pos.top}px`);
+	    this.jObject.css("transition", "0.2s");
+	  }
+	
+	  remove(){
+	    globalEvent.emit("removecircle", this);
+	    this.jObject.remove();
+	    globalEvent.removeObject(this);
+	    const idx = Circle.instances.findIndex((e)=>e===this);
+	    if (idx !== -1){
+	      Circle.instances.splice(idx, 1);
+	      Circle.instances.forEach((cir)=>{
+	        cir.resetPosition();
+	      });
+	      Circle.instances.forEach((cir)=>{
+	        cir.reposition();
+	      });
+	    }
+	  }
+	}
+	
+	module.exports = Circle;
+
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	const AnnoUI = __webpack_require__(5);
+	
+	class Annotation {
+	  constructor(id, referenceId) {
+	    this.id = id;
+	    this.referenceId = referenceId;
+	    this._selected = false;
+	    this._selectedTimestamp = undefined;
+	  }
+	
+	  getId() {
+	    return Annotation.createId(this.id, this.referenceId);
+	  }
+	
+	  getReferenceId() {
+	    return this.referenceId;
+	  }
+	
+	  /**
+	   * Returns annotation object Identifier (Unique in all(highlight and relation) object).
+	   * This method expects the subclass to implement #getClassName ().
+	   *
+	   * For Anno-ui annoListDropDown. This interface calls `annotation.uuid` as the identifier.
+	   */
+	  get uuid() {
+	    return this.getId();
+	  }
+	
+	  /**
+	   * Returns annotation type.
+	   * this method expects ths subclass to override.
+	   * type ::= 'span'|'relation'|'area' (but 'area' is not used in htmlanno.)
+	   *
+	   * For Anno-ui annoListDropDown.
+	   *
+	  get type() {
+	    return undefined;
+	  }
+	
+	  /**
+	   * Returns annotation direction.
+	   * direction ::= 'one-way'|'two-way'|'link'
+	   * this method expects ths subclass to override.
+	   *
+	   * For Anno-ui annoListDropDown.
+	   */
+	  get direction() {
+	    return undefined;
+	  }
+	
+	  /**
+	   * Returns annotation label.
+	   *
+	   * For Anno-ui annoListDropDown.
+	   */
+	  get text() {
+	    return this.content();
+	  }
+	
+	  /**
+	   * Returns the Y coordinate of the annotation object.
+	   * this method expects ths subclass to override.
+	   */
+	  get scrollTop() {
+	    return 0;
+	  }
+	
+	  get selected() {
+	    return this._selected;
+	  }
+	
+	  set selected(value) {
+	    this._selected = value;
+	    this._selectedTimestamp = value ? new Date() : undefined;
+	  }
+	
+	  get selectedTimestamp() {
+	    return this._selectedTimestamp;
+	  }
+	
+	  blur() {
+	    this.selected = false;
+	    this.dispatchWindowEvent('annotationDeselected');
+	  }
+	
+	  blink() {
+	    return;
+	  }
+	
+	  setColor(color) {
+	  }
+	
+	  removeColor() {
+	  }
+	
+	  // TODO: Anno-UI events 辺りで提供してほしい
+	  dispatchWindowEvent(eventName, data) {
+	    let event = document.createEvent('CustomEvent')
+	    event.initCustomEvent(eventName, true, true, data)
+	    window.dispatchEvent(event)
+	  }
+	
+	  static createId(id, referenceId) {
+	    if (undefined == referenceId) {
+	      referenceId = '';
+	    } else {
+	      referenceId = `-${referenceId.replace(/[().#]/g, '_')}`;
+	    }
+	    return `${id}${referenceId}`;
+	  }
+	}
+	
+	module.exports = Annotation;
+
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	const $ = __webpack_require__(1);
+	const RenderRelation = __webpack_require__(14);
+	const globalEvent = window.globalEvent;
+	const Annotation = __webpack_require__(12);
+	
+	class RelationAnnotation extends Annotation {
+	  constructor(id, startingCircle, endingCircle, direction, referenceId){
+	    super(id, referenceId);
+	    this.startingCircle = startingCircle;
+	    this.endingCircle = endingCircle;
+	
+	    this._direction = direction;
+	
+	    this.arrow = new RenderRelation(
+	      Annotation.createId(id, referenceId),
+	      startingCircle.positionCenter(),
+	      this._direction
+	    );
+	    this.arrow.appendTo($("#htmlanno-svg-screen"));
+	    this.arrow.on("click", (e)=>{
+	      this.select();
+	    });
+	    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
+	    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
+	
+	    globalEvent.on(this, "removecircle", (cir)=>{
+	      if (this.startingCircle === cir || this.endingCircle === cir){
+	        this.remove();
+	        globalEvent.emit("removearrowannotation", this);
+	      }
+	    });
+	    this.arrow.point(this.endingCircle.positionCenter());
+	    globalEvent.on(this, "resizewindow", this.reposition.bind(this));
+	    globalEvent.emit("arrowannotationconnect", this);
+	  }
+	
+	  positionCenter(){
+	    const p1 = this.startingCircle.positionCenter();
+	    const p2 = this.endingCircle.positionCenter();
+	    return {left: (p1.left+p2.left)/2, top: (p1.top+p2.top)/2};
+	  }
+	
+	  reposition(){
+	    if (this.arrow){
+	      this.arrow.move(this.startingCircle.positionCenter());
+	      if(this.endingCircle){
+	        this.arrow.point(this.endingCircle.positionCenter());
+	      }
+	    }
+	  }
+	
+	  select(){
+	    if (this.selected) {
+	      this.blur();
+	    } else {
+	      this.arrow.select();
+	      this.selected = true;
+	      this.dispatchWindowEvent('annotationSelected', this);
+	    }
+	  }
+	
+	  blur(){
+	    this.arrow.blur();
+	    super.blur();
+	  }
+	
+	  remove(){
+	    this.blur();
+	    this.arrow.remove();
+	    globalEvent.removeObject(this);
+	    this.dispatchWindowEvent('annotationDeleted', this);
+	  }
+	
+	  handleHoverIn(e){
+	    this.arrow.handleHoverIn();
+	    this.dispatchWindowEvent('annotationHoverIn', this);
+	  }
+	
+	  handleHoverOut(e){
+	    this.arrow.handleHoverOut();
+	    this.dispatchWindowEvent('annotationHoverOut', this);
+	  }
+	
+	  saveToml(){
+	    return [
+	      'type = "relation"',
+	      `dir = "${this._direction}"`,
+	      `ids = ["${this.startingCircle.highlight.id}", "${this.endingCircle.highlight.id}"]`,
+	      `label = "${this.content()}"`
+	    ].join("\n");
+	  }
+	
+	  equals(obj){
+	    if (undefined == obj || this !== obj) {
+	      return false;
+	    }
+	    else {
+	      // TODO: 同一ID、同一のstarting/entering等でチェックするか？
+	      return true;
+	    }
+	  }
+	
+	  static isMydata(toml){
+	    return (
+	      undefined !== toml && "relation" === toml.type && 
+	      ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
+	    );
+	  }
+	
+	  setContent(text){
+	    this.arrow.setContent(text);
+	  }
+	
+	  content(){
+	    return this.arrow.content();
+	  }
+	
+	  getClassName() {
+	    return this.arrow.domId();
+	  }
+	
+	  setColor(color) {
+	    this.arrow.setColor(color);
+	  }
+	
+	  removeColor() {
+	    this.arrow.removeColor();
+	  }
+	
+	  get type() {
+	    return 'relation';
+	  }
+	
+	  get direction() {
+	    return this._direction;
+	  }
+	
+	  get scrollTop() {
+	    return this.startingCircle.positionCenter().top;
+	  }
+	}
+	
+	module.exports = RelationAnnotation;
+	
+
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	const $ = __webpack_require__(1);
+	const globalEvent = window.globalEvent;
+	
+	class RenderRelation{
+	  constructor(id, position, direction){
+	    this.id = id;
+	    this.move(position);
+	    this.eventHandlers = [];
+	
+	    switch(direction){
+	      case 'one-way':
+	        this.jObject = this._createOnewayArrowHead();
+	        break;
+	      case 'two-way':
+	        this.jObject = this._createTwowayArrowHead();
+	        break;
+	      case 'link':
+	        this.jObject = this._createLinkHead();
+	        break;
+	      default:
+	        console.log('ERROR! Undefined type: ' + type);
+	    }
+	
+	    this.jObjectOutline = $(`
+	        <path
+	        id="${this.domId()}-outline"
+	        class="htmlanno-arrow-outline"
+	        d="M 0,0 C 0,0 0,0 0,0" />
+	        `);
+	
+	    globalEvent.on(this, "svgupdate", this.retouch.bind(this));
+	  }
+	
+	  _createLinkHead(){
+	    return $(`
+	        <path
+	        id="${this.domId()}"
+	        class="htmlanno-arrow"
+	        d="M 0,0 C 0,0 0,0 0,0" />
+	    `);
+	  }
+	
+	  _createOnewayArrowHead(){
+	    return this._createLinkHead().attr(
+	      'marker-end', 'url(#htmlanno-arrow-head)'
+	    );
+	  }
+	
+	  _createTwowayArrowHead(){
+	    return this._createOnewayArrowHead().attr(
+	      'marker-start', 'url(#htmlanno-arrow-head)'
+	    );
+	  }
+	
+	  curvePath(fromX, fromY, toX, toY){
+	    const arcHeight = 30;
+	
+	    const y = Math.min(fromY, toY) - arcHeight;
+	    const dx = (fromX - toX) / 4;
+	
+	    // TODO
+	    this.halfY = this.y(0.55, fromY, y, y, toY);
+	
+	    return `M ${fromX},${fromY} C ${fromX-dx},${y} ${toX+dx},${y} ${toX},${toY}`;
+	  }
+	
+	  on(name, handler){
+	    this.eventHandlers.push({name: name, handler: handler});
+	    this.jObject.on(name, handler);
+	  }
+	
+	  off(name){
+	    this.eventHandlers = this.eventHandlers.filter((eh)=>{
+	      return (name != eh.name);
+	    });
+	    this.jObject.off(name);
+	  }
+	
+	  domId(){
+	    return "arrow-" + this.id;
+	  }
+	
+	  retouch(){
+	    this.jObject = $(`#${this.domId()}`);
+	    this.jObjectOutline = $(`#${this.domId()}-outline`);
+	    this.element = this.jObject.get(0);
+	    this.eventHandlers.forEach((eh)=>{
+	      this.jObject.on(eh.name, eh.handler);
+	    });
+	  }
+	
+	  appendTo(target){
+	    this.jObjectOutline.appendTo(target);
+	    this.jObjectOutline.hide();
+	    this.jObject.appendTo(target);
+	    $("#htmlanno-svg-screen").html($("#htmlanno-svg-screen").html());
+	    globalEvent.emit("svgupdate", this);
+	  }
+	
+	  move(position){
+	    this.fromX = position.left;
+	    this.fromY = position.top;
+	  }
+	
+	  point(position){
+	    const path = this.curvePath(this.fromX, this.fromY, position.left, position.top);
+	    this.jObject.attr("d", path);
+	    this.jObjectOutline.attr("d", path);
+	  }
+	
+	  y(t, y1, y2, y3, y4){
+	    const tp = 1 - t;
+	    return t*t*t*y4 + 3*t*t*tp*y3 + 3*t*tp*tp*y2 + tp*tp*tp*y1;
+	  }
+	
+	  select(){
+	    this.jObjectOutline.show();
+	  }
+	
+	  blur(){
+	    this.jObjectOutline.hide();
+	  }
+	
+	  remove(){
+	    this.jObject.remove();
+	    this.jObjectOutline.remove();
+	    globalEvent.removeObject(this);
+	  }
+	
+	  handleHoverIn(e){
+	    this.jObject.addClass("htmlanno-arrow-hover");
+	  }
+	
+	  handleHoverOut(e){
+	    this.jObject.removeClass("htmlanno-arrow-hover");
+	  }
+	
+	  setContent(value){
+	    this.jObject[0].setAttribute('data-label', value);
+	  }
+	
+	  content(){
+	    return this.jObject[0].getAttribute('data-label');
+	  }
+	
+	  setExtension(value){
+	    this.jObject[0].setAttribute('data-ext', value);
+	  }
+	
+	  extension(){
+	    return this.jObject[0].getAttribute('data-ext');
+	  }
+	
+	  setColor(color) {
+	    this.jObject[0].style.stroke = color;
+	    this.jObject[0].setAttribute('opacity', '0.2');
+	  }
+	
+	  removeColor() {
+	    this.jObject[0].style.stroke = undefined;
+	    this.jObject[0].removeAttribute('opacity');
+	  }
+	}
+	
+	module.exports = RenderRelation;
+
+
+/***/ }),
+/* 15 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	const $ = __webpack_require__(1);
+	const rangy = __webpack_require__(16);
+	__webpack_require__(17);
+	__webpack_require__(18);
+	__webpack_require__(19);
+	
+	const Highlight = __webpack_require__(10);
+	const Annotation = __webpack_require__(12);
+	
+	class Highlighter{
+	  constructor(annotationContainer){
+	    this.highlights = annotationContainer;
+	    this.highlighter = rangy.createHighlighter();
+	  }
+	
+	  // 定数扱い
+	  get BASE_NODE(){
+	    return document.getElementById("viewer");
+	  }
+	
+	  nodeFromTextOffset(offset){
+	    return this.nodeFromTextOffset_(this.BASE_NODE, offset);
+	  }
+	
+	  nodeFromTextOffset_(node, offset){
+	    for (let i = 0; i < node.childNodes.length ; i++){
+	      const child = node.childNodes[i];
+	
+	      if (child.nodeName == "#text"){
+	        if (offset < child.textContent.length){
+	          return {offset:offset, node:child};
+	        }
+	        offset -= child.textContent.length;
+	      } else{
+	        const ret = this.nodeFromTextOffset_(child, offset);
+	        if (ret.node){
+	          return ret;
+	        }
+	        offset = ret.offset;
+	      }
+	    }
+	
+	    return {offset:offset, node:null};
+	  }
+	
+	  textOffsetFromNode(node){
+	    return this.textOffsetFromNode_(node, 0);
+	  }
+	
+	  textOffsetFromNode_(node, offset){
+	    if (node.id == this.BASE_NODE.id){
+	      return offset;
+	    }
+	
+	    if (node.previousSibling){
+	      offset += node.previousSibling.textContent.length;
+	      return this.textOffsetFromNode_(node.previousSibling, offset);
+	    }else{
+	      return this.textOffsetFromNode_(node.parentNode, offset);
+	    }
+	  }
+	
+	  selectRange(startBodyOffset, endBodyOffset){
+	    if (startBodyOffset > endBodyOffset){
+	      const tmp = startBodyOffset;
+	      startBodyOffset = endBodyOffset;
+	      endBodyOffset = tmp;
+	    }
+	
+	    const start = this.nodeFromTextOffset(startBodyOffset);
+	    const end = this.nodeFromTextOffset(endBodyOffset);
+	    const selection = rangy.getSelection();
+	    const range = rangy.createRange();
+	    range.setStart(start.node, start.offset);
+	    range.setEnd(end.node, end.offset);
+	    selection.setSingleRange(range);
+	  }
+	
+	  highlight(label){
+	    const selection = rangy.getSelection();
+	    if (0 == selection.rangeCount){
+	      this.dispatchWindowEvent(
+	        'open-alert-dialog', {message: 'Text span is not selected.'}
+	      );
+	      return;
+	    }
+	    if (selection.isCollapsed){
+	      return;
+	    }
+	
+	    const id = this.highlights.nextId();
+	    const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
+	    const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
+	    return this.create(id, startOffset, endOffset, label);
+	  }
+	
+	  create(id, startOffset, endOffset, text, referenceId){
+	    this.selectRange(startOffset, endOffset);
+	    const selection = rangy.getSelection();
+	    if (selection.isCollapsed){
+	      return;
+	    }
+	
+	    const temporaryElements = [];
+	    this.highlighter.addClassApplier(rangy.createClassApplier(
+	      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
+	      {
+	        ignoreWhiteSpace: true,
+	        onElementCreate: (element)=>{temporaryElements.push(element)},
+	        useExistingElements: false
+	      }
+	    ));
+	
+	    let highlight = null;
+	    this.highlighter.highlightSelection(
+	      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
+	      {exclusive: false}
+	    );
+	    if (temporaryElements.length > 0){
+	      highlight = new Highlight(
+	        id, startOffset, endOffset, temporaryElements, referenceId
+	      );
+	      highlight.setContent(text);
+	
+	      // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
+	      this.highlights.add(highlight);
+	    }
+	    selection.removeAllRanges();
+	
+	    return highlight;
+	  }
+	
+	  addToml(id, toml, referenceId){
+	    this.selectRange(toml.position[0], toml.position[1]);
+	    const selection = rangy.getSelection();
+	    if (!selection.isCollapsed){
+	      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
+	      const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
+	      let span = this.create(
+	        parseInt(id), startOffset, endOffset, toml.label, referenceId
+	      );
+	      if (null != span) {
+	        span.blur();
+	      }
+	      return span;
+	    }
+	  }
+	
+	  get(id, referenceId){
+	    return this.highlights.findById(Annotation.createId(id, referenceId));
+	  }
+	
+	  remove(referenceId){
+	    this.highlights.forEach((annotation, i)=>{
+	      if (annotation instanceof Highlight){
+	        if (undefined != referenceId) {
+	          if (referenceId == annotation.getReferenceId()) {
+	            this._remove(annotation, i);
+	            return annotation;
+	          }
+	        } else {
+	          this._remove(annotation, i);
+	          return annotation;
+	        }
+	      }
+	    });
+	    return undefined;
+	  }
+	
+	  _remove(annotation, index) {
+	    let rangySelection = rangy.getSelection();
+	    annotation.elements.forEach((rangyHighlight) => {
+	      let range = rangy.createRange();
+	      range.selectNodeContents(rangyHighlight);
+	      rangySelection.addRange(range);
+	    });
+	    this.highlighter.unhighlightSelection(rangySelection);
+	    this.highlights.remove(index);
+	  }
+	
+	  removeAnnotation(highlight){
+	    this.highlights.remove(highlight);
+	  }
+	
+	  // TODO: Anno-UI events 辺りで提供してほしい
+	  dispatchWindowEvent(eventName, data) {
+	    let event = document.createEvent('CustomEvent')
+	    event.initCustomEvent(eventName, true, true, data)
+	    window.dispatchEvent(event)
+	  }
+	}
+	
+	module.exports = Highlighter;
+
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
 	 * Rangy, a cross-browser JavaScript range and selection library
 	 * https://github.com/timdown/rangy
@@ -15402,954 +16333,6 @@
 	}, this);
 
 /***/ }),
-/* 11 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	const $ = __webpack_require__(1);
-	const Circle = __webpack_require__(12);
-	const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
-	const Annotation = __webpack_require__(13);
-	
-	class Highlight extends Annotation {
-	  constructor(id, startOffset, endOffset, elements, referenceId){
-	    super(id, referenceId);
-	    this.startOffset = startOffset;
-	    this.endOffset = endOffset;
-	
-	    this.elements = elements;
-	    this.topElement = elements[0];
-	
-	    this.addCircle();
-	    this.setClass();
-	    this.jObject = $(`.${this.getClassName()}`);
-	
-	    this.jObject.hover(
-	        this.handleHoverIn.bind(this),
-	        this.handleHoverOut.bind(this)
-	    );
-	  }
-	
-	  handleHoverIn(e){
-	    this.elements.forEach((e)=>{
-	      $(e).addClass("htmlanno-border");
-	    });
-	    this.dispatchWindowEvent('annotationHoverIn', this);
-	  }
-	
-	  handleHoverOut(e){
-	    this.elements.forEach((e)=>{
-	      $(e).removeClass("htmlanno-border");
-	    });
-	    this.dispatchWindowEvent('annotationHoverOut', this);
-	  }
-	
-	  addCircle(){
-	    this.topElement.setAttribute("style", "position:relative;");
-	    this.circle = new Circle(this.id, this);
-	    this.circle.appendTo(this.topElement);
-	  }
-	
-	  getClassName(){
-	    return `htmlanno-hl-${Highlight.createId(this.id, this.referenceId)}`;
-	  }
-	
-	  getBoundingClientRect(){
-	    const rect = {top:999999, bottom:0, left:999999, right:0};
-	    this.elements.forEach((e)=>{
-	      const r = e.getBoundingClientRect();
-	      rect.top = Math.min(rect.top, r.top);
-	      rect.bottom = Math.max(rect.bottom, r.bottom);
-	      rect.left = Math.min(rect.left, r.left);
-	      rect.right = Math.max(rect.right, r.right);
-	    });
-	    return rect;
-	  }
-	
-	  setClass(){
-	    this.addClass(this.getClassName());
-	    this.addClass("htmlanno-highlight");
-	  }
-	
-	  addClass(name){
-	    this.elements.forEach((e)=>{
-	      $(e).addClass(name);
-	    });
-	  }
-	
-	  removeClass(name){
-	    this.elements.forEach((e)=>{
-	      $(e).removeClass(name);
-	    });
-	  }
-	
-	  select(){
-	    if (this.selected) {
-	      this.blur();
-	    } else {
-	      this.addClass("htmlanno-highlight-selected");
-	      this.selected = true;
-	      this.dispatchWindowEvent('annotationSelected', this);
-	    }
-	  }
-	
-	  blur(){
-	    this.removeClass("htmlanno-highlight-selected");
-	    super.blur();
-	  }
-	
-	  remove(){
-	    this.blur();
-	    this.circle.remove();
-	    // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
-	    $(`.${this.getClassName()}`).each((i, elm) => {
-	      $(elm).replaceWith(elm.childNodes);
-	    });
-	    this.jObject = null;
-	    this.dispatchWindowEvent('annotationDeleted', this);
-	  }
-	
-	  saveToml(){
-	    return [
-	      'type = "span"',
-	      `position = [${this.startOffset}, ${this.endOffset}]`,
-	      'text = "' + $(this.elements).text() + '"',
-	      `label = "${this.content()}"`
-	    ].join("\n");
-	  }
-	
-	  equals(obj){
-	    if (undefined == obj || this !== obj) {
-	      return false;
-	    }
-	    else {
-	      // TODO: 同一ID、同一選択範囲等でチェックするか？
-	      return true;
-	    }
-	  }
-	
-	  static isMydata(toml){
-	    return (undefined != toml && "span" == toml.type);
-	  }
-	
-	  setContent(text){
-	    this.jObject[0].setAttribute('data-label', text);
-	  }
-	
-	  content(){
-	    return this.jObject[0].getAttribute('data-label');
-	  }
-	
-	  get type() {
-	    return 'span';
-	  }
-	
-	  get scrollTop() {
-	    return this.circle.positionCenter().top;
-	  }
-	
-	  blink() {
-	    this.circle.jObject.addClass('htmlanno-circle-hover');
-	    setTimeout(() => {
-	      this.circle.jObject.removeClass('htmlanno-circle-hover');
-	    }, 1000);
-	  }
-	
-	  setColor(color) {
-	    this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
-	  }
-	
-	  removeColor() {
-	    this.jObject[0].style.backgroundColor = undefined;
-	  } 
-	}
-	
-	module.exports = Highlight;
-
-
-/***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	const $ = __webpack_require__(1);
-	const globalEvent = window.globalEvent;
-	
-	class Circle{
-	  constructor(id, highlight){
-	    if (!Circle.instances){
-	      Circle.instances = [];
-	    }
-	
-	    Circle.instances.push(this);
-	    this.id = id;
-	    this.highlight = highlight;
-	    this.size = 10;
-	
-	    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
-	
-	    this.jObject.on("click", (e)=>{
-	      this.highlight.select();
-	    });
-	
-	    this.jObject.hover(
-	      this.handleHoverIn.bind(this),
-	      this.handleHoverOut.bind(this)
-	    );
-	  }
-	
-	  handleHoverIn(e){
-	    e.stopPropagation();
-	    this.highlight.dispatchWindowEvent('annotationHoverIn', this.highlight);
-	  }
-	
-	  handleHoverOut(e){
-	    e.stopPropagation();
-	    this.highlight.dispatchWindowEvent('annotationHoverOut', this.highlight);
-	  }
-	
-	  domId(){
-	    return "circle-"+this.id;
-	  }
-	
-	  emptyImg(){
-	    const img = document.createElement('img');
-	    // empty image
-	    img.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-	
-	    return img;
-	  }
-	
-	  originalPosition(){
-	    return this.basePosition;
-	  }
-	
-	  samePositionCircles(){
-	    let n = 0;
-	    for (let i = 0; i < Circle.instances.length; i++){
-	      const cir = Circle.instances[i];
-	      if (cir === this){
-	        break;
-	      }
-	      const l1 = cir.originalPosition().left;
-	      const t1 = cir.originalPosition().top;
-	      const l2 = this.originalPosition().left;
-	      const t2 = this.originalPosition().top;
-	      if (Math.abs(Math.floor(l1-l2)) <= 3 && Math.abs(Math.floor(t1-t2)) <= 3) {
-	        n += 1;
-	      }
-	    }
-	
-	    return n;
-	  }
-	
-	  divPosition(){
-	    return {left: -this.size/2, top: -this.size -5 -(this.samePositionCircles() * 12)}
-	  }
-	
-	  positionCenter(){
-	    const pos = this.divPosition();
-	    const p = this.originalPosition();
-	    pos.left += p.left;
-	    pos.top += p.top;
-	    pos.left += 15;
-	    pos.top += 5;
-	
-	    return pos;
-	  }
-	
-	  appendTo(target){
-	    this.jObject.appendTo(target);
-	    this.jObject.css("left", `0px`);
-	    this.jObject.css("top", `0px`);
-	    // this.jObject.css("transition", "0.0s");
-	    this.basePosition = this.jObject.offset();
-	    this.basePosition.top -= $("#viewer").offset().top;
-	    this.basePosition.left -= $("#viewer").offset().left;
-	    const pos = this.divPosition();
-	    this.jObject.css("left", `${pos.left}px`);
-	    this.jObject.css("top", `${pos.top}px`);
-	  }
-	
-	  isHit(x, y){
-	    const c = this.positionCenter();
-	    return c.left <= x+this.size && c.left >= x-this.size && c.top <= y+this.size && c.top >= y-this.size;
-	  }
-	
-	  resetPosition(){
-	    this.jObject.css("transition", "0.0s");
-	    this.jObject.css("left", `0px`);
-	    this.jObject.css("top", `0px`);
-	    this.basePosition = this.jObject.offset();
-	    this.basePosition.top -= $("#viewer").offset().top;
-	    this.basePosition.left -= $("#viewer").offset().left;
-	  }
-	
-	  reposition(){
-	    const pos = this.divPosition();
-	    this.jObject.css("left", `${pos.left}px`);
-	    this.jObject.css("top", `${pos.top}px`);
-	    this.jObject.css("transition", "0.2s");
-	  }
-	
-	  remove(){
-	    globalEvent.emit("removecircle", this);
-	    this.jObject.remove();
-	    globalEvent.removeObject(this);
-	    const idx = Circle.instances.findIndex((e)=>e===this);
-	    if (idx !== -1){
-	      Circle.instances.splice(idx, 1);
-	      Circle.instances.forEach((cir)=>{
-	        cir.resetPosition();
-	      });
-	      Circle.instances.forEach((cir)=>{
-	        cir.reposition();
-	      });
-	    }
-	  }
-	}
-	
-	module.exports = Circle;
-
-
-/***/ }),
-/* 13 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	const AnnoUI = __webpack_require__(5);
-	
-	class Annotation {
-	  constructor(id, referenceId) {
-	    this.id = id;
-	    this.referenceId = referenceId;
-	    this._selected = false;
-	    this._selectedTimestamp = undefined;
-	  }
-	
-	  getId() {
-	    return Annotation.createId(this.id, this.referenceId);
-	  }
-	
-	  getReferenceId() {
-	    return this.referenceId;
-	  }
-	
-	  /**
-	   * Returns annotation object Identifier (Unique in all(highlight and relation) object).
-	   * This method expects the subclass to implement #getClassName ().
-	   *
-	   * For Anno-ui annoListDropDown. This interface calls `annotation.uuid` as the identifier.
-	   */
-	  get uuid() {
-	    return this.getId();
-	  }
-	
-	  /**
-	   * Returns annotation type.
-	   * this method expects ths subclass to override.
-	   * type ::= 'span'|'relation'|'area' (but 'area' is not used in htmlanno.)
-	   *
-	   * For Anno-ui annoListDropDown.
-	   *
-	  get type() {
-	    return undefined;
-	  }
-	
-	  /**
-	   * Returns annotation direction.
-	   * direction ::= 'one-way'|'two-way'|'link'
-	   * this method expects ths subclass to override.
-	   *
-	   * For Anno-ui annoListDropDown.
-	   */
-	  get direction() {
-	    return undefined;
-	  }
-	
-	  /**
-	   * Returns annotation label.
-	   *
-	   * For Anno-ui annoListDropDown.
-	   */
-	  get text() {
-	    return this.content();
-	  }
-	
-	  /**
-	   * Returns the Y coordinate of the annotation object.
-	   * this method expects ths subclass to override.
-	   */
-	  get scrollTop() {
-	    return 0;
-	  }
-	
-	  get selected() {
-	    return this._selected;
-	  }
-	
-	  set selected(value) {
-	    this._selected = value;
-	    this._selectedTimestamp = value ? new Date() : undefined;
-	  }
-	
-	  get selectedTimestamp() {
-	    return this._selectedTimestamp;
-	  }
-	
-	  blur() {
-	    this.selected = false;
-	    this.dispatchWindowEvent('annotationDeselected');
-	  }
-	
-	  blink() {
-	    return;
-	  }
-	
-	  setColor(color) {
-	  }
-	
-	  removeColor() {
-	  }
-	
-	  // TODO: Anno-UI events 辺りで提供してほしい
-	  dispatchWindowEvent(eventName, data) {
-	    let event = document.createEvent('CustomEvent')
-	    event.initCustomEvent(eventName, true, true, data)
-	    window.dispatchEvent(event)
-	  }
-	
-	  static createId(id, referenceId) {
-	    if (undefined == referenceId) {
-	      referenceId = '';
-	    } else {
-	      referenceId = `-${referenceId.replace(/[().#]/g, '_')}`;
-	    }
-	    return `${id}${referenceId}`;
-	  }
-	}
-	
-	module.exports = Annotation;
-
-
-/***/ }),
-/* 14 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	const $ = __webpack_require__(1);
-	const RenderRelation = __webpack_require__(15);
-	const globalEvent = window.globalEvent;
-	const Annotation = __webpack_require__(13);
-	
-	class RelationAnnotation extends Annotation {
-	  constructor(id, startingCircle, endingCircle, direction, referenceId){
-	    super(id, referenceId);
-	    this.startingCircle = startingCircle;
-	    this.endingCircle = endingCircle;
-	
-	    this._direction = direction;
-	
-	    this.arrow = new RenderRelation(
-	      Annotation.createId(id, referenceId),
-	      startingCircle.positionCenter(),
-	      this._direction
-	    );
-	    this.arrow.appendTo($("#htmlanno-svg-screen"));
-	    this.arrow.on("click", (e)=>{
-	      this.select();
-	    });
-	    this.arrow.on("mouseenter", this.handleHoverIn.bind(this));
-	    this.arrow.on("mouseleave", this.handleHoverOut.bind(this));
-	
-	    globalEvent.on(this, "removecircle", (cir)=>{
-	      if (this.startingCircle === cir || this.endingCircle === cir){
-	        this.remove();
-	        globalEvent.emit("removearrowannotation", this);
-	      }
-	    });
-	    this.arrow.point(this.endingCircle.positionCenter());
-	    globalEvent.on(this, "resizewindow", this.reposition.bind(this));
-	    globalEvent.emit("arrowannotationconnect", this);
-	  }
-	
-	  positionCenter(){
-	    const p1 = this.startingCircle.positionCenter();
-	    const p2 = this.endingCircle.positionCenter();
-	    return {left: (p1.left+p2.left)/2, top: (p1.top+p2.top)/2};
-	  }
-	
-	  reposition(){
-	    if (this.arrow){
-	      this.arrow.move(this.startingCircle.positionCenter());
-	      if(this.endingCircle){
-	        this.arrow.point(this.endingCircle.positionCenter());
-	      }
-	    }
-	  }
-	
-	  select(){
-	    if (this.selected) {
-	      this.blur();
-	    } else {
-	      this.arrow.select();
-	      this.selected = true;
-	      this.dispatchWindowEvent('annotationSelected', this);
-	    }
-	  }
-	
-	  blur(){
-	    this.arrow.blur();
-	    super.blur();
-	  }
-	
-	  remove(){
-	    this.blur();
-	    this.arrow.remove();
-	    globalEvent.removeObject(this);
-	    this.dispatchWindowEvent('annotationDeleted', this);
-	  }
-	
-	  handleHoverIn(e){
-	    this.arrow.handleHoverIn();
-	    this.dispatchWindowEvent('annotationHoverIn', this);
-	  }
-	
-	  handleHoverOut(e){
-	    this.arrow.handleHoverOut();
-	    this.dispatchWindowEvent('annotationHoverOut', this);
-	  }
-	
-	  saveToml(){
-	    return [
-	      'type = "relation"',
-	      `dir = "${this._direction}"`,
-	      `ids = ["${this.startingCircle.highlight.id}", "${this.endingCircle.highlight.id}"]`,
-	      `label = "${this.content()}"`
-	    ].join("\n");
-	  }
-	
-	  equals(obj){
-	    if (undefined == obj || this !== obj) {
-	      return false;
-	    }
-	    else {
-	      // TODO: 同一ID、同一のstarting/entering等でチェックするか？
-	      return true;
-	    }
-	  }
-	
-	  static isMydata(toml){
-	    return (
-	      undefined !== toml && "relation" === toml.type && 
-	      ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
-	    );
-	  }
-	
-	  setContent(text){
-	    this.arrow.setContent(text);
-	  }
-	
-	  content(){
-	    return this.arrow.content();
-	  }
-	
-	  getClassName() {
-	    return this.arrow.domId();
-	  }
-	
-	  setColor(color) {
-	    this.arrow.setColor(color);
-	  }
-	
-	  removeColor() {
-	    this.arrow.removeColor();
-	  }
-	
-	  get type() {
-	    return 'relation';
-	  }
-	
-	  get direction() {
-	    return this._direction;
-	  }
-	
-	  get scrollTop() {
-	    return this.startingCircle.positionCenter().top;
-	  }
-	}
-	
-	module.exports = RelationAnnotation;
-	
-
-
-/***/ }),
-/* 15 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	const $ = __webpack_require__(1);
-	const globalEvent = window.globalEvent;
-	
-	class RenderRelation{
-	  constructor(id, position, direction){
-	    this.id = id;
-	    this.move(position);
-	    this.eventHandlers = [];
-	
-	    switch(direction){
-	      case 'one-way':
-	        this.jObject = this._createOnewayArrowHead();
-	        break;
-	      case 'two-way':
-	        this.jObject = this._createTwowayArrowHead();
-	        break;
-	      case 'link':
-	        this.jObject = this._createLinkHead();
-	        break;
-	      default:
-	        console.log('ERROR! Undefined type: ' + type);
-	    }
-	
-	    this.jObjectOutline = $(`
-	        <path
-	        id="${this.domId()}-outline"
-	        class="htmlanno-arrow-outline"
-	        d="M 0,0 C 0,0 0,0 0,0" />
-	        `);
-	
-	    globalEvent.on(this, "svgupdate", this.retouch.bind(this));
-	  }
-	
-	  _createLinkHead(){
-	    return $(`
-	        <path
-	        id="${this.domId()}"
-	        class="htmlanno-arrow"
-	        d="M 0,0 C 0,0 0,0 0,0" />
-	    `);
-	  }
-	
-	  _createOnewayArrowHead(){
-	    return this._createLinkHead().attr(
-	      'marker-end', 'url(#htmlanno-arrow-head)'
-	    );
-	  }
-	
-	  _createTwowayArrowHead(){
-	    return this._createOnewayArrowHead().attr(
-	      'marker-start', 'url(#htmlanno-arrow-head)'
-	    );
-	  }
-	
-	  curvePath(fromX, fromY, toX, toY){
-	    const arcHeight = 30;
-	
-	    const y = Math.min(fromY, toY) - arcHeight;
-	    const dx = (fromX - toX) / 4;
-	
-	    // TODO
-	    this.halfY = this.y(0.55, fromY, y, y, toY);
-	
-	    return `M ${fromX},${fromY} C ${fromX-dx},${y} ${toX+dx},${y} ${toX},${toY}`;
-	  }
-	
-	  on(name, handler){
-	    this.eventHandlers.push({name: name, handler: handler});
-	    this.jObject.on(name, handler);
-	  }
-	
-	  off(name){
-	    this.eventHandlers = this.eventHandlers.filter((eh)=>{
-	      return (name != eh.name);
-	    });
-	    this.jObject.off(name);
-	  }
-	
-	  domId(){
-	    return "arrow-" + this.id;
-	  }
-	
-	  retouch(){
-	    this.jObject = $(`#${this.domId()}`);
-	    this.jObjectOutline = $(`#${this.domId()}-outline`);
-	    this.element = this.jObject.get(0);
-	    this.eventHandlers.forEach((eh)=>{
-	      this.jObject.on(eh.name, eh.handler);
-	    });
-	  }
-	
-	  appendTo(target){
-	    this.jObjectOutline.appendTo(target);
-	    this.jObjectOutline.hide();
-	    this.jObject.appendTo(target);
-	    $("#htmlanno-svg-screen").html($("#htmlanno-svg-screen").html());
-	    globalEvent.emit("svgupdate", this);
-	  }
-	
-	  move(position){
-	    this.fromX = position.left;
-	    this.fromY = position.top;
-	  }
-	
-	  point(position){
-	    const path = this.curvePath(this.fromX, this.fromY, position.left, position.top);
-	    this.jObject.attr("d", path);
-	    this.jObjectOutline.attr("d", path);
-	  }
-	
-	  y(t, y1, y2, y3, y4){
-	    const tp = 1 - t;
-	    return t*t*t*y4 + 3*t*t*tp*y3 + 3*t*tp*tp*y2 + tp*tp*tp*y1;
-	  }
-	
-	  select(){
-	    this.jObjectOutline.show();
-	  }
-	
-	  blur(){
-	    this.jObjectOutline.hide();
-	  }
-	
-	  remove(){
-	    this.jObject.remove();
-	    this.jObjectOutline.remove();
-	    globalEvent.removeObject(this);
-	  }
-	
-	  handleHoverIn(e){
-	    this.jObject.addClass("htmlanno-arrow-hover");
-	  }
-	
-	  handleHoverOut(e){
-	    this.jObject.removeClass("htmlanno-arrow-hover");
-	  }
-	
-	  setContent(value){
-	    this.jObject[0].setAttribute('data-label', value);
-	  }
-	
-	  content(){
-	    return this.jObject[0].getAttribute('data-label');
-	  }
-	
-	  setExtension(value){
-	    this.jObject[0].setAttribute('data-ext', value);
-	  }
-	
-	  extension(){
-	    return this.jObject[0].getAttribute('data-ext');
-	  }
-	
-	  setColor(color) {
-	    this.jObject[0].style.stroke = color;
-	    this.jObject[0].setAttribute('opacity', '0.2');
-	  }
-	
-	  removeColor() {
-	    this.jObject[0].style.stroke = undefined;
-	    this.jObject[0].removeAttribute('opacity');
-	  }
-	}
-	
-	module.exports = RenderRelation;
-
-
-/***/ }),
-/* 16 */
-/***/ (function(module, exports, __webpack_require__) {
-
-	const $ = __webpack_require__(1);
-	const rangy = __webpack_require__(10);
-	__webpack_require__(17);
-	__webpack_require__(18);
-	__webpack_require__(19);
-	
-	const Highlight = __webpack_require__(11);
-	const Annotation = __webpack_require__(13);
-	
-	class Highlighter{
-	  constructor(annotationContainer){
-	    this.highlights = annotationContainer;
-	    this.highlighter = rangy.createHighlighter();
-	  }
-	
-	  // 定数扱い
-	  get BASE_NODE(){
-	    return document.getElementById("viewer");
-	  }
-	
-	  nodeFromTextOffset(offset){
-	    return this.nodeFromTextOffset_(this.BASE_NODE, offset);
-	  }
-	
-	  nodeFromTextOffset_(node, offset){
-	    for (let i = 0; i < node.childNodes.length ; i++){
-	      const child = node.childNodes[i];
-	
-	      if (child.nodeName == "#text"){
-	        if (offset < child.textContent.length){
-	          return {offset:offset, node:child};
-	        }
-	        offset -= child.textContent.length;
-	      } else{
-	        const ret = this.nodeFromTextOffset_(child, offset);
-	        if (ret.node){
-	          return ret;
-	        }
-	        offset = ret.offset;
-	      }
-	    }
-	
-	    return {offset:offset, node:null};
-	  }
-	
-	  textOffsetFromNode(node){
-	    return this.textOffsetFromNode_(node, 0);
-	  }
-	
-	  textOffsetFromNode_(node, offset){
-	    if (node.id == this.BASE_NODE.id){
-	      return offset;
-	    }
-	
-	    if (node.previousSibling){
-	      offset += node.previousSibling.textContent.length;
-	      return this.textOffsetFromNode_(node.previousSibling, offset);
-	    }else{
-	      return this.textOffsetFromNode_(node.parentNode, offset);
-	    }
-	  }
-	
-	  selectRange(startBodyOffset, endBodyOffset){
-	    if (startBodyOffset > endBodyOffset){
-	      const tmp = startBodyOffset;
-	      startBodyOffset = endBodyOffset;
-	      endBodyOffset = tmp;
-	    }
-	
-	    const start = this.nodeFromTextOffset(startBodyOffset);
-	    const end = this.nodeFromTextOffset(endBodyOffset);
-	    const selection = rangy.getSelection();
-	    const range = rangy.createRange();
-	    range.setStart(start.node, start.offset);
-	    range.setEnd(end.node, end.offset);
-	    selection.setSingleRange(range);
-	  }
-	
-	  highlight(label){
-	    const selection = rangy.getSelection();
-	    if (0 == selection.rangeCount){
-	      this.dispatchWindowEvent(
-	        'open-alert-dialog', {message: 'Text span is not selected.'}
-	      );
-	      return;
-	    }
-	    if (selection.isCollapsed){
-	      return;
-	    }
-	
-	    const id = this.highlights.nextId();
-	    const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
-	    const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-	    return this.create(id, startOffset, endOffset, label);
-	  }
-	
-	  create(id, startOffset, endOffset, text, referenceId){
-	    this.selectRange(startOffset, endOffset);
-	    const selection = rangy.getSelection();
-	    if (selection.isCollapsed){
-	      return;
-	    }
-	
-	    const temporaryElements = [];
-	    this.highlighter.addClassApplier(rangy.createClassApplier(
-	      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
-	      {
-	        ignoreWhiteSpace: true,
-	        onElementCreate: (element)=>{temporaryElements.push(element)},
-	        useExistingElements: false
-	      }
-	    ));
-	
-	    let highlight = null;
-	    this.highlighter.highlightSelection(
-	      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
-	      {exclusive: false}
-	    );
-	    if (temporaryElements.length > 0){
-	      highlight = new Highlight(
-	        id, startOffset, endOffset, temporaryElements, referenceId
-	      );
-	      highlight.setContent(text);
-	
-	      // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
-	      this.highlights.add(highlight);
-	    }
-	    selection.removeAllRanges();
-	
-	    return highlight;
-	  }
-	
-	  addToml(id, toml, referenceId){
-	    this.selectRange(toml.position[0], toml.position[1]);
-	    const selection = rangy.getSelection();
-	    if (!selection.isCollapsed){
-	      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
-	      const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-	      let span = this.create(
-	        parseInt(id), startOffset, endOffset, toml.label, referenceId
-	      );
-	      if (null != span) {
-	        span.blur();
-	      }
-	      return span;
-	    }
-	  }
-	
-	  get(id, referenceId){
-	    return this.highlights.findById(Annotation.createId(id, referenceId));
-	  }
-	
-	  remove(referenceId){
-	    this.highlights.forEach((annotation, i)=>{
-	      if (annotation instanceof Highlight){
-	        if (undefined != referenceId) {
-	          if (referenceId == annotation.getReferenceId()) {
-	            this._remove(annotation, i);
-	            return annotation;
-	          }
-	        } else {
-	          this._remove(annotation, i);
-	          return annotation;
-	        }
-	      }
-	    });
-	    return undefined;
-	  }
-	
-	  _remove(annotation, index) {
-	    let rangySelection = rangy.getSelection();
-	    annotation.elements.forEach((rangyHighlight) => {
-	      let range = rangy.createRange();
-	      range.selectNodeContents(rangyHighlight);
-	      rangySelection.addRange(range);
-	    });
-	    this.highlighter.unhighlightSelection(rangySelection);
-	    this.highlights.remove(index);
-	  }
-	
-	  removeAnnotation(highlight){
-	    this.highlights.remove(highlight);
-	  }
-	
-	  // TODO: Anno-UI events 辺りで提供してほしい
-	  dispatchWindowEvent(eventName, data) {
-	    let event = document.createEvent('CustomEvent')
-	    event.initCustomEvent(eventName, true, true, data)
-	    window.dispatchEvent(event)
-	  }
-	}
-	
-	module.exports = Highlighter;
-
-
-/***/ }),
 /* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -16370,7 +16353,7 @@
 	(function(factory, root) {
 	    if (true) {
 	        // AMD. Register as an anonymous module with a dependency on Rangy.
-	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(10)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(16)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	    } else if (typeof module != "undefined" && typeof exports == "object") {
 	        // Node/CommonJS style
 	        module.exports = factory( require("rangy") );
@@ -17476,7 +17459,7 @@
 	(function(factory, root) {
 	    if (true) {
 	        // AMD. Register as an anonymous module with a dependency on Rangy.
-	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(10)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(16)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	    } else if (typeof module != "undefined" && typeof exports == "object") {
 	        // Node/CommonJS style
 	        module.exports = factory( require("rangy") );
@@ -18106,7 +18089,7 @@
 	(function(factory, root) {
 	    if (true) {
 	        // AMD. Register as an anonymous module with a dependency on Rangy.
-	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(10)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(16)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	    } else if (typeof module != "undefined" && typeof exports == "object") {
 	        // Node/CommonJS style
 	        module.exports = factory( require("rangy") );
@@ -18407,8 +18390,8 @@
 /* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const RelationAnnotation = __webpack_require__(14);
-	const Annotation = __webpack_require__(13);
+	const RelationAnnotation = __webpack_require__(13);
+	const Annotation = __webpack_require__(12);
 	
 	class ArrowConnector{
 	  constructor(annotationContainer){
@@ -18583,8 +18566,10 @@
 
 /***/ }),
 /* 22 */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
+	const Bioes = __webpack_require__(23);
+	
 	class FileContainer {
 	  constructor() {
 	    this._contents = [];
@@ -18666,6 +18651,7 @@
 	    return annotations;
 	  }
 	
+	  // TODO: Needless...?
 	  addAnnotation(fileName, annotation) {
 	    let old = this.getAnnotation(fileName);
 	    if (null == old) {
@@ -18682,12 +18668,99 @@
 	    }
 	  }
 	
+	  /**
+	   * All contents array getter.
+	   * @return this._contents(reference)
+	   */
 	  get contents() {
 	    return this._contents;
 	  }
 	
+	  /**
+	   * All annotations array getter.
+	   * @return this._annotations(reference)
+	   */
 	  get annotations() {
 	    return this._annotations;
+	  }
+	
+	  /**
+	   * Read `file`, parse read result as HTML, and call `callback` with parse result.
+	   * @param file ... HTML file object
+	   * @param callback ... callback(read result) or callback(undefined)
+	   * @see FileContainer.parseHtml
+	   */ 
+	  static htmlLoader(file, callback) {
+	    FileContainer._fileReader(file, (read_result) => {
+	      if (undefined == read_result) {
+	        callback(undefined);
+	      } else {
+	        callback(FileContainer.parseHtml(read_result));
+	      }
+	    });
+	  }
+	
+	  /**
+	   * Read `file`, and call `callback` with read result that wrapped `<p>` tag.
+	   * @param file ... Plain text file object
+	   * @param callback ... callback(read result) or callback(undefined)
+	   */
+	  static textLoader(file, callback) {
+	    FileContainer._fileReader(file, (read_result) => {
+	      if (undefined == read_result) {
+	        callback(undefined);
+	      } else {
+	        callback(`<p>${read_result}</p>`);
+	      }
+	    });
+	  }
+	
+	  /**
+	   * Read `file`, parse read result as BIOES, and call `callback` with Bioes object.
+	   * @param file ... BIOES file object
+	   * @param callback ... callback(Bioes object) or callback(undefined)
+	   */
+	  static bioesLoader(file, callback) {
+	    FileContainer._fileReader(file, (read_result) => {
+	      if (undefined == read_result) {
+	        callback(undefined);
+	      } else {
+	        let bioes = new Bioes();
+	        if (bioes.parse(read_result)) {
+	          callback(bioes);
+	        } else {
+	          callback(undefined);
+	        }
+	      }
+	    });
+	  }
+	
+	  static parseHtml(html) {
+	    let sgmlFunc  = new RegExp(/<\?.+\?>/g);
+	    let comment   = new RegExp(/<!--.+-->/g);
+	    let htmlTag = new RegExp(/<html\s?.*>/i);
+	
+	    if (null != html.match(htmlTag)) {
+	      let bodyStart = html.match(/<body\s?.*>/im);
+	      let bodyEnd   = html.search(/<\/body>/im);
+	      if (null != bodyStart && -1 != bodyEnd){
+	        html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
+	      }
+	      return html.replace(sgmlFunc, '').replace(comment, '');
+	    } else {
+	      return undefined;
+	    }
+	  }
+	
+	  static _fileReader(file, callback) {
+	    let reader = new FileReader();
+	    reader.onload = () => {
+	      callback(reader.result);
+	    };
+	    reader.onerror = () => {callback(undefined); };
+	    reader.onabort = () => {callback(undefined); };
+	
+	    reader.readAsText(file);
 	  }
 	
 	  _getItem(name, container) {
@@ -18711,34 +18784,6 @@
 	    });
 	  }
 	
-	  static htmlLoader(file, callback) {
-	    let reader = new FileReader();
-	    reader.onload = () => {
-	      callback(FileContainer.parseHtml(reader.result));
-	    };
-	    reader.onerror = () => {callback(undefined); };
-	    reader.onabort = () => {callback(undefined); };
-	
-	    reader.readAsText(file);
-	  }
-	
-	  static parseHtml(html) {
-	    let sgmlFunc  = new RegExp(/<\?.+\?>/g);
-	    let comment   = new RegExp(/<!--.+-->/g);
-	    let htmlTag = new RegExp(/<html\s?.*>/i);
-	
-	    if (null != html.match(htmlTag)) {
-	      let bodyStart = html.match(/<body\s?.*>/im);
-	      let bodyEnd   = html.search(/<\/body>/im);
-	      if (null != bodyStart && -1 != bodyEnd){
-	        html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
-	      }
-	      return html.replace(sgmlFunc, '').replace(comment, '');
-	    } else {
-	      return undefined;
-	    }
-	  }
-	
 	  _createTextContents(files) {
 	    files.forEach((file) => {
 	      this._contents.push({
@@ -18749,17 +18794,6 @@
 	        selected: false
 	      });
 	    });
-	  }
-	
-	  static textLoader(file, callback) {
-	    let reader = new FileReader();
-	    reader.onload = ()=>{
-	      callback('<p>' + reader.result + '</p>');
-	    };
-	    reader.onerror = () => {callback(undefined); };
-	    reader.onabort = () => {callback(undefined); };
-	
-	    reader.readAsText(file);
 	  }
 	
 	  _createBioesContents(files) {
@@ -18799,8 +18833,8 @@
 	            reference: false
 	          });
 	        };
-	        reader.onerror = this._loadError;
-	        reader.onabort = this._loadAbort;
+	        reader.onerror = () => { alert("Load failed."); };  // TODO: UI実装後に適時変更
+	        reader.onabort = () => { alert("Load aborted."); }; // TODO: UI実装後に適宜変更
 	
 	        reader.readAsText(file);
 	      }));
@@ -18847,14 +18881,6 @@
 	  _excludeBaseDirName(filePath){
 	    let fragments = filePath.split('/');
 	    return fragments[fragments.length - 1];
-	  }
-	
-	  _loadError(file){
-	    alert("Load failed.");  // TODO: UI実装後に適時変更
-	  }
-	
-	  _loadAbort(file){
-	    alert("Load aborted."); // TODO: UI実装後に適宜変更
 	  }
 	
 	  /**
