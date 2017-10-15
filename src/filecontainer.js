@@ -79,6 +79,7 @@ class FileContainer {
     return annotations;
   }
 
+  // TODO: Needless...?
   addAnnotation(fileName, annotation) {
     let old = this.getAnnotation(fileName);
     if (null == old) {
@@ -95,39 +96,48 @@ class FileContainer {
     }
   }
 
+  /**
+   * All contents array getter.
+   * @return this._contents(reference)
+   */
   get contents() {
     return this._contents;
   }
 
+  /**
+   * All annotations array getter.
+   * @return this._annotations(reference)
+   */
   get annotations() {
     return this._annotations;
   }
 
-  _getItem(name, container) {
-    for(let i = 0; i < container.length; i ++) {
-      if (container[i].name === name) {
-        return container[i];
-      }
-    }
-    return null;
-  }
-
-  _createHtmlContents(files) {
-    files.forEach((file) => {
-      this._contents.push({
-        type   : 'html',
-        name   : this._excludeBaseDirName(file.webkitRelativePath),
-        content: undefined,
-        source : file,
-        selected: false
-      });
-    });
-  }
-
+  /**
+   * Read `file`, parse read result as HTML, and call `callback` with parse result.
+   * @param file ... HTML file name
+   * @param callback ... callback(read result) or callback(undefined)
+   * @see FileContainer.parseHtml
+   */ 
   static htmlLoader(file, callback) {
     let reader = new FileReader();
     reader.onload = () => {
       callback(FileContainer.parseHtml(reader.result));
+    };
+    reader.onerror = () => {callback(undefined); };
+    reader.onabort = () => {callback(undefined); };
+
+    reader.readAsText(file);
+  }
+
+  /**
+   * Read `file`, and call `callback` with read result that wrapped `<p>` tag.
+   * @param file ... Plain text file name
+   * @param callback ... callback(read result) or callback(undefined)
+   */
+  static textLoader(file, callback) {
+    let reader = new FileReader();
+    reader.onload = ()=>{
+      callback('<p>' + reader.result + '</p>');
     };
     reader.onerror = () => {callback(undefined); };
     reader.onabort = () => {callback(undefined); };
@@ -152,6 +162,27 @@ class FileContainer {
     }
   }
 
+  _getItem(name, container) {
+    for(let i = 0; i < container.length; i ++) {
+      if (container[i].name === name) {
+        return container[i];
+      }
+    }
+    return null;
+  }
+
+  _createHtmlContents(files) {
+    files.forEach((file) => {
+      this._contents.push({
+        type   : 'html',
+        name   : this._excludeBaseDirName(file.webkitRelativePath),
+        content: undefined,
+        source : file,
+        selected: false
+      });
+    });
+  }
+
   _createTextContents(files) {
     files.forEach((file) => {
       this._contents.push({
@@ -162,17 +193,6 @@ class FileContainer {
         selected: false
       });
     });
-  }
-
-  static textLoader(file, callback) {
-    let reader = new FileReader();
-    reader.onload = ()=>{
-      callback('<p>' + reader.result + '</p>');
-    };
-    reader.onerror = () => {callback(undefined); };
-    reader.onabort = () => {callback(undefined); };
-
-    reader.readAsText(file);
   }
 
   _createBioesContents(files) {
@@ -212,8 +232,8 @@ class FileContainer {
             reference: false
           });
         };
-        reader.onerror = this._loadError;
-        reader.onabort = this._loadAbort;
+        reader.onerror = () => { alert("Load failed."); };  // TODO: UI実装後に適時変更
+        reader.onabort = () => { alert("Load aborted."); }; // TODO: UI実装後に適宜変更
 
         reader.readAsText(file);
       }));
@@ -260,14 +280,6 @@ class FileContainer {
   _excludeBaseDirName(filePath){
     let fragments = filePath.split('/');
     return fragments[fragments.length - 1];
-  }
-
-  _loadError(file){
-    alert("Load failed.");  // TODO: UI実装後に適時変更
-  }
-
-  _loadAbort(file){
-    alert("Load aborted."); // TODO: UI実装後に適宜変更
   }
 
   /**
