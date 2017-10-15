@@ -360,10 +360,6 @@ class Htmlanno{
   }
 
   displayReferenceAnnotation(fileNames) {
-    // TODO: reloadContent() にもあるので共通化。ファイルロード処理自体を別の場所に移動したい
-    const showReadError = () => {
-      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
-    };
     this.hideReferenceAnnotation(this.getUiAnnotations(true));
 
     let selectedUiAnnotations = this.getUiAnnotations(false);
@@ -378,10 +374,10 @@ class Htmlanno{
       } else {
         annotation.reference = true;
         if (undefined == annotation.content) {
-          let reader = new FileReader();
-          reader.onload = () => {
-            let bioes = new Bioes();
-            if (bioes.parse(reader.result)) {
+          FileContainer.bioesLoader(annotation.source, (bioes) => {
+            if (undefined == bioes) {
+              this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+            } else {
               annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
               annotation.source = undefined;
               TomlTool.renderAnnotation(
@@ -391,14 +387,8 @@ class Htmlanno{
                 uiAnnotation.name,
                 uiAnnotation.color
               );
-            } else {
-              showReadError();
             }
-          };
-          reader.onerror = showReadError;
-          reader.onabort = showReadError;
-
-          reader.readAsText(annotation.source);
+          });
         } else { 
           TomlTool.loadToml(
             annotation.content,
@@ -456,9 +446,6 @@ class Htmlanno{
   }
 
   reloadContent(fileName) {
-    const showReadError = () => {
-      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
-    };
     const loadContent = (content, readResult, _this) => {
       if (undefined != readResult) {
         _this.remove();
@@ -467,7 +454,7 @@ class Htmlanno{
         document.getElementById('viewer').innerHTML = content.content;
         _this.handleResize();
       } else {
-        showReadError();
+        _this.showReadError();
       }
     };
     this.useDefaultData = false;
@@ -500,10 +487,10 @@ class Htmlanno{
           break;
 
         case 'bioes':
-          let reader = new FileReader();
-          reader.onload = () => {
-            let bioes = new Bioes();
-            if (bioes.parse(reader.result)) {
+          FileContainer.bioesLoader(content.source, ((bioes) => {
+            if (undefined == bioes) {
+              this.showReadError();
+            } else {
               loadContent(content, bioes.content, this);
               let annotation = this.fileContainer.getAnnotation(content.name);
               annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
@@ -520,14 +507,8 @@ class Htmlanno{
               );
               console.log(new Date()); // TODO: temporary
               this.dispatchWindowEvent('annotationrendered');
-            } else {
-              showReadError();
             }
-          };
-          reader.onerror = showReadError;
-          reader.onabort = showReadError;
-
-          reader.readAsText(content.source);
+          }).bind(this));
           break;
 
         case 'text':
@@ -606,6 +587,10 @@ class Htmlanno{
   clearViewer() {
     this.remove();
     $('#viewer').html('');
+  }
+
+  showReadError() {
+      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
   }
 
   // TODO: FileContainer#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
