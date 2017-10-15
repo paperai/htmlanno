@@ -34,15 +34,21 @@ class Bioes {
       return undefined;
     }
 
+    // '<p>xxx<p><p>yyy zzz</p><p>111</p>
     this._content = '';
+    // The array includes Toml Object.
     this._annotations = [];
 
+    // ['xxx', 'yyy zzz, '111', ...]
     let contentArray = [];
+    // ['yyy', 'zzz']
     let currentContentArray = [];
+    // Toml object
     let currentSpan = undefined;
     bioes.split(this.LS).forEach((line) => {
       if (0 == line.length) {
-        contentArray.push(this._contentArrayToString(currentContentArray));
+        // Next paragraph.
+        contentArray.push(currentContentArray.join(' '));
         currentContentArray = [];
       }
       let fsIndex = line.indexOf(this.FS);
@@ -111,25 +117,25 @@ class Bioes {
   }
 
   _createTomlObj(spanObject, currentContentArray, contentArray) {
-    let beforeContext = this._contentArrayToString(contentArray) + this._contentArrayToString(
-      currentContentArray.slice(0, spanObject.startIndex)
-    );
-    let content = this._contentArrayToString(
-      currentContentArray.slice(spanObject.startIndex)
-    );
-//console.log(beforeContext);
-//console.log(content);
-    let start = beforeContext.replace(/\s+/g, '').length + 1;
+    let beforeContent =
+      this._contentArrayToString(contentArray) +
+      '<p>' + 
+      currentContentArray.slice(0, spanObject.startIndex).join(' ');
+    let content = currentContentArray.slice(spanObject.startIndex).join(' ');
+    
+    let start = beforeContent.replace(/<p>|<\/p>/g, '').length;
+    // Add the last space before context.
+    start += 0 == spanObject.startIndex ? 0: 1;
     return {
       type: 'span',
-      position: [start, (start + content.replace(/\s+/g, '').length + 1)],
+      position: [start, (start + content.length)],
       text: content,
       label: spanObject.label
     };
   }
 
   _contentArrayToString(contentArray) {
-    return contentArray.join(' ');
+    return `<p>${contentArray.join('</p><p>')}</p>`;
   }
 }
 
