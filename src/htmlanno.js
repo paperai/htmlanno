@@ -337,12 +337,17 @@ class Htmlanno{
   displayPrimaryAnnotation(fileName) {
     let annotation = this.fileContainer.getAnnotation(fileName);
     annotation.primary = true;
-    TomlTool.loadToml(
-      annotation.content,
-      this.highlighter,
-      this.arrowConnector
-    );
-    this.dispatchWindowEvent('annotationrendered');
+    if ('bioes' != annotation.subtype) {
+      // BIOES annotation is rendered at content loading.
+      // TODO: BIOES annotaionはPrimaruには不要だが、リストがReferenceAnnotationと共用のため存在する
+      // TODO: この処理が呼び出されるのはAnno-uiにおいてチェックが表示されたあとなので表示は制御できない
+      TomlTool.loadToml(
+        annotation.content,
+        this.highlighter,
+        this.arrowConnector
+      );
+      this.dispatchWindowEvent('annotationrendered');
+    }
   }
 
   clearPrimaryAnnotation() {
@@ -355,6 +360,10 @@ class Htmlanno{
   }
 
   displayReferenceAnnotation(fileNames) {
+    // TODO: reloadContent() にもあるので共通化。ファイルロード処理自体を別の場所に移動したい
+    const showReadError = () => {
+      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+    };
     this.hideReferenceAnnotation(this.getUiAnnotations(true));
 
     let selectedUiAnnotations = this.getUiAnnotations(false);
@@ -368,13 +377,37 @@ class Htmlanno{
         });
       } else {
         annotation.reference = true;
-        TomlTool.loadToml(
-          annotation.content,
-          this.highlighter,
-          this.arrowConnector,
-          uiAnnotation.name,
-          uiAnnotation.color
-        );
+        if (undefined == annotation.content) {
+          let reader = new FileReader();
+          reader.onload = () => {
+            let bioes = new Bioes();
+            if (bioes.parse(reader.result)) {
+              annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
+              annotation.source = undefined;
+              TomlTool.renderAnnotation(
+                annotation.content,
+                this.highlighter,
+                this.arrowConnector,
+                uiAnnotation.name,
+                uiAnnotation.color
+              );
+            } else {
+              showReadError();
+            }
+          };
+          reader.onerror = showReadError;
+          reader.onabort = showReadError;
+
+          reader.readAsText(annotation.source);
+        } else { 
+          TomlTool.loadToml(
+            annotation.content,
+            this.highlighter,
+            this.arrowConnector,
+            uiAnnotation.name,
+            uiAnnotation.color
+          );
+        }
       }
     });
     this.dispatchWindowEvent('annotationrendered');
@@ -423,7 +456,6 @@ class Htmlanno{
   }
 
   reloadContent(fileName) {
-    this.useDefaultData = false;
     const showReadError = () => {
       this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
     };
@@ -432,18 +464,33 @@ class Htmlanno{
         _this.remove();
         content.content = readResult;
         content.source = undefined;
-        $('#viewer').html(content.content);
+        document.getElementById('viewer').innerHTML = content.content;
         _this.handleResize();
       } else {
         showReadError();
       }
     };
+    this.useDefaultData = false;
+    $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].removeAttribute(
+      'disabled', 'disabled'
+    );
 
     let content = this.fileContainer.getContent(fileName);
     if (undefined != content.content) {
       this.remove();
-      $('#viewer').html(content.content);
-      // TODO BIOESの場合はアノテーションもレンダリング
+      document.getElementById('viewer').innerHTML = content.content;
+
+      if ('bioes' == content.type) {
+        $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
+          'disabled', 'disabled'
+        );
+        let annotation = this.fileContainer.getAnnotation(content.name);
+        annotation.primary = true;
+        TomlTool.renderAnnotation(
+          annotation.content, this.highlighter, this.arrowConnector
+        );
+        this.dispatchWindowEvent('annotationrendered');
+      }
     } else {
       switch(content.type) {
         case 'html':
@@ -458,15 +505,20 @@ class Htmlanno{
             let bioes = new Bioes();
             if (bioes.parse(reader.result)) {
               loadContent(content, bioes.content, this);
-              console.log("BIOES annotation is " + bioes.annotations.length);
-              console.log(bioes.annotations);
-              console.log(new Date());
-              TomlTool.renderAnnotation(
-                bioes.annotations, // .slice(0, 100), // TODO 個数が多すぎるので適当に切り出す
-                this.highlighter,
-                this.arrowConnector
+              let annotation = this.fileContainer.getAnnotation(content.name);
+              annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
+              annotation.source = undefined;
+              annotation.primary = true;
+              $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
+                'disabled', 'disabled'
               );
-              console.log(new Date());
+
+              console.log("BIOES annotation is " + bioes.annotations.length); // TODO: temporary
+              console.log(new Date()); // TODO: temporary
+              TomlTool.renderAnnotation(
+                annotation.content, this.highlighter, this.arrowConnector
+              );
+              console.log(new Date()); // TODO: temporary
               this.dispatchWindowEvent('annotationrendered');
             } else {
               showReadError();

@@ -404,12 +404,17 @@
 	  displayPrimaryAnnotation(fileName) {
 	    let annotation = this.fileContainer.getAnnotation(fileName);
 	    annotation.primary = true;
-	    TomlTool.loadToml(
-	      annotation.content,
-	      this.highlighter,
-	      this.arrowConnector
-	    );
-	    this.dispatchWindowEvent('annotationrendered');
+	    if ('bioes' != annotation.subtype) {
+	      // BIOES annotation is rendered at content loading.
+	      // TODO: BIOES annotaionはPrimaruには不要だが、リストがReferenceAnnotationと共用のため存在する
+	      // TODO: この処理が呼び出されるのはAnno-uiにおいてチェックが表示されたあとなので表示は制御できない
+	      TomlTool.loadToml(
+	        annotation.content,
+	        this.highlighter,
+	        this.arrowConnector
+	      );
+	      this.dispatchWindowEvent('annotationrendered');
+	    }
 	  }
 	
 	  clearPrimaryAnnotation() {
@@ -422,6 +427,10 @@
 	  }
 	
 	  displayReferenceAnnotation(fileNames) {
+	    // TODO: reloadContent() にもあるので共通化。ファイルロード処理自体を別の場所に移動したい
+	    const showReadError = () => {
+	      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+	    };
 	    this.hideReferenceAnnotation(this.getUiAnnotations(true));
 	
 	    let selectedUiAnnotations = this.getUiAnnotations(false);
@@ -435,13 +444,37 @@
 	        });
 	      } else {
 	        annotation.reference = true;
-	        TomlTool.loadToml(
-	          annotation.content,
-	          this.highlighter,
-	          this.arrowConnector,
-	          uiAnnotation.name,
-	          uiAnnotation.color
-	        );
+	        if (undefined == annotation.content) {
+	          let reader = new FileReader();
+	          reader.onload = () => {
+	            let bioes = new Bioes();
+	            if (bioes.parse(reader.result)) {
+	              annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
+	              annotation.source = undefined;
+	              TomlTool.renderAnnotation(
+	                annotation.content,
+	                this.highlighter,
+	                this.arrowConnector,
+	                uiAnnotation.name,
+	                uiAnnotation.color
+	              );
+	            } else {
+	              showReadError();
+	            }
+	          };
+	          reader.onerror = showReadError;
+	          reader.onabort = showReadError;
+	
+	          reader.readAsText(annotation.source);
+	        } else { 
+	          TomlTool.loadToml(
+	            annotation.content,
+	            this.highlighter,
+	            this.arrowConnector,
+	            uiAnnotation.name,
+	            uiAnnotation.color
+	          );
+	        }
 	      }
 	    });
 	    this.dispatchWindowEvent('annotationrendered');
@@ -490,7 +523,6 @@
 	  }
 	
 	  reloadContent(fileName) {
-	    this.useDefaultData = false;
 	    const showReadError = () => {
 	      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
 	    };
@@ -499,18 +531,33 @@
 	        _this.remove();
 	        content.content = readResult;
 	        content.source = undefined;
-	        $('#viewer').html(content.content);
+	        document.getElementById('viewer').innerHTML = content.content;
 	        _this.handleResize();
 	      } else {
 	        showReadError();
 	      }
 	    };
+	    this.useDefaultData = false;
+	    $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].removeAttribute(
+	      'disabled', 'disabled'
+	    );
 	
 	    let content = this.fileContainer.getContent(fileName);
 	    if (undefined != content.content) {
 	      this.remove();
-	      $('#viewer').html(content.content);
-	      // TODO BIOESの場合はアノテーションもレンダリング
+	      document.getElementById('viewer').innerHTML = content.content;
+	
+	      if ('bioes' == content.type) {
+	        $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
+	          'disabled', 'disabled'
+	        );
+	        let annotation = this.fileContainer.getAnnotation(content.name);
+	        annotation.primary = true;
+	        TomlTool.renderAnnotation(
+	          annotation.content, this.highlighter, this.arrowConnector
+	        );
+	        this.dispatchWindowEvent('annotationrendered');
+	      }
 	    } else {
 	      switch(content.type) {
 	        case 'html':
@@ -525,15 +572,20 @@
 	            let bioes = new Bioes();
 	            if (bioes.parse(reader.result)) {
 	              loadContent(content, bioes.content, this);
-	              console.log("BIOES annotation is " + bioes.annotations.length);
-	              console.log(bioes.annotations);
-	              console.log(new Date());
-	              TomlTool.renderAnnotation(
-	                bioes.annotations, // .slice(0, 100), // TODO 個数が多すぎるので適当に切り出す
-	                this.highlighter,
-	                this.arrowConnector
+	              let annotation = this.fileContainer.getAnnotation(content.name);
+	              annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
+	              annotation.source = undefined;
+	              annotation.primary = true;
+	              $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
+	                'disabled', 'disabled'
 	              );
-	              console.log(new Date());
+	
+	              console.log("BIOES annotation is " + bioes.annotations.length); // TODO: temporary
+	              console.log(new Date()); // TODO: temporary
+	              TomlTool.renderAnnotation(
+	                annotation.content, this.highlighter, this.arrowConnector
+	              );
+	              console.log(new Date()); // TODO: temporary
 	              this.dispatchWindowEvent('annotationrendered');
 	            } else {
 	              showReadError();
@@ -7410,34 +7462,26 @@
 	    if (RelationAnnotation.isMydata(tomlObj[key])) {
 	      annotation = arrowConnector.addToml(key, tomlObj[key], referenceId);
 	    }
-	    if (undefined != color) {
+	    if (null == annotation) {
+	      console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
+	      console.log(tomlObj[key]);
+	    } else if (undefined != color) {
 	      annotation.setColor(color);
 	    }
 	  }
 	};
 	
 	/**
-	 * @param fileBlobOrText ... File(Blob) object that created by &lt;file&gt; tag.
+	 * @param objectOrText ... TomlObject(Hash) or Toml source text.
 	 * @param highlighter ... Highlight annotation containr.
 	 * @param arrowConnector ... Relation annotation container.
 	 * @param referenceId (optional) ... Used to identify annotations.
 	 */
-	exports.loadToml = (fileBlobOrText, highlighter, arrowConnector, referenceId, color)=>{
-	  if ('string' == typeof(fileBlobOrText)) {
-	    exports.renderAnnotation(TomlParser.parse(fileBlobOrText), highlighter, arrowConnector, referenceId, color);
+	exports.loadToml = (objectOrText, highlighter, arrowConnector, referenceId, color)=>{
+	  if ('string' == typeof(objectOrText)) {
+	    exports.renderAnnotation(TomlParser.parse(objectOrText), highlighter, arrowConnector, referenceId, color);
 	  } else{
-	    let reader = new FileReader();
-	    reader.onload = ()=>{
-	      exports.renderAnnotation(TomlParser.parse(reader.result), highlighter, arrowConnector, referenceId, color);
-	    }
-	    reader.onerror = ()=>{
-	      alert("Import failed.");  // TODO: UI実装後に適時変更
-	    };
-	    reader.onabort = ()=>{
-	      alert("Import aborted."); // TODO: UI実装後に適宜変更
-	    };
-	
-	    reader.readAsText(fileBlob);
+	    exports.renderAnnotation(objectOrText, highlighter, arrowConnector, referenceId, color);
 	  }
 	};
 
@@ -16251,8 +16295,9 @@
 	      let span = this.create(
 	        parseInt(id), startOffset, endOffset, toml.label, referenceId
 	      );
-	      span.blur();
-	
+	      if (null != span) {
+	        span.blur();
+	      }
 	      return span;
 	    }
 	  }
@@ -18555,36 +18600,24 @@
 	    this._contents = [];
 	    this._annotations = [];
 	    let categoraizedFiles = this._categorize(files);
-	    let _this = this;
+	
 	    return Promise.all([
-	      Promise.all(
-	        this._createHtmlLoadingPromiseList(categoraizedFiles[0])
-	      ).then(
-	        (results) => { _this._merge(results, _this._contents); }
-	      ),
-	      Promise.all(
-	        this._createTextLoadingPromiseList(categoraizedFiles[1])
-	      ).then(
-	        (results) => { _this._merge(results, _this._contents); }
-	      ),
+	      new Promise((resolve, reject) => {
+	        this._createHtmlContents(categoraizedFiles[0]);
+	        resolve(true);
+	      }).then(),
+	      new Promise((resolve, reject) => {
+	        this._createTextContents(categoraizedFiles[1])
+	        resolve(true);
+	      }).then(),
 	      Promise.all(
 	        this._createAnnotationLoadingPromiseList(categoraizedFiles[2])
-	      ).then(
-	        (results) => { _this._merge(results, _this._annotations); }
-	      ),
-	      Promise.all(
-	        this._createBioesLoadingPromiseList(categoraizedFiles[3])
-	      ).then(
-	        (results) => { _this._merge(results, _this._contents); }
-	      )
-	    ]).then(
-	      (all_results) => {
-	        return Promise.resolve({
-	          contents: _this._contents,
-	          annotations: _this._annotations
-	        });
-	      }
-	    );
+	      ).then(this._mergeAnnotations.bind(this)),
+	      new Promise((resolve, reject) => {
+	        this._createBioesContents(categoraizedFiles[3]);
+	        resolve(true);
+	      })
+	    ]).then(this._allResult.bind(this));
 	  }
 	
 	  /**
@@ -18610,8 +18643,10 @@
 	   *
 	   * annotation[n] = {
 	   *   type     : 'annotation'
+	   *   subtype  : 'bioes' or undefined (Using only BIOES annotation)
 	   *   name     : fileName
-	   *   content  : TOML source
+	   *   content  : TOML source or undefined (When it is undefined, source must be defined.)
+	   *   source   : File object or undefined
 	   *   primary  : boolean
 	   *   reference: boolean
 	   * }
@@ -18631,6 +18666,22 @@
 	    return annotations;
 	  }
 	
+	  addAnnotation(fileName, annotation) {
+	    let old = this.getAnnotation(fileName);
+	    if (null == old) {
+	      this._annotations.push({
+	        type: 'annotation',
+	        name: fileName,
+	        content: annotation,
+	        primary: false,
+	        reference: false
+	      });
+	      return true;
+	    } else {
+	      return false;
+	    }
+	  }
+	
 	  get contents() {
 	    return this._contents;
 	  }
@@ -18648,16 +18699,14 @@
 	    return null;
 	  }
 	
-	  _createHtmlLoadingPromiseList(files) {
-	    return files.map((file) => {
-	      return new Promise((resolve, reject) => {
-	        resolve({
-	          type   : 'html',
-	          name   : this._excludeBaseDirName(file.webkitRelativePath),
-	          content: undefined,
-	          source : file,
-	          selected: false
-	        });
+	  _createHtmlContents(files) {
+	    files.forEach((file) => {
+	      this._contents.push({
+	        type   : 'html',
+	        name   : this._excludeBaseDirName(file.webkitRelativePath),
+	        content: undefined,
+	        source : file,
+	        selected: false
 	      });
 	    });
 	  }
@@ -18690,16 +18739,14 @@
 	    }
 	  }
 	
-	  _createTextLoadingPromiseList(files) {
-	    return files.map((file) => {
-	      return new Promise((resolve, reject) => {
-	        resolve({
-	          type   : 'text',
-	          name   : this._excludeBaseDirName(file.webkitRelativePath),
-	          content: undefined,
-	          source: file,
-	          selected: false
-	        });
+	  _createTextContents(files) {
+	    files.forEach((file) => {
+	      this._contents.push({
+	        type   : 'text',
+	        name   : this._excludeBaseDirName(file.webkitRelativePath),
+	        content: undefined,
+	        source: file,
+	        selected: false
 	      });
 	    });
 	  }
@@ -18715,16 +18762,23 @@
 	    reader.readAsText(file);
 	  }
 	
-	  _createBioesLoadingPromiseList(files) {
-	    return files.map((file) => {
-	      return new Promise((resolve, reject) => {
-	        resolve({
-	          type    : 'bioes',
-	          name    : this._excludeBaseDirName(file.webkitRelativePath),
-	          content : undefined,
-	          source  : file,
-	          selected: false
-	        });
+	  _createBioesContents(files) {
+	    files.forEach((file) => {
+	      this._contents.push({
+	        type    : 'bioes',
+	        name    : this._excludeBaseDirName(file.webkitRelativePath),
+	        content : undefined,
+	        source  : file,
+	        selected: false
+	      });
+	      this._annotations.push({
+	        type     : 'annotation',
+	        subtype  : 'bioes',
+	        name     : this._excludeBaseDirName(file.webkitRelativePath),
+	        content  : undefined,
+	        source   : file,
+	        primary  : false,
+	        reference: false
 	      });
 	    });
 	  }
@@ -18736,10 +18790,12 @@
 	        let reader = new FileReader();
 	        reader.onload = ()=>{
 	          resolve({
-	            type   : 'annotation',
-	            name   : this._excludeBaseDirName(file.webkitRelativePath),
-	            content: reader.result,
-	            primary: false,
+	            type     : 'annotation',
+	            subtype  : undefined,
+	            name     : this._excludeBaseDirName(file.webkitRelativePath),
+	            content  : reader.result,
+	            source   : undefined,
+	            primary  : false,
 	            reference: false
 	          });
 	        };
@@ -18801,9 +18857,33 @@
 	    alert("Load aborted."); // TODO: UI実装後に適宜変更
 	  }
 	
+	  /**
+	   * For loadFiles()
+	   */
 	  _merge(fromArray, toArray) {
 	    fromArray.forEach((elm) => {
 	      toArray.push(elm);
+	    });
+	  }
+	  /**
+	   * For loadFiles()
+	   */
+	  _mergeContents(results) {
+	    this._merge(results, this._contents);
+	  }
+	  /**
+	   * For loadFiles()
+	   */
+	  _mergeAnnotations(results) {
+	    this._merge(results, this._annotations);
+	  }
+	  /**
+	   * For loadFiles()
+	   */
+	  _allResult(all_results) {
+	    return Promise.resolve({
+	      contents: this._contents,
+	      annotations: this._annotations
 	    });
 	  }
 	
