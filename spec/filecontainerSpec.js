@@ -1,5 +1,5 @@
 global.FileReader = require('filereader');
-const FileLoader = require('../src/fileloader.js');
+const FileContainer = require('../src/filecontainer.js');
 
 class DummyFileObj {
   constructor(_path) {
@@ -11,10 +11,10 @@ class DummyFileObj {
   }
 }
 
-describe('FileLoader', () => {
+describe('FileContainer', () => {
   let instance;
   beforeEach(() => {
-    instance = new FileLoader();
+    instance = new FileContainer();
   });
 
   it('Constructor', () => {

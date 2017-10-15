@@ -1,4 +1,4 @@
-class FileLoader{
+class FileContainer {
   constructor() {
     this._contents = [];
     this._annotations = [];
@@ -123,7 +123,7 @@ class FileLoader{
   static htmlLoader(file, callback) {
     let reader = new FileReader();
     reader.onload = () => {
-      callback(FileLoader.parseHtml(reader.result));
+      callback(FileContainer.parseHtml(reader.result));
     };
     reader.onerror = () => {callback(undefined); };
     reader.onabort = () => {callback(undefined); };
@@ -266,4 +266,4 @@ class FileLoader{
   }
 
 }
-module.exports = FileLoader;
+module.exports = FileContainer;

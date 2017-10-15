@@ -78,7 +78,7 @@
 	const Circle = __webpack_require__(12);
 	const ArrowConnector = __webpack_require__(20);
 	const AnnotationContainer = __webpack_require__(21);
-	const FileLoader = __webpack_require__(22);
+	const FileContainer = __webpack_require__(22);
 	const Highlight = __webpack_require__(11);
 	const RelationAnnotation = __webpack_require__(14);
 	const Bioes = __webpack_require__(23);
@@ -98,7 +98,7 @@
 	    this.arrowConnector = new ArrowConnector(this.annotations);
 	
 	    // The contents and annotations from files.
-	    this.fileLoader = new FileLoader();
+	    this.fileContainer = new FileContainer();
 	
 	    globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
 	    globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
@@ -402,7 +402,7 @@
 	  }
 	
 	  displayPrimaryAnnotation(fileName) {
-	    let annotation = this.fileLoader.getAnnotation(fileName);
+	    let annotation = this.fileContainer.getAnnotation(fileName);
 	    annotation.primary = true;
 	    TomlTool.loadToml(
 	      annotation.content,
@@ -413,7 +413,7 @@
 	  }
 	
 	  clearPrimaryAnnotation() {
-	    this.fileLoader.annotations.forEach((annotation) => {
+	    this.fileContainer.annotations.forEach((annotation) => {
 	      if (annotation.primary) {
 	        annotation.primary = false;
 	      }
@@ -426,7 +426,7 @@
 	
 	    let selectedUiAnnotations = this.getUiAnnotations(false);
 	    selectedUiAnnotations.forEach((uiAnnotation) => {
-	      let annotation = this.fileLoader.getAnnotation(uiAnnotation.name);
+	      let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
 	      if (annotation.reference) {
 	        this.annotations.forEach((annotationObj) => {
 	          if (uiAnnotation.name == annotationObj.referenceId) {
@@ -448,7 +448,7 @@
 	  }
 	
 	  hideReferenceAnnotation(uiAnnotations) {
-	    let annotations = this.fileLoader.getAnnotations(
+	    let annotations = this.fileContainer.getAnnotations(
 	      uiAnnotations.map((ann) => {
 	        return ann.name;
 	      })
@@ -478,15 +478,15 @@
 	  }
 	
 	  loadFiles(files) {
-	    return this.fileLoader.loadFiles(files);
+	    return this.fileContainer.loadFiles(files);
 	  }
 	
 	  getContentFiles() {
-	    return this.fileLoader.contents;
+	    return this.fileContainer.contents;
 	  }
 	
 	  getAnnoFiles() {
-	    return this.fileLoader.annotations;
+	    return this.fileContainer.annotations;
 	  }
 	
 	  reloadContent(fileName) {
@@ -506,7 +506,7 @@
 	      }
 	    };
 	
-	    let content = this.fileLoader.getContent(fileName);
+	    let content = this.fileContainer.getContent(fileName);
 	    if (undefined != content.content) {
 	      this.remove();
 	      $('#viewer').html(content.content);
@@ -514,7 +514,7 @@
 	    } else {
 	      switch(content.type) {
 	        case 'html':
-	          FileLoader.htmlLoader(content.source, ((html) => {
+	          FileContainer.htmlLoader(content.source, ((html) => {
 	            loadContent(content, html, this);
 	          }).bind(this));
 	          break;
@@ -547,7 +547,7 @@
 	
 	        case 'text':
 	          this.remove();
-	          FileLoader.textLoader(content.source, ((text) => {
+	          FileContainer.textLoader(content.source, ((text) => {
 	            loadContent(content, text, this);
 	          }).bind(this));
 	          break;
@@ -608,7 +608,7 @@
 	      url: this.defaultDataUri,
 	      dataType: 'html',
 	      success: function(htmlData) {
-	        let content = FileLoader.parseHtml(htmlData);
+	        let content = FileContainer.parseHtml(htmlData);
 	        if (undefined != content) {
 	          this.useDefaultData = true;
 	          $('#viewer').html(content);
@@ -623,7 +623,7 @@
 	    $('#viewer').html('');
 	  }
 	
-	  // TODO: FileLoader#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
+	  // TODO: FileContainer#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
 	  excludeBaseUriName(uri) {
 	    let fragments = uri.split('/');
 	    return fragments[fragments.length - 1];
@@ -18540,7 +18540,7 @@
 /* 22 */
 /***/ (function(module, exports) {
 
-	class FileLoader{
+	class FileContainer {
 	  constructor() {
 	    this._contents = [];
 	    this._annotations = [];
@@ -18665,7 +18665,7 @@
 	  static htmlLoader(file, callback) {
 	    let reader = new FileReader();
 	    reader.onload = () => {
-	      callback(FileLoader.parseHtml(reader.result));
+	      callback(FileContainer.parseHtml(reader.result));
 	    };
 	    reader.onerror = () => {callback(undefined); };
 	    reader.onabort = () => {callback(undefined); };
@@ -18808,7 +18808,7 @@
 	  }
 	
 	}
-	module.exports = FileLoader;
+	module.exports = FileContainer;
 
 
 /***/ }),

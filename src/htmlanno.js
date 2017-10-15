@@ -11,7 +11,7 @@ const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
 const AnnotationContainer = require("./annotationcontainer.js");
-const FileLoader = require("./fileloader.js");
+const FileContainer = require("./filecontainer.js");
 const Highlight = require("./highlight.js");
 const RelationAnnotation = require("./relationannotation.js");
 const Bioes = require("./bioes.js");
@@ -31,7 +31,7 @@ class Htmlanno{
     this.arrowConnector = new ArrowConnector(this.annotations);
 
     // The contents and annotations from files.
-    this.fileLoader = new FileLoader();
+    this.fileContainer = new FileContainer();
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
@@ -335,7 +335,7 @@ class Htmlanno{
   }
 
   displayPrimaryAnnotation(fileName) {
-    let annotation = this.fileLoader.getAnnotation(fileName);
+    let annotation = this.fileContainer.getAnnotation(fileName);
     annotation.primary = true;
     TomlTool.loadToml(
       annotation.content,
@@ -346,7 +346,7 @@ class Htmlanno{
   }
 
   clearPrimaryAnnotation() {
-    this.fileLoader.annotations.forEach((annotation) => {
+    this.fileContainer.annotations.forEach((annotation) => {
       if (annotation.primary) {
         annotation.primary = false;
       }
@@ -359,7 +359,7 @@ class Htmlanno{
 
     let selectedUiAnnotations = this.getUiAnnotations(false);
     selectedUiAnnotations.forEach((uiAnnotation) => {
-      let annotation = this.fileLoader.getAnnotation(uiAnnotation.name);
+      let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
       if (annotation.reference) {
         this.annotations.forEach((annotationObj) => {
           if (uiAnnotation.name == annotationObj.referenceId) {
@@ -381,7 +381,7 @@ class Htmlanno{
   }
 
   hideReferenceAnnotation(uiAnnotations) {
-    let annotations = this.fileLoader.getAnnotations(
+    let annotations = this.fileContainer.getAnnotations(
       uiAnnotations.map((ann) => {
         return ann.name;
       })
@@ -411,15 +411,15 @@ class Htmlanno{
   }
 
   loadFiles(files) {
-    return this.fileLoader.loadFiles(files);
+    return this.fileContainer.loadFiles(files);
   }
 
   getContentFiles() {
-    return this.fileLoader.contents;
+    return this.fileContainer.contents;
   }
 
   getAnnoFiles() {
-    return this.fileLoader.annotations;
+    return this.fileContainer.annotations;
   }
 
   reloadContent(fileName) {
@@ -439,7 +439,7 @@ class Htmlanno{
       }
     };
 
-    let content = this.fileLoader.getContent(fileName);
+    let content = this.fileContainer.getContent(fileName);
     if (undefined != content.content) {
       this.remove();
       $('#viewer').html(content.content);
@@ -447,7 +447,7 @@ class Htmlanno{
     } else {
       switch(content.type) {
         case 'html':
-          FileLoader.htmlLoader(content.source, ((html) => {
+          FileContainer.htmlLoader(content.source, ((html) => {
             loadContent(content, html, this);
           }).bind(this));
           break;
@@ -480,7 +480,7 @@ class Htmlanno{
 
         case 'text':
           this.remove();
-          FileLoader.textLoader(content.source, ((text) => {
+          FileContainer.textLoader(content.source, ((text) => {
             loadContent(content, text, this);
           }).bind(this));
           break;
@@ -541,7 +541,7 @@ class Htmlanno{
       url: this.defaultDataUri,
       dataType: 'html',
       success: function(htmlData) {
-        let content = FileLoader.parseHtml(htmlData);
+        let content = FileContainer.parseHtml(htmlData);
         if (undefined != content) {
           this.useDefaultData = true;
           $('#viewer').html(content);
@@ -556,7 +556,7 @@ class Htmlanno{
     $('#viewer').html('');
   }
 
-  // TODO: FileLoader#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
+  // TODO: FileContainer#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
   excludeBaseUriName(uri) {
     let fragments = uri.split('/');
     return fragments[fragments.length - 1];
