@@ -493,19 +493,16 @@ class Htmlanno{
             } else {
               loadContent(content, bioes.content, this);
               let annotation = this.fileContainer.getAnnotation(content.name);
-              annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
+              annotation.content = bioes.annotations, // .slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
               annotation.source = undefined;
               annotation.primary = true;
               $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
                 'disabled', 'disabled'
               );
 
-              console.log("BIOES annotation is " + bioes.annotations.length); // TODO: temporary
-              console.log(new Date()); // TODO: temporary
               TomlTool.renderAnnotation(
                 annotation.content, this.highlighter, this.arrowConnector
               );
-              console.log(new Date()); // TODO: temporary
               this.dispatchWindowEvent('annotationrendered');
             }
           }).bind(this));
