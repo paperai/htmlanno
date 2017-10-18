@@ -27,7 +27,7 @@ class Highlighter{
       const child = node.childNodes[i];
 
       if (child.nodeName == "#text"){
-        if (offset < child.textContent.length){
+        if (offset <= child.textContent.length){
           return {offset:offset, node:child};
         }
         offset -= child.textContent.length;
@@ -131,18 +131,25 @@ class Highlighter{
   }
 
   addToml(id, toml, referenceId){
-    this.selectRange(toml.position[0], toml.position[1]);
-    const selection = rangy.getSelection();
-    if (!selection.isCollapsed){
-      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
-      const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-      let span = this.create(
-        parseInt(id), startOffset, endOffset, toml.label, referenceId
-      );
-      if (null != span) {
-        span.blur();
+    try {
+      this.selectRange(toml.position[0], toml.position[1]);
+      const selection = rangy.getSelection();
+      if (!selection.isCollapsed){
+        const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
+        const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
+        let span = this.create(
+          parseInt(id), startOffset, endOffset, toml.label, referenceId
+        );
+        if (null != span) {
+          span.blur();
+        }
+        return span;
       }
-      return span;
+    } catch(ex) {
+      console.log(`id: ${id}, referenceId: ${referenceId}, toml is the following;`);
+      console.log(toml);
+      console.log(ex);
+      return null;
     }
   }
 

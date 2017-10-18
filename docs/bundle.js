@@ -518,7 +518,7 @@
 	        _this.remove();
 	        content.content = readResult;
 	        content.source = undefined;
-	        document.getElementById('viewer').innerHTML = content.content;
+	        $('#viewer').html(content.content);
 	        _this.handleResize();
 	      } else {
 	        _this.showReadError();
@@ -560,19 +560,16 @@
 	            } else {
 	              loadContent(content, bioes.content, this);
 	              let annotation = this.fileContainer.getAnnotation(content.name);
-	              annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
+	              annotation.content = bioes.annotations; // .slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
 	              annotation.source = undefined;
 	              annotation.primary = true;
 	              $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
 	                'disabled', 'disabled'
 	              );
 	
-	              console.log("BIOES annotation is " + bioes.annotations.length); // TODO: temporary
-	              console.log(new Date()); // TODO: temporary
 	              TomlTool.renderAnnotation(
 	                annotation.content, this.highlighter, this.arrowConnector
 	              );
-	              console.log(new Date()); // TODO: temporary
 	              this.dispatchWindowEvent('annotationrendered');
 	            }
 	          }).bind(this));
@@ -12316,7 +12313,7 @@
 	      const child = node.childNodes[i];
 	
 	      if (child.nodeName == "#text"){
-	        if (offset < child.textContent.length){
+	        if (offset <= child.textContent.length){
 	          return {offset:offset, node:child};
 	        }
 	        offset -= child.textContent.length;
@@ -12420,18 +12417,25 @@
 	  }
 	
 	  addToml(id, toml, referenceId){
-	    this.selectRange(toml.position[0], toml.position[1]);
-	    const selection = rangy.getSelection();
-	    if (!selection.isCollapsed){
-	      const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
-	      const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-	      let span = this.create(
-	        parseInt(id), startOffset, endOffset, toml.label, referenceId
-	      );
-	      if (null != span) {
-	        span.blur();
+	    try {
+	      this.selectRange(toml.position[0], toml.position[1]);
+	      const selection = rangy.getSelection();
+	      if (!selection.isCollapsed){
+	        const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
+	        const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
+	        let span = this.create(
+	          parseInt(id), startOffset, endOffset, toml.label, referenceId
+	        );
+	        if (null != span) {
+	          span.blur();
+	        }
+	        return span;
 	      }
-	      return span;
+	    } catch(ex) {
+	      console.log(`id: ${id}, referenceId: ${referenceId}, toml is the following;`);
+	      console.log(toml);
+	      console.log(ex);
+	      return null;
 	    }
 	  }
 	
@@ -18710,7 +18714,7 @@
 	      if (undefined == read_result) {
 	        callback(undefined);
 	      } else {
-	        callback(`<p>${read_result}</p>`);
+	        callback(`<p>${read_result}</p><p></p>`);
 	      }
 	    });
 	  }
