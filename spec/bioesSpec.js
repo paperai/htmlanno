@@ -20,7 +20,7 @@ describe('Bioes', () => {
   });
 
   describe('parse()', () => {
-    it('should parse String argument, and return an object that is { content: <String>, annotations: <Array> }', () => {
+    it('should parse String argument and return true, and after, instance has content and annotation.', () => {
       let src = `-DOCSTART-	O
 
 CRICKET	O
@@ -79,6 +79,20 @@ Simmons	E-PER
          text: 'Phil Simmons',
          label: 'PER'
        });
+    });
+    it('should parse the String that is not end with empty line.', () => {
+      let src = 'SingleLine	S-ANNOTATION';
+      let result = instance.parse(src);
+      expect(result).toBeTruthy();
+
+      expect(instance.content).toBe('<p>SingleLine</p>');
+      expect(instance.annotations.length).toBe(1);
+      expect(instance.annotations[0]).toEqual({
+        type: 'span',
+        position: [0, 10],
+        text: 'SingleLine',
+        label: 'ANNOTATION'
+      });
     });
   });
 });
