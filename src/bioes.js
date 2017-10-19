@@ -48,7 +48,7 @@ class Bioes {
     bioes.split(this.LS).forEach((line) => {
       if (0 == line.length) {
         // Next paragraph.
-        contentArray.push(currentContentArray.join(' '));
+        this._createParagraph(currentContentArray, contentArray);
         currentContentArray = [];
       }
       let fsIndex = line.indexOf(this.FS);
@@ -100,8 +100,8 @@ class Bioes {
       }
       // TODO: フォーマットエラー
     });
-    this._content = '<p>' + contentArray.join('</p><p>') + '</p>';
-    this._content = this._content.replace(/<p>\s*<\/p>/, '');
+    this._createParagraph(currentContentArray, contentArray);
+    this._content = this._contentArrayToString(contentArray);
     return true;
   }
 
@@ -116,14 +116,19 @@ class Bioes {
     return 1 == tag.length ? tag : tag.substring(2);
   }
 
+  _createParagraph(currentContentArray, contentArray) {
+    if (0 < currentContentArray.length) {
+      contentArray.push(currentContentArray.join(' '));
+    }
+  }
+
   _createTomlObj(spanObject, currentContentArray, contentArray) {
     let beforeContent =
-      this._contentArrayToString(contentArray) +
-      '<p>' + 
+      contentArray.join('') +
       currentContentArray.slice(0, spanObject.startIndex).join(' ');
     let content = currentContentArray.slice(spanObject.startIndex).join(' ');
     
-    let start = beforeContent.replace(/<p>|<\/p>/g, '').length;
+    let start = beforeContent.length;
     // Add the last space before context.
     start += 0 == spanObject.startIndex ? 0: 1;
     return {

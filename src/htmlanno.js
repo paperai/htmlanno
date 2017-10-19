@@ -15,6 +15,9 @@ const FileContainer = require("./filecontainer.js");
 const Highlight = require("./highlight.js");
 const RelationAnnotation = require("./relationannotation.js");
 const Bioes = require("./bioes.js");
+const LoadBioesPromise = require('./loadbioespromise.js');
+const LoadHtmlPromise = require('./loadhtmlpromise.js');
+const LoadTextPromise = require('./loadtextpromise.js');
 
 class Htmlanno{
   constructor(){
@@ -339,7 +342,7 @@ class Htmlanno{
     annotation.primary = true;
     if ('bioes' != annotation.subtype) {
       // BIOES annotation is rendered at content loading.
-      // TODO: BIOES annotaionはPrimaruには不要だが、リストがReferenceAnnotationと共用のため存在する
+      // TODO: BIOES annotaionはPrimaryには不要だが、リストがReferenceAnnotationと共用のため存在する
       // TODO: この処理が呼び出されるのはAnno-uiにおいてチェックが表示されたあとなので表示は制御できない
       TomlTool.loadToml(
         annotation.content,
@@ -373,21 +376,15 @@ class Htmlanno{
         });
       } else {
         annotation.reference = true;
-        if (undefined == annotation.content) {
-          FileContainer.bioesLoader(annotation.source, (bioes) => {
-            if (undefined == bioes) {
-              this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
-            } else {
-              annotation.content = bioes.annotations.slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
-              annotation.source = undefined;
-              TomlTool.renderAnnotation(
-                annotation.content,
-                this.highlighter,
-                this.arrowConnector,
-                uiAnnotation.name,
-                uiAnnotation.color
-              );
-            }
+        if ('bioes' == annotation.subtype) {
+          LoadBioesPromise.run(annotation, this).then((results) => {
+            TomlTool.renderAnnotation(
+              annotation.content,
+              this.highlighter,
+              this.arrowConnector,
+              uiAnnotation.name,
+              uiAnnotation.color
+            );
           });
         } else { 
           TomlTool.loadToml(
@@ -398,9 +395,9 @@ class Htmlanno{
             uiAnnotation.color
           );
         }
+        this.dispatchWindowEvent('annotationrendered');
       }
     });
-    this.dispatchWindowEvent('annotationrendered');
   }
 
   hideReferenceAnnotation(uiAnnotations) {
@@ -446,83 +443,67 @@ class Htmlanno{
   }
 
   reloadContent(fileName) {
-    const loadContent = (content, readResult, _this) => {
-      if (undefined != readResult) {
-        _this.remove();
-        content.content = readResult;
-        content.source = undefined;
-        document.getElementById('viewer').innerHTML = content.content;
-        _this.handleResize();
-      } else {
-        _this.showReadError();
-      }
-    };
     this.useDefaultData = false;
     $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].removeAttribute(
       'disabled', 'disabled'
     );
 
     let content = this.fileContainer.getContent(fileName);
-    if (undefined != content.content) {
-      this.remove();
-      document.getElementById('viewer').innerHTML = content.content;
-
-      if ('bioes' == content.type) {
-        $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
-          'disabled', 'disabled'
-        );
-        let annotation = this.fileContainer.getAnnotation(content.name);
-        annotation.primary = true;
-        TomlTool.renderAnnotation(
-          annotation.content, this.highlighter, this.arrowConnector
-        );
-        this.dispatchWindowEvent('annotationrendered');
-      }
-    } else {
-      switch(content.type) {
-        case 'html':
-          FileContainer.htmlLoader(content.source, ((html) => {
-            loadContent(content, html, this);
-          }).bind(this));
-          break;
-
-        case 'bioes':
-          FileContainer.bioesLoader(content.source, ((bioes) => {
-            if (undefined == bioes) {
-              this.showReadError();
-            } else {
-              loadContent(content, bioes.content, this);
-              let annotation = this.fileContainer.getAnnotation(content.name);
-              annotation.content = bioes.annotations; // .slice(0, 100); // TODO 個数が多すぎるので適当に切り出す
-              annotation.source = undefined;
-              annotation.primary = true;
-              $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
-                'disabled', 'disabled'
-              );
-
-              TomlTool.renderAnnotation(
-                annotation.content, this.highlighter, this.arrowConnector
-              );
-              this.dispatchWindowEvent('annotationrendered');
-            }
-          }).bind(this));
-          break;
-
-        case 'text':
+    switch(content.type) {
+      case 'html':
+        LoadHtmlPromise.run(content, this).then((results) => {
           this.remove();
-          FileContainer.textLoader(content.source, ((text) => {
-            loadContent(content, text, this);
-          }).bind(this));
-          break;
+          content.content = results[1];
+          content.source = undefined;
+          document.getElementById('viewer').innerHTML = content.content;
+          this.handleResize();
+        }).catch((reject) => {
+          this.showReadError();
+        });
+        break;
 
-        default:
-          this.dispatchWindowEvent(
-            'open-alert-dialog',
-            {message: 'Unknown content type; ' + content.content}
+      case 'bioes':
+        LoadBioesPromise.run(content, this).then((results) => {
+          this.remove();
+          content.content = results[1].content;
+          content.source = undefined;
+          document.getElementById('viewer').innerHTML = content.content;
+          $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
+            'disabled', 'disabled'
           );
-      }
+          // BIOESの場合Content fileとPrimary annotationがセットなので、
+          // これがRefereneで使用されていることは起こりえない。
+          results[1].annotation.primary = true;
+          TomlTool.renderAnnotation(
+            results[1].annotation.content,
+            this.highlighter,
+            this.arrowConnector
+          );
+          this.dispatchWindowEvent('annotationrendered');
+          this.handleResize();
+        }).catch((reject) => {
+          this.showReadError();
+        });
+        break;
+
+      case 'text':
+        LoadTextPromise.run(content, this).then((results) => {
+          this.remove();
+          content.content = results[1];
+          content.source = undefined;
+          document.getElementById('viewer').innerHTML = content.content;
+          this.handleResize();
+        }).catch((reject) => {
+          this.showReadError();
+        });
+        break;
+
+      default:
+        this.dispatchWindowEvent(
+          'open-alert-dialog',
+          {message: 'Unknown content type; ' + content.content}
+        );
     }
-    this.handleResize();
   }  
 
   scrollToAnnotation(id) {
@@ -574,7 +555,7 @@ class Htmlanno{
         let content = FileContainer.parseHtml(htmlData);
         if (undefined != content) {
           this.useDefaultData = true;
-          $('#viewer').html(content);
+          document.getElementById('viewer').innerHTML = content;
         }
         globalEvent.emit('resizewindow');
       }
@@ -583,7 +564,7 @@ class Htmlanno{
 
   clearViewer() {
     this.remove();
-    $('#viewer').html('');
+    document.getElementById('viewer').innerHTML = '';
   }
 
   showReadError() {
@@ -595,7 +576,6 @@ class Htmlanno{
     let fragments = uri.split('/');
     return fragments[fragments.length - 1];
   }
-
 
   // For Anno-ui.
   // TODO: Anno-UI events 辺りで提供してほしい
@@ -617,6 +597,22 @@ class Htmlanno{
     } else {
       return value;
     }
+  }
+
+  /**
+   * Hide Primary/Reference annotation files that match pattern(ReExp).
+   * @param target ... 'Primary' or 'Reference'. this is the part of id value. (id="dropdownAnno" + target)
+   * @paran pattern .. the JavaScript RegExp object.
+   */ 
+  hideAnnotationElements(target, pattern) {
+    $(`#dropdownAnno${target} .js-annoname`).each((index, elm) => {
+      let listElement = $(elm).closest('li');
+      if (pattern.test(elm.innerText)) {
+        listElement.addClass('hidden');
+      } else {
+        listElement.removeClass('hidden');
+      }
+    });
   }
 }
 
