@@ -76,20 +76,23 @@
 	const TomlTool = __webpack_require__(6);
 	const Highlighter = __webpack_require__(15);
 	const Circle = __webpack_require__(11);
-	const ArrowConnector = __webpack_require__(20);
-	const AnnotationContainer = __webpack_require__(21);
-	const FileContainer = __webpack_require__(22);
+	const ArrowConnector = __webpack_require__(21);
+	const AnnotationContainer = __webpack_require__(22);
+	const FileContainer = __webpack_require__(23);
 	const Highlight = __webpack_require__(10);
 	const RelationAnnotation = __webpack_require__(13);
-	const Bioes = __webpack_require__(23);
-	const LoadBioesPromise = __webpack_require__(24);
-	const LoadHtmlPromise = __webpack_require__(25);
-	const LoadTextPromise = __webpack_require__(26);
+	const Bioes = __webpack_require__(24);
+	const LoadBioesPromise = __webpack_require__(25);
+	const LoadHtmlPromise = __webpack_require__(26);
+	const LoadTextPromise = __webpack_require__(28);
+	const HideBioesAnnotation = __webpack_require__(27);
+	const WindowEvent = __webpack_require__(20);
 	
 	class Htmlanno{
 	  constructor(){
 	    this.defaultDataUri = './sample/sample.xhtml';
 	    this.defaultDataName = this.excludeBaseUriName(this.defaultDataUri); // これは固定値だが指示都合上定数にしてはならない
+	    this._currentContentFileName = undefined;
 	    /**
 	     * @see #reloadContent
 	     * @see #loadDefaultData
@@ -104,7 +107,6 @@
 	    this.fileContainer = new FileContainer();
 	
 	    globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
-	    globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
 	    globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
 	
 	    globalEvent.on(this, "removearrowannotation", (data)=>{
@@ -159,11 +161,39 @@
 	    AnnoUI.browseButton.setup({
 	      loadFiles :                          this.loadFiles.bind(this),
 	      clearAllAnnotations :                this.remove.bind(this),
-	      displayCurrentReferenceAnnotations : this.displayReferenceAnnotation.bind(this),
-	      displayCurrentPrimaryAnnotations :   this.displayPrimaryAnnotation.bind(this),
+	      displayCurrentReferenceAnnotations : () => {}, // this.displayReferenceAnnotation.bind(this),
+	      displayCurrentPrimaryAnnotations :   () => {}, // this.displayPrimaryAnnotation.bind(this),
 	      getContentFiles :                    this.getContentFiles.bind(this),
 	      getAnnoFiles :                       this.getAnnoFiles.bind(this),
-	      closePDFViewer :                     this.clearViewer.bind(this)
+	      closePDFViewer :                     this.clearViewer.bind(this),
+	      restoreBeforeStatus :                ((beforeStatus) => {
+	        let promise = undefined;
+	        if (null != beforeStatus.pdfName) {
+	          let content = this.fileContainer.getContent(beforeStatus.pdfName);
+	          if ('bioes' == content.type) {
+	            promise = new Promise((resolve, reject) => {
+	              $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
+	                'disabled', 'disabled'
+	              );
+	              beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
+	              resolve();
+	            });
+	          } else {
+	            promise = HideBioesAnnotation.create(this);
+	          }
+	        } else {
+	            promise = Promise.resolve(true);
+	        }
+	        promise.then((resolve) => {
+	          if (null != beforeStatus.primaryAnnotationName) {
+	            this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
+	          }
+	          if (0 != beforeStatus.referenceAnnotationNames.length) {
+	            this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
+	          }
+	          // TODO: COLOR
+	        });
+	      }).bind(this)
 	    });
 	
 	    AnnoUI.contentDropdown.setup({
@@ -192,16 +222,15 @@
 	    AnnoUI.downloadButton.setup({
 	      getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
 	      getCurrentContentName: ()=> {
-	         let contentFileName = this.getCurrentContentFileName();
-	         if (undefined == contentFileName) {
-	           this.dispatchWindowEvent(
+	         if (undefined == this.currentContentFileName) {
+	           WindowEvent.emit(
 	             'open-alert-dialog',
 	             {message: 'Cannot determine the filename for download.'}
 	           );
 	           return undefined;
 	         }
 	         else {
-	           return contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
+	           return this.currentContentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
 	         }
 	      }
 	    });
@@ -211,22 +240,15 @@
 	      scrollToAnnotation: this.scrollToAnnotation.bind(this)
 	    });
 	
-	    $(document).on("keydown", (e)=>{
-	      globalEvent.emit("keydown", e);
-	    });
-	
-	    $("#viewer").on("mouseup", (e)=>{
-	      globalEvent.emit("mouseup", e);
-	    });
+	    $(document).on("keydown", this.handleKeydown.bind(this));
+	    $("#viewer").on("mouseup", this.handleMouseUp.bind(this));
 	
 	    let windowObj = $(window);
 	    windowObj.on("resize", (e)=>{
 	      globalEvent.emit("resizewindow", e);
 	    });
 	
-	    windowObj.on("mousedown", (e) =>{
-	      this.handleMouseDown(e);
-	    });
+	    windowObj.on("mousedown", this.handleMouseDown.bind(this));
 	
 	    window.addEventListener('open-alert-dialog', (e) => {
 	      AnnoUI.ui.alertDialog.show(e.detail);
@@ -309,7 +331,7 @@
 	          lastSelected.remove();
 	          this.annotations.remove(lastSelected);
 	          let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
-	          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: uuid} });
+	          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
 	        }
 	      // esc
 	      } else if (e.keyCode === 27) {
@@ -363,7 +385,7 @@
 	  handleAddSpan(label){
 	    let span = this.highlighter.highlight(label.text);
 	    if (undefined != span) {
-	      this.dispatchWindowEvent('annotationrendered');
+	      WindowEvent.emit('annotationrendered');
 	      span.select();
 	    }
 	  }
@@ -386,10 +408,10 @@
 	        params.type, params.text
 	      );
 	      this.unselectHighlight();
-	      this.dispatchWindowEvent('annotationrendered');
+	      WindowEvent.emit('annotationrendered');
 	      relation.select();
 	    } else {
-	      this.dispatchWindowEvent(
+	      WindowEvent.emit(
 	        'open-alert-dialog',
 	        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
 	      );
@@ -407,16 +429,10 @@
 	  displayPrimaryAnnotation(fileName) {
 	    let annotation = this.fileContainer.getAnnotation(fileName);
 	    annotation.primary = true;
-	    if ('bioes' != annotation.subtype) {
-	      // BIOES annotation is rendered at content loading.
-	      // TODO: BIOES annotaionはPrimaryには不要だが、リストがReferenceAnnotationと共用のため存在する
-	      // TODO: この処理が呼び出されるのはAnno-uiにおいてチェックが表示されたあとなので表示は制御できない
-	      TomlTool.loadToml(
-	        annotation.content,
-	        this.highlighter,
-	        this.arrowConnector
-	      );
-	      this.dispatchWindowEvent('annotationrendered');
+	    if ('bioes' == annotation.subtype) {
+	      this._renderBioesAnnotation(annotation);
+	    } else {
+	      this._renderAnnotation(annotation);
 	    }
 	  }
 	
@@ -430,62 +446,88 @@
 	  }
 	
 	  displayReferenceAnnotation(fileNames) {
-	    this.hideReferenceAnnotation(this.getUiAnnotations(true));
-	
-	    let selectedUiAnnotations = this.getUiAnnotations(false);
-	    selectedUiAnnotations.forEach((uiAnnotation) => {
-	      let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
-	      if (annotation.reference) {
-	        this.annotations.forEach((annotationObj) => {
-	          if (uiAnnotation.name == annotationObj.referenceId) {
-	            annotationObj.setColor(uiAnnotation.color);
-	          }
-	        });
-	      } else {
-	        annotation.reference = true;
-	        if ('bioes' == annotation.subtype) {
-	          LoadBioesPromise.run(annotation, this).then((results) => {
-	            TomlTool.renderAnnotation(
-	              annotation.content,
-	              this.highlighter,
-	              this.arrowConnector,
-	              uiAnnotation.name,
-	              uiAnnotation.color
-	            );
+	    this.hideReferenceAnnotation(this.getUiAnnotations(true)).then((resolve) => {
+	      let selectedUiAnnotations = this.getUiAnnotations(false);
+	      selectedUiAnnotations.forEach((uiAnnotation) => {
+	        let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
+	        if (annotation.reference) {
+	          this.annotations.forEach((annotationObj) => {
+	            if (uiAnnotation.name == annotationObj.referenceId) {
+	              annotationObj.setColor(uiAnnotation.color);
+	            }
 	          });
-	        } else { 
-	          TomlTool.loadToml(
-	            annotation.content,
-	            this.highlighter,
-	            this.arrowConnector,
-	            uiAnnotation.name,
-	            uiAnnotation.color
-	          );
+	        } else {
+	          annotation.reference = true;
+	          if ('bioes' == annotation.subtype) {
+	            this._renderBioesAnnotation(annotation, uiAnnotation);
+	          } else { 
+	            this._renderAnnotation(annotation, uiAnnotation);
+	          }
 	        }
-	        this.dispatchWindowEvent('annotationrendered');
-	      }
+	      });
 	    });
 	  }
 	
+	  /**
+	   * @param annotation ... Annotation object.
+	   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
+	   */
+	  _renderBioesAnnotation(annotation, uiAnnotation) {
+	    LoadBioesPromise.run(annotation, this).then((results) => {
+	      this._renderAnnotation(annotation, uiAnnotation);
+	    });
+	  }
+	
+	  /**
+	   * @param annotation ... Annotation object.
+	   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
+	   */
+	  _renderAnnotation(annotation, uiAnnotation) {
+	    if (undefined == uiAnnotation) {
+	      TomlTool.loadToml(
+	        annotation.content,
+	        this.highlighter, this.arrowConnector
+	      );
+	    } else {
+	      TomlTool.loadToml(
+	        annotation.content,
+	        this.highlighter, this.arrowConnector,
+	        uiAnnotation.name, uiAnnotation.color
+	      );
+	    }
+	    WindowEvent.emit('annotationrendered');
+	  }
+	
+	  /**
+	   * @return Promise
+	   */
 	  hideReferenceAnnotation(uiAnnotations) {
 	    let annotations = this.fileContainer.getAnnotations(
 	      uiAnnotations.map((ann) => {
 	        return ann.name;
 	      })
 	    );
+	    let promises = [];
 	    annotations.forEach((annotation) => {
 	      if (annotation.reference) {
 	        annotation.reference = false;
-	        this.remove(annotation.name);
+	        promises.push(this.remove(annotation.name));
 	      }
 	    });
+	    return Promise.all(promises);
 	  }
 	
 	  // TODO: この処理はanno-ui側に入れてもらいたい
-	  getUiAnnotations(not_selected) {
+	  /**
+	   * Get the checked/unchecked annotations on dropdown UI.
+	   * @param not_selected ... boolean
+	   * @param target ... 'Reference' or 'Primary'. when undefined or not specified, this is 'Reference'.
+	   */
+	  getUiAnnotations(not_selected, target) {
 	    not_selected = undefined == not_selected ? true: not_selected;
+	    target = undefined == target ? 'Reference' : target;
 	    let uiAnnotations = [];
-	    $('#dropdownAnnoReference a').each((index, element) => {
+	    $(`#dropdownAnno${target} a`).each((index, element) => {
 	      let $elm = $(element);
 	      if ($elm.find('.fa-check').hasClass('no-visible') === not_selected) {
 	        uiAnnotations.push({
@@ -511,6 +553,7 @@
 	
 	  reloadContent(fileName) {
 	    this.useDefaultData = false;
+	    this._currentContentFileName = fileName;
 	    $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].removeAttribute(
 	      'disabled', 'disabled'
 	    );
@@ -546,7 +589,7 @@
 	            this.highlighter,
 	            this.arrowConnector
 	          );
-	          this.dispatchWindowEvent('annotationrendered');
+	          WindowEvent.emit('annotationrendered');
 	          this.handleResize();
 	        }).catch((reject) => {
 	          this.showReadError();
@@ -566,7 +609,7 @@
 	        break;
 	
 	      default:
-	        this.dispatchWindowEvent(
+	        WindowEvent.emit(
 	          'open-alert-dialog',
 	          {message: 'Unknown content type; ' + content.content}
 	        );
@@ -581,8 +624,7 @@
 	  }
 	
 	  endEditLabel(id, label) {
-	    let annotation = this.annotations.findById(id);
-	    annotation.setContent(label);
+	    this.annotations.findById(id).setContent(label);
 	  }
 	
 	  getSelectedAnnotations() {
@@ -599,19 +641,29 @@
 	    }
 	  }
 	
+	  /**
+	   * @return Promise (resolved)
+	   */
 	  remove(referenceId) {
-	    let deleted = this.highlighter.remove(referenceId);
-	    if (undefined == deleted) {
-	      deleted = this.arrowConnector.remove(referenceId);
-	    }
-	
-	    if (undefined != deleted) {
-	      let uuid = deleted.uuid; // deleted.uuid(getter) is accessed after deleted it maybe.
-	      this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: uuid} });
-	    } else {
-	      // All remove maybe.
-	      this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: undefined} });
-	    }
+	    return Promise.all([
+	      this.highlighter.remove(referenceId),
+	      this.arrowConnector.remove(referenceId)
+	    ]).then((resolve) => {
+	      if (undefined == referenceId) {
+	        // All remove maybe.
+	        WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
+	      } else {
+	        if (0 != resolve.length) {
+	          // deleted.uuid(getter) is accessed after deleted it maybe.
+	          let uuid = resolve[0].uuid;
+	          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
+	        } else {
+	          WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
+	        }
+	      }
+	    }).catch((reject) => {
+	      console.log(reject);
+	    });
 	  }
 	
 	  loadDefaultData() {
@@ -622,6 +674,7 @@
 	        let content = FileContainer.parseHtml(htmlData);
 	        if (undefined != content) {
 	          this.useDefaultData = true;
+	          this._currentContentFileName = undefined;
 	          document.getElementById('viewer').innerHTML = content;
 	        }
 	        globalEvent.emit('resizewindow');
@@ -635,7 +688,7 @@
 	  }
 	
 	  showReadError() {
-	      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+	      WindowEvent.emit('open-alert-dialog', {message: 'Read error.'});
 	  }
 	
 	  // TODO: FileContainer#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
@@ -644,26 +697,10 @@
 	    return fragments[fragments.length - 1];
 	  }
 	
-	  // For Anno-ui.
-	  // TODO: Anno-UI events 辺りで提供してほしい
-	  dispatchWindowEvent(eventName, data) {
-	    let event = document.createEvent('CustomEvent');
-	    event.initCustomEvent(eventName, true, true, data);
-	    window.dispatchEvent(event);
-	  }
-	
-	  // TODO: Anno-UI contentDropdown辺りで提供してほしい
-	  getCurrentContentFileName() {
-	    let value = $('#dropdownPdf .js-text').text();
-	    if (value === 'Content File') {
-	      if (this.useDefaultData) {
-	        return this.defaultDataName;
-	      } else {
-	        return undefined;
-	      }
-	    } else {
-	      return value;
-	    }
+	  get currentContentFileName() {
+	    return this.useDefaultData ?
+	      this.defaultDataName :
+	      this._currentContentFileName;
 	  }
 	
 	  /**
@@ -684,7 +721,6 @@
 	}
 	
 	module.exports = Htmlanno;
-	
 
 
 /***/ }),
@@ -1997,6 +2033,7 @@
 	let _getContentFiles
 	let _getAnnoFiles
 	let _closePDFViewer
+	let _restoreBeforeStatus
 	
 	/**
 	 * Setup the behavior of a Browse Button.
@@ -2008,13 +2045,15 @@
 	    displayCurrentPrimaryAnnotations,
 	    getContentFiles,
 	    getAnnoFiles,
-	    closePDFViewer
+	    closePDFViewer,
+	    restoreBeforeStatus
 	}) {
 	    _displayCurrentReferenceAnnotations = displayCurrentReferenceAnnotations
 	    _displayCurrentPrimaryAnnotations = displayCurrentPrimaryAnnotations
 	    _getContentFiles = getContentFiles
 	    _getAnnoFiles = getAnnoFiles
 	    _closePDFViewer = closePDFViewer
+	    _restoreBeforeStatus = restoreBeforeStatus
 	
 	    // Enable to select the same directory twice or more.
 	    $('.js-file :file').on('click', ev => {
@@ -2047,6 +2086,7 @@
 	
 	            // Display a PDF and annotations.
 	            restoreBeforeState(current)
+	            _restoreBeforeStatus(current)
 	        })
 	    })
 	}
@@ -2885,7 +2925,7 @@
 	        })
 	
 	        // Conver to TOML style.
-	        const toml = __WEBPACK_IMPORTED_MODULE_1__utils__["tomlString"](data)
+	        const toml = Object(__WEBPACK_IMPORTED_MODULE_1__utils__["tomlString"])(data)
 	        console.log(toml)
 	
 	        // Download.
@@ -7226,7 +7266,7 @@
 	    const $progressBar = $('.js-upload-progress')
 	
 	    // Upload and analyze the PDF.
-	    __WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */]({
+	    Object(__WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */])({
 	        contentFile,
 	        willStartCallback : () => {
 	            // Reset the result text.
@@ -11341,7 +11381,7 @@
 	
 	  function reduce(nodes) {
 	    var node;
-	    for (var i in nodes) {
+	    for (var i = 0; i < nodes.length; i++) {
 	      node = nodes[i];
 	      switch (node.type) {
 	      case "Assign":
@@ -11463,24 +11503,22 @@
 	  // If `a` or `b` are arrays and have items in them, the last item in the
 	  // array is used as the context for the next sub-path.
 	  function deepRef(start, keys, value, line, column) {
-	    var key;
 	    var traversed = [];
 	    var traversedPath = "";
 	    var path = keys.join(".");
 	    var ctx = start;
-	    var keysLen = keys.length;
 	
-	    for (var i in keys) {
-	      key = keys[i];
+	    for (var i = 0; i < keys.length; i++) {
+	      var key = keys[i];
 	      traversed.push(key);
 	      traversedPath = traversed.join(".");
 	      if (typeof ctx[key] === "undefined") {
-	        if (i === String(keysLen - 1)) {
+	        if (i === keys.length - 1) {
 	          ctx[key] = value;
 	        } else {
 	          ctx[key] = {};
 	        }
-	      } else if (i !== keysLen - 1 && valueAssignments.indexOf(traversedPath) > -1) {
+	      } else if (i !== keys.length - 1 && valueAssignments.indexOf(traversedPath) > -1) {
 	        // already a non-object value at key, can't be used as part of a new path
 	        genError("Cannot redefine existing key '" + traversedPath + "'.", line, column);
 	      }
@@ -11497,7 +11535,7 @@
 	  function reduceArrayWithTypeChecking(array) {
 	    // Ensure that all items in the array are of the same type
 	    var firstType = null;
-	    for(var i in array) {
+	    for (var i = 0; i < array.length; i++) {
 	      var node = array[i];
 	      if (firstType === null) {
 	        firstType = node.type;
@@ -12288,6 +12326,7 @@
 	
 	const Highlight = __webpack_require__(10);
 	const Annotation = __webpack_require__(12);
+	const WindowEvent = __webpack_require__(20);
 	
 	class Highlighter{
 	  constructor(annotationContainer){
@@ -12361,7 +12400,7 @@
 	  highlight(label){
 	    const selection = rangy.getSelection();
 	    if (0 == selection.rangeCount){
-	      this.dispatchWindowEvent(
+	      WindowEvent.emit(
 	        'open-alert-dialog', {message: 'Text span is not selected.'}
 	      );
 	      return;
@@ -12440,42 +12479,47 @@
 	  }
 	
 	  remove(referenceId){
-	    this.highlights.forEach((annotation, i)=>{
-	      if (annotation instanceof Highlight){
-	        if (undefined != referenceId) {
-	          if (referenceId == annotation.getReferenceId()) {
-	            this._remove(annotation, i);
-	            return annotation;
+	    if (undefined == referenceId) {
+	      return new Promise((resolve) => {
+	        this.highlighter.removeAllHighlights();
+	        this.highlights.forEach((annotation, i)=>{
+	          this.highlights.remove(i);
+	        });
+	        resolve(undefined);
+	      });
+	    } else {
+	      let promises = [];
+	      this.highlights.forEach((annotation, i)=>{
+	        if (annotation instanceof Highlight){
+	          if (undefined != referenceId) {
+	            if (referenceId == annotation.getReferenceId()) {
+	              promises.push(this._remove(annotation, i));
+	            }
+	          } else {
+	            promises.push(this._remove(annotation, i));
 	          }
-	        } else {
-	          this._remove(annotation, i);
-	          return annotation;
 	        }
-	      }
-	    });
-	    return undefined;
+	      });
+	      return Promise.all(promises);
+	    }
 	  }
 	
 	  _remove(annotation, index) {
-	    let rangySelection = rangy.getSelection();
-	    annotation.elements.forEach((rangyHighlight) => {
-	      let range = rangy.createRange();
-	      range.selectNodeContents(rangyHighlight);
-	      rangySelection.addRange(range);
+	    return new Promise((resolve, reject) => { 
+	      let rangySelection = rangy.getSelection();
+	      annotation.elements.forEach((rangyHighlight) => {
+	        let range = rangy.createRange();
+	        range.selectNodeContents(rangyHighlight);
+	        rangySelection.addRange(range);
+	      });
+	      resolve(rangySelection);
+	    }).then((rangySelection) => {
+	      this.highlighter.unhighlightSelection(rangySelection);
+	    }).then((resolve) => {
+	      this.highlights.remove(index);
+	    }).catch((reject) => {
+	      console.log(reject);
 	    });
-	    this.highlighter.unhighlightSelection(rangySelection);
-	    this.highlights.remove(index);
-	  }
-	
-	  removeAnnotation(highlight){
-	    this.highlights.remove(highlight);
-	  }
-	
-	  // TODO: Anno-UI events 辺りで提供してほしい
-	  dispatchWindowEvent(eventName, data) {
-	    let event = document.createEvent('CustomEvent')
-	    event.initCustomEvent(eventName, true, true, data)
-	    window.dispatchEvent(event)
 	  }
 	}
 	
@@ -18388,6 +18432,17 @@
 
 /***/ }),
 /* 20 */
+/***/ (function(module, exports) {
+
+	exports.emit = (eventName, data) => {
+	  let event = document.createEvent('CustomEvent');
+	  event.initCustomEvent(eventName, true, true, data);
+	  window.dispatchEvent(event);
+	};
+
+
+/***/ }),
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const RelationAnnotation = __webpack_require__(13);
@@ -18429,20 +18484,25 @@
 	  }
 	
 	  remove(referenceId){
+	    let promises = [];
 	    this.annotations.forEach((annotation, i)=>{
 	      if (annotation instanceof RelationAnnotation) {
 	        if (undefined != referenceId) {
 	          if (referenceId == annotation.getReferenceId()) {
-	            this.annotations.remove(i);
-	            return annotation;
-	           }
+	            promises.push(new Promise((resolve, reject) => {
+	              this.annotations.remove(i);
+	              resolve(annotation);
+	            })); 
+	          }
 	        } else {
-	          this.annotations.remove(i);
-	          return annotation;
+	          promises.push(new Promise((resolve, reject) => {
+	            this.annotations.remove(i);
+	            resolve(annotation);
+	          }));
 	        }
 	      }
 	    });
-	    return undefined;
+	    return Promise.all(promises);
 	  }
 	
 	  removeAnnotation(arrow){
@@ -18454,7 +18514,7 @@
 
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ (function(module, exports) {
 
 	class AnnotationContainer{
@@ -18565,10 +18625,10 @@
 
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const Bioes = __webpack_require__(23);
+	const Bioes = __webpack_require__(24);
 	
 	class FileContainer {
 	  constructor() {
@@ -18918,7 +18978,7 @@
 
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ (function(module, exports) {
 
 	class Bioes {
@@ -19071,10 +19131,10 @@
 
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const FileContainer = __webpack_require__(22);
+	const FileContainer = __webpack_require__(23);
 	
 	/**
 	 * @param content ... Content object or Annotation object
@@ -19114,19 +19174,15 @@
 
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const FileContainer = __webpack_require__(22);
+	const FileContainer = __webpack_require__(23);
+	const HideBioesAnnotation = __webpack_require__(27);
 	
 	exports.run = (content, htmlanno) => {
 	  return Promise.all([
-	    new Promise((resolve, reject) => {
-	      let pattern = new RegExp(/\.BIOES/);
-	      htmlanno.hideAnnotationElements('Primary', pattern);
-	      htmlanno.hideAnnotationElements('Reference', pattern);
-	      resolve();
-	    }),
+	    HideBioesAnnotation.create(htmlanno),
 	    new Promise((resolve, reject) => {
 	      if (undefined == content.content) {
 	        FileContainer.htmlLoader(content.source, (html) => {
@@ -19145,19 +19201,30 @@
 
 
 /***/ }),
-/* 26 */
+/* 27 */
+/***/ (function(module, exports) {
+
+	exports.create = (htmlanno) => {
+	  return new Promise((resolve, reject) => {
+	    let pattern = new RegExp(/\.BIOES/);
+	    htmlanno.hideAnnotationElements('Primary', pattern);
+	    htmlanno.hideAnnotationElements('Reference', pattern);
+	    resolve();
+	  });
+	};
+	 
+
+
+/***/ }),
+/* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const FileContainer = __webpack_require__(22);
+	const FileContainer = __webpack_require__(23);
+	const HideBioesAnnotation = __webpack_require__(27);
 	
 	exports.run = (content, htmlanno) => {
 	  return Promise.all([
-	    new Promise((resolve, reject) => {
-	      let pattern = new RegExp(/\.BIOES/);
-	      htmlanno.hideAnnotationElements('Primary', pattern);
-	      htmlanno.hideAnnotationElements('Reference', pattern);
-	      resolve();
-	    }),
+	    HideBioesAnnotation.create(htmlanno),
 	    new Promise((resolve, reject) => {
 	      if (undefined == content.content) {
 	        FileContainer.textLoader(content.source, (text) => {
