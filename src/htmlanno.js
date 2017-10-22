@@ -18,6 +18,7 @@ const Bioes = require("./bioes.js");
 const LoadBioesPromise = require('./loadbioespromise.js');
 const LoadHtmlPromise = require('./loadhtmlpromise.js');
 const LoadTextPromise = require('./loadtextpromise.js');
+const WindowEvent = require('./windowevent.js');
 
 class Htmlanno{
   constructor(){
@@ -38,7 +39,6 @@ class Htmlanno{
     this.fileContainer = new FileContainer();
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
-    globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
     globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
 
     globalEvent.on(this, "removearrowannotation", (data)=>{
@@ -93,11 +93,22 @@ class Htmlanno{
     AnnoUI.browseButton.setup({
       loadFiles :                          this.loadFiles.bind(this),
       clearAllAnnotations :                this.remove.bind(this),
-      displayCurrentReferenceAnnotations : this.displayReferenceAnnotation.bind(this),
-      displayCurrentPrimaryAnnotations :   this.displayPrimaryAnnotation.bind(this),
+      displayCurrentReferenceAnnotations : () => {}, // this.displayReferenceAnnotation.bind(this),
+      displayCurrentPrimaryAnnotations :   () => {}, // this.displayPrimaryAnnotation.bind(this),
       getContentFiles :                    this.getContentFiles.bind(this),
       getAnnoFiles :                       this.getAnnoFiles.bind(this),
-      closePDFViewer :                     this.clearViewer.bind(this)
+      closePDFViewer :                     this.clearViewer.bind(this),
+      restoreBeforeStatus :                ((beforeStatus) => {
+        console.log("Before status: ")
+        console.log(beforeStatus);
+        if (null != beforeStatus.primaryAnnotationName) {
+          this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
+        }
+        if (0 != beforeStatus.referenceAnnotationNames.length) {
+          this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
+        }
+        // COLOR
+      }).bind(this)
     });
 
     AnnoUI.contentDropdown.setup({
@@ -127,7 +138,7 @@ class Htmlanno{
       getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
       getCurrentContentName: ()=> {
          if (undefined == this.currentContentFileName) {
-           this.dispatchWindowEvent(
+           WindowEvent.emit(
              'open-alert-dialog',
              {message: 'Cannot determine the filename for download.'}
            );
@@ -144,22 +155,15 @@ class Htmlanno{
       scrollToAnnotation: this.scrollToAnnotation.bind(this)
     });
 
-    $(document).on("keydown", (e)=>{
-      globalEvent.emit("keydown", e);
-    });
-
-    $("#viewer").on("mouseup", (e)=>{
-      globalEvent.emit("mouseup", e);
-    });
+    $(document).on("keydown", this.handleKeydown.bind(this));
+    $("#viewer").on("mouseup", this.handleMouseUp.bind(this));
 
     let windowObj = $(window);
     windowObj.on("resize", (e)=>{
       globalEvent.emit("resizewindow", e);
     });
 
-    windowObj.on("mousedown", (e) =>{
-      this.handleMouseDown(e);
-    });
+    windowObj.on("mousedown", this.handleMouseDown.bind(this));
 
     window.addEventListener('open-alert-dialog', (e) => {
       AnnoUI.ui.alertDialog.show(e.detail);
@@ -242,7 +246,7 @@ class Htmlanno{
           lastSelected.remove();
           this.annotations.remove(lastSelected);
           let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
-          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: uuid} });
+          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
         }
       // esc
       } else if (e.keyCode === 27) {
@@ -296,7 +300,7 @@ class Htmlanno{
   handleAddSpan(label){
     let span = this.highlighter.highlight(label.text);
     if (undefined != span) {
-      this.dispatchWindowEvent('annotationrendered');
+      WindowEvent.emit('annotationrendered');
       span.select();
     }
   }
@@ -319,10 +323,10 @@ class Htmlanno{
         params.type, params.text
       );
       this.unselectHighlight();
-      this.dispatchWindowEvent('annotationrendered');
+      WindowEvent.emit('annotationrendered');
       relation.select();
     } else {
-      this.dispatchWindowEvent(
+      WindowEvent.emit(
         'open-alert-dialog',
         {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
       );
@@ -339,6 +343,10 @@ class Htmlanno{
 
   displayPrimaryAnnotation(fileName) {
     let annotation = this.fileContainer.getAnnotation(fileName);
+    console.log("fileName : ");
+    console.log(fileName);
+    console.log("annotation: ");
+    console.log(annotation);
     annotation.primary = true;
     if ('bioes' != annotation.subtype) {
       // BIOES annotation is rendered at content loading.
@@ -349,7 +357,7 @@ class Htmlanno{
         this.highlighter,
         this.arrowConnector
       );
-      this.dispatchWindowEvent('annotationrendered');
+      WindowEvent.emit('annotationrendered');
     }
   }
 
@@ -395,7 +403,7 @@ class Htmlanno{
             uiAnnotation.color
           );
         }
-        this.dispatchWindowEvent('annotationrendered');
+        WindowEvent.emit('annotationrendered');
       }
     });
   }
@@ -415,10 +423,16 @@ class Htmlanno{
   }
 
   // TODO: この処理はanno-ui側に入れてもらいたい
-  getUiAnnotations(not_selected) {
+  /**
+   * Get the checked/unchecked annotations on dropdown UI.
+   * @param not_selected ... boolean
+   * @param target ... 'Reference' or 'Primary'. when undefined or not specified, this is 'Reference'.
+   */
+  getUiAnnotations(not_selected, target) {
     not_selected = undefined == not_selected ? true: not_selected;
+    target = undefined == target ? 'Reference' : target;
     let uiAnnotations = [];
-    $('#dropdownAnnoReference a').each((index, element) => {
+    $(`#dropdownAnno${target} a`).each((index, element) => {
       let $elm = $(element);
       if ($elm.find('.fa-check').hasClass('no-visible') === not_selected) {
         uiAnnotations.push({
@@ -480,7 +494,7 @@ class Htmlanno{
             this.highlighter,
             this.arrowConnector
           );
-          this.dispatchWindowEvent('annotationrendered');
+          WindowEvent.emit('annotationrendered');
           this.handleResize();
         }).catch((reject) => {
           this.showReadError();
@@ -500,7 +514,7 @@ class Htmlanno{
         break;
 
       default:
-        this.dispatchWindowEvent(
+        WindowEvent.emit(
           'open-alert-dialog',
           {message: 'Unknown content type; ' + content.content}
         );
@@ -515,8 +529,7 @@ class Htmlanno{
   }
 
   endEditLabel(id, label) {
-    let annotation = this.annotations.findById(id);
-    annotation.setContent(label);
+    this.annotations.findById(id).setContent(label);
   }
 
   getSelectedAnnotations() {
@@ -534,18 +547,25 @@ class Htmlanno{
   }
 
   remove(referenceId) {
-    let deleted = this.highlighter.remove(referenceId);
-    if (undefined == deleted) {
-      deleted = this.arrowConnector.remove(referenceId);
-    }
-
-    if (undefined != deleted) {
-      let uuid = deleted.uuid; // deleted.uuid(getter) is accessed after deleted it maybe.
-      this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: uuid} });
-    } else {
-      // All remove maybe.
-      this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: undefined} });
-    }
+    Promise.all([
+      this.highlighter.remove(referenceId),
+      this.arrowConnector.remove(referenceId)
+    ]).then((resolve) => {
+      if (undefined == referenceId) {
+        // All remove maybe.
+        WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
+      } else {
+        if (0 != resolve.length) {
+          // deleted.uuid(getter) is accessed after deleted it maybe.
+          let uuid = resolve[0].uuid;
+          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
+        } else {
+          WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
+        }
+      }
+    }).catch((reject) => {
+      console.log(reject);
+    });
   }
 
   loadDefaultData() {
@@ -570,19 +590,13 @@ class Htmlanno{
   }
 
   showReadError() {
-      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+      WindowEvent.emit('open-alert-dialog', {message: 'Read error.'});
   }
 
   // TODO: FileContainer#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
   excludeBaseUriName(uri) {
     let fragments = uri.split('/');
     return fragments[fragments.length - 1];
-  }
-
-  dispatchWindowEvent(eventName, data) {
-    let event = document.createEvent('CustomEvent');
-    event.initCustomEvent(eventName, true, true, data);
-    window.dispatchEvent(event);
   }
 
   get currentContentFileName() {
@@ -609,4 +623,3 @@ class Htmlanno{
 }
 
 module.exports = Htmlanno;
-
