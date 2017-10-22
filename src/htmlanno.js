@@ -18,6 +18,7 @@ const Bioes = require("./bioes.js");
 const LoadBioesPromise = require('./loadbioespromise.js');
 const LoadHtmlPromise = require('./loadhtmlpromise.js');
 const LoadTextPromise = require('./loadtextpromise.js');
+const HideBioesAnnotation = require('./hidebioesannotation.js');
 const WindowEvent = require('./windowevent.js');
 
 class Htmlanno{
@@ -99,15 +100,32 @@ class Htmlanno{
       getAnnoFiles :                       this.getAnnoFiles.bind(this),
       closePDFViewer :                     this.clearViewer.bind(this),
       restoreBeforeStatus :                ((beforeStatus) => {
-        console.log("Before status: ")
-        console.log(beforeStatus);
-        if (null != beforeStatus.primaryAnnotationName) {
-          this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
+        let promise = undefined;
+        if (null != beforeStatus.pdfName) {
+          let content = this.fileContainer.getContent(beforeStatus.pdfName);
+          if ('bioes' == content.type) {
+            promise = new Promise((resolve, reject) => {
+              $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
+                'disabled', 'disabled'
+              );
+              beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
+              resolve();
+            });
+          } else {
+            promise = HideBioesAnnotation.create(this);
+          }
+        } else {
+            promise = Promise.resolve(true);
         }
-        if (0 != beforeStatus.referenceAnnotationNames.length) {
-          this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
-        }
-        // COLOR
+        promise.then((resolve) => {
+          if (null != beforeStatus.primaryAnnotationName) {
+            this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
+          }
+          if (0 != beforeStatus.referenceAnnotationNames.length) {
+            this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
+          }
+          // TODO: COLOR
+        });
       }).bind(this)
     });
 
@@ -343,21 +361,11 @@ class Htmlanno{
 
   displayPrimaryAnnotation(fileName) {
     let annotation = this.fileContainer.getAnnotation(fileName);
-    console.log("fileName : ");
-    console.log(fileName);
-    console.log("annotation: ");
-    console.log(annotation);
     annotation.primary = true;
-    if ('bioes' != annotation.subtype) {
-      // BIOES annotation is rendered at content loading.
-      // TODO: BIOES annotaionはPrimaryには不要だが、リストがReferenceAnnotationと共用のため存在する
-      // TODO: この処理が呼び出されるのはAnno-uiにおいてチェックが表示されたあとなので表示は制御できない
-      TomlTool.loadToml(
-        annotation.content,
-        this.highlighter,
-        this.arrowConnector
-      );
-      WindowEvent.emit('annotationrendered');
+    if ('bioes' == annotation.subtype) {
+      this._renderBioesAnnotation(annotation);
+    } else {
+      this._renderAnnotation(annotation);
     }
   }
 
@@ -371,55 +379,75 @@ class Htmlanno{
   }
 
   displayReferenceAnnotation(fileNames) {
-    this.hideReferenceAnnotation(this.getUiAnnotations(true));
-
-    let selectedUiAnnotations = this.getUiAnnotations(false);
-    selectedUiAnnotations.forEach((uiAnnotation) => {
-      let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
-      if (annotation.reference) {
-        this.annotations.forEach((annotationObj) => {
-          if (uiAnnotation.name == annotationObj.referenceId) {
-            annotationObj.setColor(uiAnnotation.color);
-          }
-        });
-      } else {
-        annotation.reference = true;
-        if ('bioes' == annotation.subtype) {
-          LoadBioesPromise.run(annotation, this).then((results) => {
-            TomlTool.renderAnnotation(
-              annotation.content,
-              this.highlighter,
-              this.arrowConnector,
-              uiAnnotation.name,
-              uiAnnotation.color
-            );
+    this.hideReferenceAnnotation(this.getUiAnnotations(true)).then((resolve) => {
+      let selectedUiAnnotations = this.getUiAnnotations(false);
+      selectedUiAnnotations.forEach((uiAnnotation) => {
+        let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
+        if (annotation.reference) {
+          this.annotations.forEach((annotationObj) => {
+            if (uiAnnotation.name == annotationObj.referenceId) {
+              annotationObj.setColor(uiAnnotation.color);
+            }
           });
-        } else { 
-          TomlTool.loadToml(
-            annotation.content,
-            this.highlighter,
-            this.arrowConnector,
-            uiAnnotation.name,
-            uiAnnotation.color
-          );
+        } else {
+          annotation.reference = true;
+          if ('bioes' == annotation.subtype) {
+            this._renderBioesAnnotation(annotation, uiAnnotation);
+          } else { 
+            this._renderAnnotation(annotation, uiAnnotation);
+          }
         }
-        WindowEvent.emit('annotationrendered');
-      }
+      });
     });
   }
 
+  /**
+   * @param annotation ... Annotation object.
+   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
+   */
+  _renderBioesAnnotation(annotation, uiAnnotation) {
+    LoadBioesPromise.run(annotation, this).then((results) => {
+      this._renderAnnotation(annotation, uiAnnotation);
+    });
+  }
+
+  /**
+   * @param annotation ... Annotation object.
+   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
+   */
+  _renderAnnotation(annotation, uiAnnotation) {
+    if (undefined == uiAnnotation) {
+      TomlTool.loadToml(
+        annotation.content,
+        this.highlighter, this.arrowConnector
+      );
+    } else {
+      TomlTool.loadToml(
+        annotation.content,
+        this.highlighter, this.arrowConnector,
+        uiAnnotation.name, uiAnnotation.color
+      );
+    }
+    WindowEvent.emit('annotationrendered');
+  }
+
+  /**
+   * @return Promise
+   */
   hideReferenceAnnotation(uiAnnotations) {
     let annotations = this.fileContainer.getAnnotations(
       uiAnnotations.map((ann) => {
         return ann.name;
       })
     );
+    let promises = [];
     annotations.forEach((annotation) => {
       if (annotation.reference) {
         annotation.reference = false;
-        this.remove(annotation.name);
+        promises.push(this.remove(annotation.name));
       }
     });
+    return Promise.all(promises);
   }
 
   // TODO: この処理はanno-ui側に入れてもらいたい
@@ -546,8 +574,11 @@ class Htmlanno{
     }
   }
 
+  /**
+   * @return Promise (resolved)
+   */
   remove(referenceId) {
-    Promise.all([
+    return Promise.all([
       this.highlighter.remove(referenceId),
       this.arrowConnector.remove(referenceId)
     ]).then((resolve) => {
