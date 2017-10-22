@@ -1,13 +1,9 @@
 const FileContainer = require('./filecontainer.js');
+const HideBioesAnnotation = require('./hidebioesannotation.js');
 
 exports.run = (content, htmlanno) => {
   return Promise.all([
-    new Promise((resolve, reject) => {
-      let pattern = new RegExp(/\.BIOES/);
-      htmlanno.hideAnnotationElements('Primary', pattern);
-      htmlanno.hideAnnotationElements('Reference', pattern);
-      resolve();
-    }),
+    HideBioesAnnotation.create(htmlanno),
     new Promise((resolve, reject) => {
       if (undefined == content.content) {
         FileContainer.htmlLoader(content.source, (html) => {
