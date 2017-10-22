@@ -23,6 +23,7 @@ class Htmlanno{
   constructor(){
     this.defaultDataUri = './sample/sample.xhtml';
     this.defaultDataName = this.excludeBaseUriName(this.defaultDataUri); // これは固定値だが指示都合上定数にしてはならない
+    this._currentContentFileName = undefined;
     /**
      * @see #reloadContent
      * @see #loadDefaultData
@@ -125,8 +126,7 @@ class Htmlanno{
     AnnoUI.downloadButton.setup({
       getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
       getCurrentContentName: ()=> {
-         let contentFileName = this.getCurrentContentFileName();
-         if (undefined == contentFileName) {
+         if (undefined == this.currentContentFileName) {
            this.dispatchWindowEvent(
              'open-alert-dialog',
              {message: 'Cannot determine the filename for download.'}
@@ -134,7 +134,7 @@ class Htmlanno{
            return undefined;
          }
          else {
-           return contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
+           return this.currentContentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
          }
       }
     });
@@ -444,6 +444,7 @@ class Htmlanno{
 
   reloadContent(fileName) {
     this.useDefaultData = false;
+    this._currentContentFileName = fileName;
     $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].removeAttribute(
       'disabled', 'disabled'
     );
@@ -555,6 +556,7 @@ class Htmlanno{
         let content = FileContainer.parseHtml(htmlData);
         if (undefined != content) {
           this.useDefaultData = true;
+          this._currentContentFileName = undefined;
           document.getElementById('viewer').innerHTML = content;
         }
         globalEvent.emit('resizewindow');
@@ -577,26 +579,16 @@ class Htmlanno{
     return fragments[fragments.length - 1];
   }
 
-  // For Anno-ui.
-  // TODO: Anno-UI events 辺りで提供してほしい
   dispatchWindowEvent(eventName, data) {
     let event = document.createEvent('CustomEvent');
     event.initCustomEvent(eventName, true, true, data);
     window.dispatchEvent(event);
   }
 
-  // TODO: Anno-UI contentDropdown辺りで提供してほしい
-  getCurrentContentFileName() {
-    let value = $('#dropdownPdf .js-text').text();
-    if (value === 'Content File') {
-      if (this.useDefaultData) {
-        return this.defaultDataName;
-      } else {
-        return undefined;
-      }
-    } else {
-      return value;
-    }
+  get currentContentFileName() {
+    return this.useDefaultData ?
+      this.defaultDataName :
+      this._currentContentFileName;
   }
 
   /**
