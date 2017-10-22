@@ -197,7 +197,6 @@ class Highlighter{
       this.highlighter.unhighlightSelection(rangySelection);
     }).then((resolve) => {
       this.highlights.remove(index);
-      console.log("removed: " + index);
     }).catch((reject) => {
       console.log(reject);
     });
