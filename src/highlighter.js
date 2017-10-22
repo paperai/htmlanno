@@ -6,6 +6,7 @@ require("rangy/lib/rangy-serializer.js");
 
 const Highlight = require("./highlight.js");
 const Annotation = require("./annotation.js");
+const WindowEvent = require('./windowevent.js');
 
 class Highlighter{
   constructor(annotationContainer){
@@ -79,7 +80,7 @@ class Highlighter{
   highlight(label){
     const selection = rangy.getSelection();
     if (0 == selection.rangeCount){
-      this.dispatchWindowEvent(
+      WindowEvent.emit(
         'open-alert-dialog', {message: 'Text span is not selected.'}
       );
       return;
@@ -158,42 +159,47 @@ class Highlighter{
   }
 
   remove(referenceId){
-    this.highlights.forEach((annotation, i)=>{
-      if (annotation instanceof Highlight){
-        if (undefined != referenceId) {
-          if (referenceId == annotation.getReferenceId()) {
-            this._remove(annotation, i);
-            return annotation;
+    if (undefined == referenceId) {
+      return new Promise((resolve) => {
+        this.highlighter.removeAllHighlights();
+        this.highlights.forEach((annotation, i)=>{
+          this.highlights.remove(i);
+        });
+        resolve(undefined);
+      });
+    } else {
+      let promises = [];
+      this.highlights.forEach((annotation, i)=>{
+        if (annotation instanceof Highlight){
+          if (undefined != referenceId) {
+            if (referenceId == annotation.getReferenceId()) {
+              promises.push(this._remove(annotation, i));
+            }
+          } else {
+            promises.push(this._remove(annotation, i));
           }
-        } else {
-          this._remove(annotation, i);
-          return annotation;
         }
-      }
-    });
-    return undefined;
+      });
+      return Promise.all(promises);
+    }
   }
 
   _remove(annotation, index) {
-    let rangySelection = rangy.getSelection();
-    annotation.elements.forEach((rangyHighlight) => {
-      let range = rangy.createRange();
-      range.selectNodeContents(rangyHighlight);
-      rangySelection.addRange(range);
+    return new Promise((resolve, reject) => { 
+      let rangySelection = rangy.getSelection();
+      annotation.elements.forEach((rangyHighlight) => {
+        let range = rangy.createRange();
+        range.selectNodeContents(rangyHighlight);
+        rangySelection.addRange(range);
+      });
+      resolve(rangySelection);
+    }).then((rangySelection) => {
+      this.highlighter.unhighlightSelection(rangySelection);
+    }).then((resolve) => {
+      this.highlights.remove(index);
+    }).catch((reject) => {
+      console.log(reject);
     });
-    this.highlighter.unhighlightSelection(rangySelection);
-    this.highlights.remove(index);
-  }
-
-  removeAnnotation(highlight){
-    this.highlights.remove(highlight);
-  }
-
-  // TODO: Anno-UI events 辺りで提供してほしい
-  dispatchWindowEvent(eventName, data) {
-    let event = document.createEvent('CustomEvent')
-    event.initCustomEvent(eventName, true, true, data)
-    window.dispatchEvent(event)
   }
 }
 

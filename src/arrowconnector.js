@@ -37,20 +37,25 @@ class ArrowConnector{
   }
 
   remove(referenceId){
+    let promises = [];
     this.annotations.forEach((annotation, i)=>{
       if (annotation instanceof RelationAnnotation) {
         if (undefined != referenceId) {
           if (referenceId == annotation.getReferenceId()) {
-            this.annotations.remove(i);
-            return annotation;
-           }
+            promises.push(new Promise((resolve, reject) => {
+              this.annotations.remove(i);
+              resolve(annotation);
+            })); 
+          }
         } else {
-          this.annotations.remove(i);
-          return annotation;
+          promises.push(new Promise((resolve, reject) => {
+            this.annotations.remove(i);
+            resolve(annotation);
+          }));
         }
       }
     });
-    return undefined;
+    return Promise.all(promises);
   }
 
   removeAnnotation(arrow){

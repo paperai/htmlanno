@@ -18,11 +18,14 @@ const Bioes = require("./bioes.js");
 const LoadBioesPromise = require('./loadbioespromise.js');
 const LoadHtmlPromise = require('./loadhtmlpromise.js');
 const LoadTextPromise = require('./loadtextpromise.js');
+const HideBioesAnnotation = require('./hidebioesannotation.js');
+const WindowEvent = require('./windowevent.js');
 
 class Htmlanno{
   constructor(){
     this.defaultDataUri = './sample/sample.xhtml';
     this.defaultDataName = this.excludeBaseUriName(this.defaultDataUri); // これは固定値だが指示都合上定数にしてはならない
+    this._currentContentFileName = undefined;
     /**
      * @see #reloadContent
      * @see #loadDefaultData
@@ -37,7 +40,6 @@ class Htmlanno{
     this.fileContainer = new FileContainer();
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
-    globalEvent.on(this, "keydown", this.handleKeydown.bind(this));
     globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
 
     globalEvent.on(this, "removearrowannotation", (data)=>{
@@ -92,11 +94,39 @@ class Htmlanno{
     AnnoUI.browseButton.setup({
       loadFiles :                          this.loadFiles.bind(this),
       clearAllAnnotations :                this.remove.bind(this),
-      displayCurrentReferenceAnnotations : this.displayReferenceAnnotation.bind(this),
-      displayCurrentPrimaryAnnotations :   this.displayPrimaryAnnotation.bind(this),
+      displayCurrentReferenceAnnotations : () => {}, // this.displayReferenceAnnotation.bind(this),
+      displayCurrentPrimaryAnnotations :   () => {}, // this.displayPrimaryAnnotation.bind(this),
       getContentFiles :                    this.getContentFiles.bind(this),
       getAnnoFiles :                       this.getAnnoFiles.bind(this),
-      closePDFViewer :                     this.clearViewer.bind(this)
+      closePDFViewer :                     this.clearViewer.bind(this),
+      restoreBeforeStatus :                ((beforeStatus) => {
+        let promise = undefined;
+        if (null != beforeStatus.pdfName) {
+          let content = this.fileContainer.getContent(beforeStatus.pdfName);
+          if ('bioes' == content.type) {
+            promise = new Promise((resolve, reject) => {
+              $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
+                'disabled', 'disabled'
+              );
+              beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
+              resolve();
+            });
+          } else {
+            promise = HideBioesAnnotation.create(this);
+          }
+        } else {
+            promise = Promise.resolve(true);
+        }
+        promise.then((resolve) => {
+          if (null != beforeStatus.primaryAnnotationName) {
+            this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
+          }
+          if (0 != beforeStatus.referenceAnnotationNames.length) {
+            this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
+          }
+          // TODO: COLOR
+        });
+      }).bind(this)
     });
 
     AnnoUI.contentDropdown.setup({
@@ -125,16 +155,15 @@ class Htmlanno{
     AnnoUI.downloadButton.setup({
       getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
       getCurrentContentName: ()=> {
-         let contentFileName = this.getCurrentContentFileName();
-         if (undefined == contentFileName) {
-           this.dispatchWindowEvent(
+         if (undefined == this.currentContentFileName) {
+           WindowEvent.emit(
              'open-alert-dialog',
              {message: 'Cannot determine the filename for download.'}
            );
            return undefined;
          }
          else {
-           return contentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
+           return this.currentContentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
          }
       }
     });
@@ -144,22 +173,15 @@ class Htmlanno{
       scrollToAnnotation: this.scrollToAnnotation.bind(this)
     });
 
-    $(document).on("keydown", (e)=>{
-      globalEvent.emit("keydown", e);
-    });
-
-    $("#viewer").on("mouseup", (e)=>{
-      globalEvent.emit("mouseup", e);
-    });
+    $(document).on("keydown", this.handleKeydown.bind(this));
+    $("#viewer").on("mouseup", this.handleMouseUp.bind(this));
 
     let windowObj = $(window);
     windowObj.on("resize", (e)=>{
       globalEvent.emit("resizewindow", e);
     });
 
-    windowObj.on("mousedown", (e) =>{
-      this.handleMouseDown(e);
-    });
+    windowObj.on("mousedown", this.handleMouseDown.bind(this));
 
     window.addEventListener('open-alert-dialog', (e) => {
       AnnoUI.ui.alertDialog.show(e.detail);
@@ -242,7 +264,7 @@ class Htmlanno{
           lastSelected.remove();
           this.annotations.remove(lastSelected);
           let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
-          this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: uuid} });
+          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
         }
       // esc
       } else if (e.keyCode === 27) {
@@ -296,7 +318,7 @@ class Htmlanno{
   handleAddSpan(label){
     let span = this.highlighter.highlight(label.text);
     if (undefined != span) {
-      this.dispatchWindowEvent('annotationrendered');
+      WindowEvent.emit('annotationrendered');
       span.select();
     }
   }
@@ -319,10 +341,10 @@ class Htmlanno{
         params.type, params.text
       );
       this.unselectHighlight();
-      this.dispatchWindowEvent('annotationrendered');
+      WindowEvent.emit('annotationrendered');
       relation.select();
     } else {
-      this.dispatchWindowEvent(
+      WindowEvent.emit(
         'open-alert-dialog',
         {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
       );
@@ -340,16 +362,10 @@ class Htmlanno{
   displayPrimaryAnnotation(fileName) {
     let annotation = this.fileContainer.getAnnotation(fileName);
     annotation.primary = true;
-    if ('bioes' != annotation.subtype) {
-      // BIOES annotation is rendered at content loading.
-      // TODO: BIOES annotaionはPrimaryには不要だが、リストがReferenceAnnotationと共用のため存在する
-      // TODO: この処理が呼び出されるのはAnno-uiにおいてチェックが表示されたあとなので表示は制御できない
-      TomlTool.loadToml(
-        annotation.content,
-        this.highlighter,
-        this.arrowConnector
-      );
-      this.dispatchWindowEvent('annotationrendered');
+    if ('bioes' == annotation.subtype) {
+      this._renderBioesAnnotation(annotation);
+    } else {
+      this._renderAnnotation(annotation);
     }
   }
 
@@ -363,62 +379,88 @@ class Htmlanno{
   }
 
   displayReferenceAnnotation(fileNames) {
-    this.hideReferenceAnnotation(this.getUiAnnotations(true));
-
-    let selectedUiAnnotations = this.getUiAnnotations(false);
-    selectedUiAnnotations.forEach((uiAnnotation) => {
-      let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
-      if (annotation.reference) {
-        this.annotations.forEach((annotationObj) => {
-          if (uiAnnotation.name == annotationObj.referenceId) {
-            annotationObj.setColor(uiAnnotation.color);
-          }
-        });
-      } else {
-        annotation.reference = true;
-        if ('bioes' == annotation.subtype) {
-          LoadBioesPromise.run(annotation, this).then((results) => {
-            TomlTool.renderAnnotation(
-              annotation.content,
-              this.highlighter,
-              this.arrowConnector,
-              uiAnnotation.name,
-              uiAnnotation.color
-            );
+    this.hideReferenceAnnotation(this.getUiAnnotations(true)).then((resolve) => {
+      let selectedUiAnnotations = this.getUiAnnotations(false);
+      selectedUiAnnotations.forEach((uiAnnotation) => {
+        let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
+        if (annotation.reference) {
+          this.annotations.forEach((annotationObj) => {
+            if (uiAnnotation.name == annotationObj.referenceId) {
+              annotationObj.setColor(uiAnnotation.color);
+            }
           });
-        } else { 
-          TomlTool.loadToml(
-            annotation.content,
-            this.highlighter,
-            this.arrowConnector,
-            uiAnnotation.name,
-            uiAnnotation.color
-          );
+        } else {
+          annotation.reference = true;
+          if ('bioes' == annotation.subtype) {
+            this._renderBioesAnnotation(annotation, uiAnnotation);
+          } else { 
+            this._renderAnnotation(annotation, uiAnnotation);
+          }
         }
-        this.dispatchWindowEvent('annotationrendered');
-      }
+      });
     });
   }
 
+  /**
+   * @param annotation ... Annotation object.
+   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
+   */
+  _renderBioesAnnotation(annotation, uiAnnotation) {
+    LoadBioesPromise.run(annotation, this).then((results) => {
+      this._renderAnnotation(annotation, uiAnnotation);
+    });
+  }
+
+  /**
+   * @param annotation ... Annotation object.
+   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
+   */
+  _renderAnnotation(annotation, uiAnnotation) {
+    if (undefined == uiAnnotation) {
+      TomlTool.loadToml(
+        annotation.content,
+        this.highlighter, this.arrowConnector
+      );
+    } else {
+      TomlTool.loadToml(
+        annotation.content,
+        this.highlighter, this.arrowConnector,
+        uiAnnotation.name, uiAnnotation.color
+      );
+    }
+    WindowEvent.emit('annotationrendered');
+  }
+
+  /**
+   * @return Promise
+   */
   hideReferenceAnnotation(uiAnnotations) {
     let annotations = this.fileContainer.getAnnotations(
       uiAnnotations.map((ann) => {
         return ann.name;
       })
     );
+    let promises = [];
     annotations.forEach((annotation) => {
       if (annotation.reference) {
         annotation.reference = false;
-        this.remove(annotation.name);
+        promises.push(this.remove(annotation.name));
       }
     });
+    return Promise.all(promises);
   }
 
   // TODO: この処理はanno-ui側に入れてもらいたい
-  getUiAnnotations(not_selected) {
+  /**
+   * Get the checked/unchecked annotations on dropdown UI.
+   * @param not_selected ... boolean
+   * @param target ... 'Reference' or 'Primary'. when undefined or not specified, this is 'Reference'.
+   */
+  getUiAnnotations(not_selected, target) {
     not_selected = undefined == not_selected ? true: not_selected;
+    target = undefined == target ? 'Reference' : target;
     let uiAnnotations = [];
-    $('#dropdownAnnoReference a').each((index, element) => {
+    $(`#dropdownAnno${target} a`).each((index, element) => {
       let $elm = $(element);
       if ($elm.find('.fa-check').hasClass('no-visible') === not_selected) {
         uiAnnotations.push({
@@ -444,6 +486,7 @@ class Htmlanno{
 
   reloadContent(fileName) {
     this.useDefaultData = false;
+    this._currentContentFileName = fileName;
     $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].removeAttribute(
       'disabled', 'disabled'
     );
@@ -479,7 +522,7 @@ class Htmlanno{
             this.highlighter,
             this.arrowConnector
           );
-          this.dispatchWindowEvent('annotationrendered');
+          WindowEvent.emit('annotationrendered');
           this.handleResize();
         }).catch((reject) => {
           this.showReadError();
@@ -499,7 +542,7 @@ class Htmlanno{
         break;
 
       default:
-        this.dispatchWindowEvent(
+        WindowEvent.emit(
           'open-alert-dialog',
           {message: 'Unknown content type; ' + content.content}
         );
@@ -514,8 +557,7 @@ class Htmlanno{
   }
 
   endEditLabel(id, label) {
-    let annotation = this.annotations.findById(id);
-    annotation.setContent(label);
+    this.annotations.findById(id).setContent(label);
   }
 
   getSelectedAnnotations() {
@@ -532,19 +574,29 @@ class Htmlanno{
     }
   }
 
+  /**
+   * @return Promise (resolved)
+   */
   remove(referenceId) {
-    let deleted = this.highlighter.remove(referenceId);
-    if (undefined == deleted) {
-      deleted = this.arrowConnector.remove(referenceId);
-    }
-
-    if (undefined != deleted) {
-      let uuid = deleted.uuid; // deleted.uuid(getter) is accessed after deleted it maybe.
-      this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: uuid} });
-    } else {
-      // All remove maybe.
-      this.dispatchWindowEvent('annotationDeleted', {detail: {uuid: undefined} });
-    }
+    return Promise.all([
+      this.highlighter.remove(referenceId),
+      this.arrowConnector.remove(referenceId)
+    ]).then((resolve) => {
+      if (undefined == referenceId) {
+        // All remove maybe.
+        WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
+      } else {
+        if (0 != resolve.length) {
+          // deleted.uuid(getter) is accessed after deleted it maybe.
+          let uuid = resolve[0].uuid;
+          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
+        } else {
+          WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
+        }
+      }
+    }).catch((reject) => {
+      console.log(reject);
+    });
   }
 
   loadDefaultData() {
@@ -555,6 +607,7 @@ class Htmlanno{
         let content = FileContainer.parseHtml(htmlData);
         if (undefined != content) {
           this.useDefaultData = true;
+          this._currentContentFileName = undefined;
           document.getElementById('viewer').innerHTML = content;
         }
         globalEvent.emit('resizewindow');
@@ -568,7 +621,7 @@ class Htmlanno{
   }
 
   showReadError() {
-      this.dispatchWindowEvent('open-alert-dialog', {message: 'Read error.'});
+      WindowEvent.emit('open-alert-dialog', {message: 'Read error.'});
   }
 
   // TODO: FileContainer#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
@@ -577,26 +630,10 @@ class Htmlanno{
     return fragments[fragments.length - 1];
   }
 
-  // For Anno-ui.
-  // TODO: Anno-UI events 辺りで提供してほしい
-  dispatchWindowEvent(eventName, data) {
-    let event = document.createEvent('CustomEvent');
-    event.initCustomEvent(eventName, true, true, data);
-    window.dispatchEvent(event);
-  }
-
-  // TODO: Anno-UI contentDropdown辺りで提供してほしい
-  getCurrentContentFileName() {
-    let value = $('#dropdownPdf .js-text').text();
-    if (value === 'Content File') {
-      if (this.useDefaultData) {
-        return this.defaultDataName;
-      } else {
-        return undefined;
-      }
-    } else {
-      return value;
-    }
+  get currentContentFileName() {
+    return this.useDefaultData ?
+      this.defaultDataName :
+      this._currentContentFileName;
   }
 
   /**
@@ -617,4 +654,3 @@ class Htmlanno{
 }
 
 module.exports = Htmlanno;
-
