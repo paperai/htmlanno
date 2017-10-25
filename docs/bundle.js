@@ -161,46 +161,18 @@
 	    AnnoUI.browseButton.setup({
 	      loadFiles :                          this.loadFiles.bind(this),
 	      clearAllAnnotations :                this.remove.bind(this),
-	      displayCurrentReferenceAnnotations : () => {}, // this.displayReferenceAnnotation.bind(this),
-	      displayCurrentPrimaryAnnotations :   () => {}, // this.displayPrimaryAnnotation.bind(this),
+	      displayCurrentReferenceAnnotations : this.displayReferenceAnnotation.bind(this),
+	      displayCurrentPrimaryAnnotations :   () => {}, // not use. @see restoreAnnotations()
 	      getContentFiles :                    this.getContentFiles.bind(this),
 	      getAnnoFiles :                       this.getAnnoFiles.bind(this),
 	      closePDFViewer :                     this.clearViewer.bind(this),
-	      restoreBeforeStatus :                ((beforeStatus) => {
-	        let promise = undefined;
-	        if (null != beforeStatus.pdfName) {
-	          let content = this.fileContainer.getContent(beforeStatus.pdfName);
-	          if ('bioes' == content.type) {
-	            promise = new Promise((resolve, reject) => {
-	              $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
-	                'disabled', 'disabled'
-	              );
-	              beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
-	              resolve();
-	            });
-	          } else {
-	            promise = HideBioesAnnotation.create(this);
-	          }
-	        } else {
-	            promise = Promise.resolve(true);
-	        }
-	        promise.then((resolve) => {
-	          if (null != beforeStatus.primaryAnnotationName) {
-	            this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
-	          }
-	          if (0 != beforeStatus.referenceAnnotationNames.length) {
-	            this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
-	          }
-	          // TODO: COLOR
-	        });
-	      }).bind(this)
+	      callbackLoadedFiles :                this.restoreAnnotations.bind(this)
 	    });
 	
 	    AnnoUI.contentDropdown.setup({
 	      initialText: 'Content File',
 	      overrideWarningMessage: 'Are you sure to load another Content ?',
 	      contentReloadHandler: this.reloadContent.bind(this)
-	      
 	    });
 	
 	    AnnoUI.primaryAnnoDropdown.setup({
@@ -445,6 +417,10 @@
 	    this.remove();
 	  }
 	
+	  /**
+	   * (re-)render all annotation that checked for reference.
+	   * @param fileNames ... not used.
+	   */
 	  displayReferenceAnnotation(fileNames) {
 	    this.hideReferenceAnnotation(this.getUiAnnotations(true)).then((resolve) => {
 	      let selectedUiAnnotations = this.getUiAnnotations(false);
@@ -540,6 +516,10 @@
 	  }
 	
 	  loadFiles(files) {
+	    // For getCurrentFileNames() in Anno-UI, all dropdown element is turned on.
+	    this.hideAnnotationElements('Primary', null); 
+	    this.hideAnnotationElements('Reference', null); 
+	
 	    return this.fileContainer.loadFiles(files);
 	  }
 	
@@ -554,9 +534,7 @@
 	  reloadContent(fileName) {
 	    this.useDefaultData = false;
 	    this._currentContentFileName = fileName;
-	    $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].removeAttribute(
-	      'disabled', 'disabled'
-	    );
+	    this.enableDropdownAnnotationPrimary(true);
 	
 	    let content = this.fileContainer.getContent(fileName);
 	    switch(content.type) {
@@ -578,9 +556,7 @@
 	          content.content = results[1].content;
 	          content.source = undefined;
 	          document.getElementById('viewer').innerHTML = content.content;
-	          $('#dropdownAnnoPrimary > button.dropdown-toggle')[0].setAttribute(
-	            'disabled', 'disabled'
-	          );
+	          this.enableDropdownAnnotationPrimary(false);
 	          // BIOESの場合Content fileとPrimary annotationがセットなので、
 	          // これがRefereneで使用されていることは起こりえない。
 	          results[1].annotation.primary = true;
@@ -615,6 +591,33 @@
 	        );
 	    }
 	  }  
+	
+	  restoreAnnotations(beforeStatus) {
+	    let promise = undefined;
+	    if (null != beforeStatus.pdfName) {
+	      let content = this.fileContainer.getContent(beforeStatus.pdfName);
+	      if ('bioes' == content.type) {
+	        promise = new Promise((resolve, reject) => {
+	          this.enableDropdownAnnotationPrimary(false);
+	          beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
+	          resolve();
+	        });
+	      } else {
+	        promise = HideBioesAnnotation.create(this);
+	      }
+	    } else {
+	      promise = Promise.resolve(true);
+	    }
+	    promise.then((resolve) => {
+	      if (null != beforeStatus.primaryAnnotationName) {
+	        this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
+	      }
+	      if (0 != beforeStatus.referenceAnnotationNames.length) {
+	        // the reference annotation drawing color is set in this process based from Ui.
+	        this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
+	      }
+	    });
+	  }
 	
 	  scrollToAnnotation(id) {
 	    let scrollArea = $('#viewerWrapper');
@@ -670,15 +673,16 @@
 	    $.get({
 	      url: this.defaultDataUri,
 	      dataType: 'html',
-	      success: function(htmlData) {
+	      success: ((htmlData) => {
 	        let content = FileContainer.parseHtml(htmlData);
 	        if (undefined != content) {
 	          this.useDefaultData = true;
 	          this._currentContentFileName = undefined;
+	          this.enableDropdownAnnotationPrimary(true);
 	          document.getElementById('viewer').innerHTML = content;
 	        }
 	        globalEvent.emit('resizewindow');
-	      }
+	      }).bind(this)
 	    });
 	  }
 	
@@ -703,15 +707,26 @@
 	      this._currentContentFileName;
 	  }
 	
+	  enableDropdownAnnotationPrimary(enabled) {
+	    let dropdown = $('#dropdownAnnoPrimary > button.dropdown-toggle')[0];
+	    if (enabled) {
+	      dropdown.removeAttribute('disabled', 'disabled');
+	    } else {
+	      dropdown.setAttribute('disabled', 'disabled');
+	    }
+	  }
+	
 	  /**
 	   * Hide Primary/Reference annotation files that match pattern(ReExp).
 	   * @param target ... 'Primary' or 'Reference'. this is the part of id value. (id="dropdownAnno" + target)
-	   * @paran pattern .. the JavaScript RegExp object.
+	   * @paran pattern .. the JavaScript RegExp object. or null(all NOT hide = all display)
 	   */ 
 	  hideAnnotationElements(target, pattern) {
 	    $(`#dropdownAnno${target} .js-annoname`).each((index, elm) => {
 	      let listElement = $(elm).closest('li');
-	      if (pattern.test(elm.innerText)) {
+	      if (null == pattern) {
+	        listElement.removeClass('hidden');
+	      } else if (pattern.test(elm.innerText)) {
 	        listElement.addClass('hidden');
 	      } else {
 	        listElement.removeClass('hidden');
@@ -2033,7 +2048,6 @@
 	let _getContentFiles
 	let _getAnnoFiles
 	let _closePDFViewer
-	let _restoreBeforeStatus
 	
 	/**
 	 * Setup the behavior of a Browse Button.
@@ -2046,14 +2060,13 @@
 	    getContentFiles,
 	    getAnnoFiles,
 	    closePDFViewer,
-	    restoreBeforeStatus
+	    callbackLoadedFiles
 	}) {
 	    _displayCurrentReferenceAnnotations = displayCurrentReferenceAnnotations
 	    _displayCurrentPrimaryAnnotations = displayCurrentPrimaryAnnotations
 	    _getContentFiles = getContentFiles
 	    _getAnnoFiles = getAnnoFiles
 	    _closePDFViewer = closePDFViewer
-	    _restoreBeforeStatus = restoreBeforeStatus
 	
 	    // Enable to select the same directory twice or more.
 	    $('.js-file :file').on('click', ev => {
@@ -2086,7 +2099,8 @@
 	
 	            // Display a PDF and annotations.
 	            restoreBeforeState(current)
-	            _restoreBeforeStatus(current)
+	
+	            callbackLoadedFiles && callbackLoadedFiles(current)
 	        })
 	    })
 	}
