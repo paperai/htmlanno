@@ -2,6 +2,7 @@
   "scripts": {
     "watch": "webpack --progress --colors --watch --config ./webpack.config.js",
     "build": "webpack --progress --colors --config ./webpack.config.js",
+    "build-test": "webpack --progress --colors --config ./test/webpack_test.config.js",
     "test": "jasmine",
     "webtest": "karma start karma.conf.js"
   },
@@ -20,9 +21,7 @@
     "karma-jasmine": "^1.1.0",
     "karma-jquery": "^0.2.2",
     "karma-nodeunit": "^0.2.0",
-    "karma-phantomjs-launcher": "^1.0.4",
     "karma-spec-reporter": "^0.0.31",
-    "phantomjs-prebuilt": "2.1.14",
     "filereader": "^0.10.3",
     "webpack": "^1.13.2"
   }
