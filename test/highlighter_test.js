@@ -90,8 +90,44 @@ test('highlight should create multiple <span class="htmlanno-highlight*"> tag, e
   assert.equal(result.getId(), '1');
   let result_selected = $('span.htmlanno-highlight1');
   assert.equal(result_selected.length, 3);
-  assert.equal(result_selected[0].innerText, "Introduction\n"); // 先頭要素のみ、circleを設置するための<div>を含むのでinnerTextに改行が付く(?)
+  assert.equal(result_selected[0].innerText, "Introduction");
   assert.equal(result_selected[1].innerText, 'There are a few characters that need to be treated differently when they are used in XHTML. This may be because they mean something special in XHTML (they are reserved characters), so they would be interpreted as part of the XHTML markup instead of content text. Or, it may be because they are characters beyond the standard (small) character set known as ASCII.');
   assert.equal(result_selected[2].innerText, 'Method');
   assert.equal(result_selected.data('label'), label);
+});
+
+test('create should create new <span class="htmlanno-highlight*"> tag by start/end offset value from BASE_NODE(without newline and empty line).', (assert) => 
+{
+  const id = 'createTestId1';
+  const label = 'Highlight#createTest1';
+  let result = instance.create(id, 1, 13, label); // See #selectRange(1, 13)
+
+  assert.equal(result.id, id);  // See #highlight(single)
+  assert.equal(result.reqferenceId, undefined);
+  assert.equal(result.startOffset, 1);
+  assert.equal(result.endOffset, 13);
+  assert.equal(result.getId(), id);
+  let result_selected = $('span.htmlanno-highlight' + id);
+  assert.equal(result_selected.length, 1);
+  assert.equal(result_selected.text(), 'Introduction');
+  assert.equal(result_selected.data('label'), label);
+});
+
+test('create should create multiple <span class="htmlanno-highlight*"> tag, each <span> tag includes each HTML tag in  range specified start/end offset value from BASE_NODE(without newline and empty line).', (assert) => 
+{
+  const id = 'createTestId2';
+  const label = 'Highlight#createTest2';
+  let result = instance.create(id, 1, 387, label); // See #selectRange(1, 387)
+
+  assert.equal(result.id, id);  // See #highlight(multi)
+  assert.equal(result.reqferenceId, undefined);
+  assert.equal(result.startOffset, 1);
+  assert.equal(result.endOffset, 387);
+  assert.equal(result.getId(), id);
+  let result_selected = $('span.htmlanno-highlight' + id);
+  assert.equal(result_selected.data('label'), label);
+  assert.equal(result_selected.length, 3);
+  assert.equal(result_selected[0].innerText, "Introduction");
+  assert.equal(result_selected[1].innerText, 'There are a few characters that need to be treated differently when they are used in XHTML. This may be because they mean something special in XHTML (they are reserved characters), so they would be interpreted as part of the XHTML markup instead of content text. Or, it may be because they are characters beyond the standard (small) character set known as ASCII.');
+  assert.equal(result_selected[2].innerText, 'Method');
 });
