@@ -11,7 +11,6 @@ const WindowEvent = require('./windowevent.js');
 class Highlighter{
   constructor(annotationContainer){
     this.highlights = annotationContainer;
-    this.highlighter = rangy.createHighlighter();
   }
 
   // 定数扱い
@@ -103,7 +102,8 @@ class Highlighter{
     }
 
     const temporaryElements = [];
-    this.highlighter.addClassApplier(rangy.createClassApplier(
+    let highlighter = rangy.createHighlighter();
+    highlighter.addClassApplier(rangy.createClassApplier(
       `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
       {
         ignoreWhiteSpace: true,
@@ -113,7 +113,7 @@ class Highlighter{
     ));
 
     let highlight = null;
-    this.highlighter.highlightSelection(
+    highlighter.highlightSelection(
       `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
       {exclusive: false}
     );
@@ -161,7 +161,6 @@ class Highlighter{
   remove(referenceId){
     if (undefined == referenceId) {
       return new Promise((resolve) => {
-        this.highlighter.removeAllHighlights();
         this.highlights.forEach((annotation, i)=>{
           this.highlights.remove(i);
         });
@@ -186,16 +185,6 @@ class Highlighter{
 
   _remove(annotation, index) {
     return new Promise((resolve, reject) => { 
-      let rangySelection = rangy.getSelection();
-      annotation.elements.forEach((rangyHighlight) => {
-        let range = rangy.createRange();
-        range.selectNodeContents(rangyHighlight);
-        rangySelection.addRange(range);
-      });
-      resolve(rangySelection);
-    }).then((rangySelection) => {
-      this.highlighter.unhighlightSelection(rangySelection);
-    }).then((resolve) => {
       this.highlights.remove(index);
     }).catch((reject) => {
       console.log(reject);
