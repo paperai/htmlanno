@@ -6,10 +6,11 @@ const AnnotationContainer = require('../src/annotationcontainer.js');
 
 QUnit.module('Highlighter', {
   before: () => {
-    var annotationContainer = undefined;
-    var instance = undefined;
+    annotationContainer = undefined;
+    instance = undefined;
   },
   beforeEach: () => {
+    Rangy.getSelection().removeAllRanges();
     annotationContainer = new AnnotationContainer();
     instance = new Highlighter(annotationContainer);
   }
