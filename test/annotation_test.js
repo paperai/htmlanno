@@ -47,6 +47,19 @@ test('getReferenceId() should return #referenceId', (assert) => {
   assert.equal(instance.getReferenceId(), dummyReferenceId);
 });
 
+test('equals() should return true when argument is myself', (assert) => {
+  assert.ok(instance.equals(instance));
+});
+
+test('equals() should return false when argument is undefined', (assert) => {
+  assert.notOk(instance.equals(undefined));
+});
+
+test('equals() should return false when argument is other Annotation object', (assert) => {
+  let other = new Annotation(dummyId, dummyReferenceId);
+  assert.notOk(instance.equals(other));
+});
+
 test('type(getter) should return undefined, this is abstract method, will be overridden in subclass', (assert) => {
   assert.equal(instance.type, undefined);
 });
