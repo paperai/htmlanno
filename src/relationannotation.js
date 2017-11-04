@@ -90,15 +90,12 @@ class RelationAnnotation extends Annotation {
     ].join("\n");
   }
 
-  equals(obj){
-    if (undefined == obj || this !== obj) {
-      return false;
-    }
-    else {
-      // TODO: 同一ID、同一のstarting/entering等でチェックするか？
-      return true;
-    }
-  }
+  /**
+   * TODO: 同一ID、同一のstarting/entering等でチェックするか？
+   * equals(obj){
+   *   return super.equals(obj);
+   * }
+   */
 
   static isMydata(toml){
     return (

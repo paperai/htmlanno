@@ -110,15 +110,12 @@ class Highlight extends Annotation {
     ].join("\n");
   }
 
-  equals(obj){
-    if (undefined == obj || this !== obj) {
-      return false;
-    }
-    else {
-      // TODO: 同一ID、同一選択範囲等でチェックするか？
-      return true;
-    }
-  }
+  /**
+   * TODO: 同一ID、同一選択範囲等でチェックするか？
+   * equals(obj){
+   *   return super.equals(obj);
+   * }
+   */
 
   static isMydata(toml){
     return (undefined != toml && "span" == toml.type);

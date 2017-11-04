@@ -16,6 +16,10 @@ class Annotation {
     return this.referenceId;
   }
 
+  equals(obj) {
+    return undefined != obj && this === obj;
+  }
+
   /**
    * Returns annotation object Identifier (Unique in all(highlight and relation) object).
    * This method expects the subclass to implement #getClassName ().
