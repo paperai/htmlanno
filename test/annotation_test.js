@@ -1,5 +1,6 @@
 const {test} = QUnit;
 
+const AnnotationContainer = require('../src/annotationcontainer.js');
 const Annotation = require('../src/annotation.js');
 
 QUnit.module('Annotation', {
@@ -9,6 +10,7 @@ QUnit.module('Annotation', {
     dummyReferenceId = 'sampleText';
   },
   beforeEach: () => {
+    window.annotationContainer = new AnnotationContainer();
     instance = new Annotation(dummyId, dummyReferenceId);
   }
 });

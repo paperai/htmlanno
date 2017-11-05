@@ -4,6 +4,7 @@ const EventManager = require('../src/eventmanager.js');
 window.globalEvent = new EventManager();
 
 const Annotation = require('../src/annotation.js');
+const AnnotationContainer = require('../src/annotationcontainer.js');
 const RelationAnnotation = require('../src/relationannotation.js');
 
 class HighlightStub extends Annotation {
@@ -40,19 +41,23 @@ QUnit.module('RelationAnnotation', {
   before: () => {
     instance = undefined;
     dummyId = createDummyId();
+    dummyDirection = 'one-way';
+  },
+  beforeEach: () => {
+    window.annotationContainer = new AnnotationContainer();
     dummyStartingHighlight = new HighlightStub(createDummyId());
     dummyStartingCircle = new CircleStub(dummyStartingHighlight.id, dummyStartingHighlight);
     dummyEndingHighlight = new HighlightStub(createDummyId());
     dummyEndingCircle = new CircleStub(dummyEndingHighlight.id, dummyEndingHighlight);
-    dummyDirection = 'one-way';
-  },
-  beforeEach: () => {
     instance = new RelationAnnotation(
       dummyId,
       dummyStartingCircle,
       dummyEndingCircle,
       dummyDirection
     );
+  },
+  afterEach: () => {
+    instance.remove();
   }
 });
 
