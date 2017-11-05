@@ -1,8 +1,10 @@
 const $ = require("jquery");
 
 const EventManager = require("./eventmanager");
+const AnnotationContainer = require("./annotationcontainer.js");
 
 window.globalEvent = new EventManager();
+window.annotationContainer = new AnnotationContainer();
 
 const AnnoUI = require("anno-ui");
 
@@ -10,7 +12,6 @@ const TomlTool = require("./tomltool.js");
 const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
-const AnnotationContainer = require("./annotationcontainer.js");
 const FileContainer = require("./filecontainer.js");
 const Highlight = require("./highlight.js");
 const RelationAnnotation = require("./relationannotation.js");
@@ -32,9 +33,8 @@ class Htmlanno{
      */
     this.useDefaultData = true;
     this.setupHtml();
-    this.annotations = new AnnotationContainer();
-    this.highlighter = new Highlighter(this.annotations);
-    this.arrowConnector = new ArrowConnector(this.annotations);
+    this.highlighter = new Highlighter(annotationContainer);
+    this.arrowConnector = new ArrowConnector(annotationContainer);
 
     // The contents and annotations from files.
     this.fileContainer = new FileContainer();
@@ -141,7 +141,7 @@ class Htmlanno{
     });
 
     AnnoUI.annoListDropdown.setup({
-      getAnnotations: this.annotations.getAllAnnotations.bind(this.annotations),
+      getAnnotations: annotationContainer.getAllAnnotations.bind(annotationContainer),
       scrollToAnnotation: this.scrollToAnnotation.bind(this)
     });
 
@@ -214,7 +214,7 @@ class Htmlanno{
         cir.reposition();
       });
     }
-    this.annotations.forEach((annotation) => {
+    annotationContainer.forEach((annotation) => {
       if (annotation instanceof RelationAnnotation) {
         annotation.reposition();
       }
@@ -234,7 +234,7 @@ class Htmlanno{
         if (document.body == e.target){
           e.preventDefault();
           lastSelected.remove();
-          this.annotations.remove(lastSelected);
+          annotationContainer.remove(lastSelected);
           let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
           WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
         }
@@ -308,7 +308,7 @@ class Htmlanno{
         end   = selected[0];
       }
       let relation = this.arrowConnector.createRelation(
-        this.annotations.nextId(),
+        annotationContainer.nextId(),
         start.circle, end.circle,
         params.type, params.text
       );
@@ -325,7 +325,7 @@ class Htmlanno{
 
   handleExportAnnotation(){
     return new Promise((resolve, reject) => {
-      resolve(TomlTool.saveToml(this.annotations.filter((annotation) => {
+      resolve(TomlTool.saveToml(annotationContainer.filter((annotation) => {
         return undefined === annotation.referenceId;
       })));
     });
@@ -360,7 +360,7 @@ class Htmlanno{
       selectedUiAnnotations.forEach((uiAnnotation) => {
         let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
         if (annotation.reference) {
-          this.annotations.forEach((annotationObj) => {
+          annotationContainer.forEach((annotationObj) => {
             if (uiAnnotation.name == annotationObj.referenceId) {
               annotationObj.setColor(uiAnnotation.color);
             }
@@ -554,17 +554,17 @@ class Htmlanno{
 
   scrollToAnnotation(id) {
     let scrollArea = $('#viewerWrapper');
-    let annotation = this.annotations.findById(id);
+    let annotation = annotationContainer.findById(id);
     scrollArea[0].scrollTop = annotation.scrollTop - scrollArea.offset().top;
     annotation.blink();
   }
 
   endEditLabel(id, label) {
-    this.annotations.findById(id).setContent(label);
+    annotationContainer.findById(id).setContent(label);
   }
 
   getSelectedAnnotations() {
-    return this.annotations.getSelectedAnnotations();
+    return annotationContainer.getSelectedAnnotations();
   }
 
   /**
