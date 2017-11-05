@@ -54,7 +54,7 @@ class RelationAnnotation extends Annotation {
       this.blur();
     } else {
       this.arrow.select();
-      this.selected = true;
+      this._selected = true;
       this.dispatchWindowEvent('annotationSelected', this);
     }
   }
