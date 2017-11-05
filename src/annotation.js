@@ -83,8 +83,8 @@ class Annotation {
   }
 
   blur() {
-    this.selected = false;
-    this.dispatchWindowEvent('annotationDeselected');
+    this._selected = false;
+    this.dispatchWindowEvent('annotationDeselected', this);
   }
 
   blink() {
