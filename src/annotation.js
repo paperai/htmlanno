@@ -6,6 +6,7 @@ class Annotation {
     this.referenceId = referenceId;
     this._selected = false;
     this._selectedTimestamp = undefined;
+    this._uuid = AnnoUI.util.uuid();
   }
 
   getId() {
@@ -22,12 +23,11 @@ class Annotation {
 
   /**
    * Returns annotation object Identifier (Unique in all(highlight and relation) object).
-   * This method expects the subclass to implement #getClassName ().
    *
    * For Anno-ui annoListDropDown. This interface calls `annotation.uuid` as the identifier.
    */
   get uuid() {
-    return this.getId();
+    return this._uuid;
   }
 
   /**
