@@ -68,25 +68,26 @@
 	const $ = __webpack_require__(1);
 	
 	const EventManager = __webpack_require__(3);
+	const AnnotationContainer = __webpack_require__(5);
 	
 	window.globalEvent = new EventManager();
+	window.annotationContainer = new AnnotationContainer();
 	
-	const AnnoUI = __webpack_require__(5);
+	const AnnoUI = __webpack_require__(6);
 	
-	const TomlTool = __webpack_require__(6);
-	const Highlighter = __webpack_require__(15);
-	const Circle = __webpack_require__(11);
-	const ArrowConnector = __webpack_require__(21);
-	const AnnotationContainer = __webpack_require__(22);
+	const TomlTool = __webpack_require__(7);
+	const Highlighter = __webpack_require__(16);
+	const Circle = __webpack_require__(12);
+	const ArrowConnector = __webpack_require__(22);
 	const FileContainer = __webpack_require__(23);
-	const Highlight = __webpack_require__(10);
-	const RelationAnnotation = __webpack_require__(13);
+	const Highlight = __webpack_require__(11);
+	const RelationAnnotation = __webpack_require__(14);
 	const Bioes = __webpack_require__(24);
 	const LoadBioesPromise = __webpack_require__(25);
 	const LoadHtmlPromise = __webpack_require__(26);
 	const LoadTextPromise = __webpack_require__(28);
 	const HideBioesAnnotation = __webpack_require__(27);
-	const WindowEvent = __webpack_require__(20);
+	const WindowEvent = __webpack_require__(21);
 	
 	class Htmlanno{
 	  constructor(){
@@ -99,9 +100,8 @@
 	     */
 	    this.useDefaultData = true;
 	    this.setupHtml();
-	    this.annotations = new AnnotationContainer();
-	    this.highlighter = new Highlighter(this.annotations);
-	    this.arrowConnector = new ArrowConnector(this.annotations);
+	    this.highlighter = new Highlighter(annotationContainer);
+	    this.arrowConnector = new ArrowConnector(annotationContainer);
 	
 	    // The contents and annotations from files.
 	    this.fileContainer = new FileContainer();
@@ -208,7 +208,7 @@
 	    });
 	
 	    AnnoUI.annoListDropdown.setup({
-	      getAnnotations: this.annotations.getAllAnnotations.bind(this.annotations),
+	      getAnnotations: annotationContainer.getAllAnnotations.bind(annotationContainer),
 	      scrollToAnnotation: this.scrollToAnnotation.bind(this)
 	    });
 	
@@ -281,7 +281,7 @@
 	        cir.reposition();
 	      });
 	    }
-	    this.annotations.forEach((annotation) => {
+	    annotationContainer.forEach((annotation) => {
 	      if (annotation instanceof RelationAnnotation) {
 	        annotation.reposition();
 	      }
@@ -301,7 +301,7 @@
 	        if (document.body == e.target){
 	          e.preventDefault();
 	          lastSelected.remove();
-	          this.annotations.remove(lastSelected);
+	          annotationContainer.remove(lastSelected);
 	          let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
 	          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
 	        }
@@ -375,7 +375,7 @@
 	        end   = selected[0];
 	      }
 	      let relation = this.arrowConnector.createRelation(
-	        this.annotations.nextId(),
+	        annotationContainer.nextId(),
 	        start.circle, end.circle,
 	        params.type, params.text
 	      );
@@ -392,7 +392,7 @@
 	
 	  handleExportAnnotation(){
 	    return new Promise((resolve, reject) => {
-	      resolve(TomlTool.saveToml(this.annotations.filter((annotation) => {
+	      resolve(TomlTool.saveToml(annotationContainer.filter((annotation) => {
 	        return undefined === annotation.referenceId;
 	      })));
 	    });
@@ -427,7 +427,7 @@
 	      selectedUiAnnotations.forEach((uiAnnotation) => {
 	        let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
 	        if (annotation.reference) {
-	          this.annotations.forEach((annotationObj) => {
+	          annotationContainer.forEach((annotationObj) => {
 	            if (uiAnnotation.name == annotationObj.referenceId) {
 	              annotationObj.setColor(uiAnnotation.color);
 	            }
@@ -621,17 +621,17 @@
 	
 	  scrollToAnnotation(id) {
 	    let scrollArea = $('#viewerWrapper');
-	    let annotation = this.annotations.findById(id);
+	    let annotation = annotationContainer.findById(id);
 	    scrollArea[0].scrollTop = annotation.scrollTop - scrollArea.offset().top;
 	    annotation.blink();
 	  }
 	
 	  endEditLabel(id, label) {
-	    this.annotations.findById(id).setContent(label);
+	    annotationContainer.findById(id).setContent(label);
 	  }
 	
 	  getSelectedAnnotations() {
-	    return this.annotations.getSelectedAnnotations();
+	    return annotationContainer.getSelectedAnnotations();
 	  }
 	
 	  /**
@@ -1105,6 +1105,117 @@
 
 /***/ }),
 /* 5 */
+/***/ (function(module, exports) {
+
+	class AnnotationContainer{
+	  constructor(){
+	    this.set = new Set();
+	    this.maxId = 0;
+	  }
+	
+	  /**
+	   * htmlanno only
+	   */
+	  isAnnotation(obj){
+	    return (undefined != obj.equals && undefined != obj.getId);
+	  }
+	
+	  /**
+	   * Issue a ID for annotation object.
+	   *
+	   * htmlanno only
+	   */
+	  nextId(){
+	    return ++this.maxId;
+	  }
+	
+	  add(annotation){
+	    if (!this.isAnnotation(annotation)) {
+	      return false;
+	    }
+	    this.maxId = Math.max(this.maxId, parseInt(annotation.getId()));
+	    this.set.add(annotation);
+	    return true;
+	  }
+	
+	  findById(id){
+	    let obj = null;
+	    this.set.forEach((elm)=>{
+	      if (elm.getId() == id) {
+	        obj = elm;
+	      }
+	    });
+	    return obj;
+	  }
+	
+	  // TODO: 排他制御
+	  remove(annotationOrId){
+	    let elm = typeof(annotationOrId) === "string" ?
+	      this.findById(annotationOrId):
+	      this.findById(annotationOrId.getId());
+	
+	    if (undefined != elm) {
+	      if (undefined != elm.remove) {
+	        elm.remove();
+	      }
+	      return this.set.delete(elm);
+	    }
+	    return false;
+	  }
+	
+	  /**
+	   * htmlanno only
+	   */
+	  forEach(callback){
+	    this.set.forEach(callback);
+	  }
+	
+	  // TODO: pdfanno only
+	  destroy(){
+	  }
+	
+	  filter(callback) {
+	    let newContainer = new AnnotationContainer();
+	    this.set.forEach((elm) => {
+	      if (callback(elm)) {
+	        newContainer.add(elm);
+	      }
+	    });
+	    return newContainer;
+	  }
+	
+	  /**
+	   * Get all annotations from the container.
+	   */
+	  getAllAnnotations(){
+	    let list = [];
+	    this.set.forEach(a => list.push(a));
+	    return list;
+	  }
+	
+	  getSelectedAnnotations(){
+	    let list = [];
+	    this.set.forEach((annotation) => {
+	      if (annotation.selected) {
+	        list.push(annotation);
+	      }
+	    });
+	    return list;
+	  }
+	
+	  // TODO: pdfanno only
+	  enableAll(){
+	  }
+	
+	  // TODO: pdfanno only
+	  disableAll(){
+	  }
+	}
+	module.exports = AnnotationContainer;
+
+
+/***/ }),
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	(function webpackUniversalModuleDefinition(root, factory) {
@@ -1678,6 +1789,7 @@
 	Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 	/* harmony export (immutable) */ __webpack_exports__["setupResizableColumns"] = setupResizableColumns;
 	/* harmony export (immutable) */ __webpack_exports__["tomlString"] = tomlString;
+	/* harmony export (immutable) */ __webpack_exports__["uuid"] = uuid;
 	/**
 	 * Make the UI resizable.
 	 */
@@ -1803,6 +1915,21 @@
 	
 	function isArray (val) {
 	    return val && 'length' in val
+	}
+	
+	
+	/**
+	 * Generate a universally unique identifier
+	 *
+	 * @return {String}
+	 */
+	function uuid () {
+	
+	    let uid = 0
+	    window.annotationContainer.getAllAnnotations().forEach(a => {
+	        uid = Math.max(uid, parseInt(a.uuid))
+	    })
+	    return String(uid + 1)
 	}
 	
 	
@@ -7461,13 +7588,13 @@
 	//# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const TomlParser = __webpack_require__(7);
-	const Highlight = __webpack_require__(10);
-	const RelationAnnotation = __webpack_require__(13);
-	const Annotation = __webpack_require__(12);
+	const TomlParser = __webpack_require__(8);
+	const Highlight = __webpack_require__(11);
+	const RelationAnnotation = __webpack_require__(14);
+	const Annotation = __webpack_require__(13);
 	
 	exports.saveToml = (annotationSet)=>{
 	  let data = ["version = 0.1"];
@@ -7517,11 +7644,11 @@
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	var parser = __webpack_require__(8);
-	var compiler = __webpack_require__(9);
+	var parser = __webpack_require__(9);
+	var compiler = __webpack_require__(10);
 	
 	module.exports = {
 	  parse: function(input) {
@@ -7532,7 +7659,7 @@
 
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports) {
 
 	module.exports = (function() {
@@ -11379,7 +11506,7 @@
 
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports) {
 
 	"use strict";
@@ -11580,13 +11707,13 @@
 
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
-	const Circle = __webpack_require__(11);
+	const Circle = __webpack_require__(12);
 	const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
-	const Annotation = __webpack_require__(12);
+	const Annotation = __webpack_require__(13);
 	
 	class Highlight extends Annotation {
 	  constructor(id, startOffset, endOffset, elements, referenceId){
@@ -11745,7 +11872,7 @@
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
@@ -11889,10 +12016,10 @@
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const AnnoUI = __webpack_require__(5);
+	const AnnoUI = __webpack_require__(6);
 	
 	class Annotation {
 	  constructor(id, referenceId) {
@@ -11900,6 +12027,7 @@
 	    this.referenceId = referenceId;
 	    this._selected = false;
 	    this._selectedTimestamp = undefined;
+	    this._uuid = AnnoUI.util.uuid();
 	  }
 	
 	  getId() {
@@ -11912,12 +12040,11 @@
 	
 	  /**
 	   * Returns annotation object Identifier (Unique in all(highlight and relation) object).
-	   * This method expects the subclass to implement #getClassName ().
 	   *
 	   * For Anno-ui annoListDropDown. This interface calls `annotation.uuid` as the identifier.
 	   */
 	  get uuid() {
-	    return this.getId();
+	    return this._uuid;
 	  }
 	
 	  /**
@@ -12008,13 +12135,13 @@
 
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
-	const RenderRelation = __webpack_require__(14);
+	const RenderRelation = __webpack_require__(15);
 	const globalEvent = window.globalEvent;
-	const Annotation = __webpack_require__(12);
+	const Annotation = __webpack_require__(13);
 	
 	class RelationAnnotation extends Annotation {
 	  constructor(id, startingCircle, endingCircle, direction, referenceId){
@@ -12158,7 +12285,7 @@
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
@@ -12329,18 +12456,18 @@
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	const $ = __webpack_require__(1);
-	const rangy = __webpack_require__(16);
-	__webpack_require__(17);
+	const rangy = __webpack_require__(17);
 	__webpack_require__(18);
 	__webpack_require__(19);
+	__webpack_require__(20);
 	
-	const Highlight = __webpack_require__(10);
-	const Annotation = __webpack_require__(12);
-	const WindowEvent = __webpack_require__(20);
+	const Highlight = __webpack_require__(11);
+	const Annotation = __webpack_require__(13);
+	const WindowEvent = __webpack_require__(21);
 	
 	class Highlighter{
 	  constructor(annotationContainer){
@@ -12530,7 +12657,7 @@
 
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -16380,7 +16507,7 @@
 	}, this);
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -16400,7 +16527,7 @@
 	(function(factory, root) {
 	    if (true) {
 	        // AMD. Register as an anonymous module with a dependency on Rangy.
-	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(16)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(17)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	    } else if (typeof module != "undefined" && typeof exports == "object") {
 	        // Node/CommonJS style
 	        module.exports = factory( require("rangy") );
@@ -17489,7 +17616,7 @@
 
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -17506,7 +17633,7 @@
 	(function(factory, root) {
 	    if (true) {
 	        // AMD. Register as an anonymous module with a dependency on Rangy.
-	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(16)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(17)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	    } else if (typeof module != "undefined" && typeof exports == "object") {
 	        // Node/CommonJS style
 	        module.exports = factory( require("rangy") );
@@ -18115,7 +18242,7 @@
 
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
@@ -18136,7 +18263,7 @@
 	(function(factory, root) {
 	    if (true) {
 	        // AMD. Register as an anonymous module with a dependency on Rangy.
-	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(16)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(17)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	    } else if (typeof module != "undefined" && typeof exports == "object") {
 	        // Node/CommonJS style
 	        module.exports = factory( require("rangy") );
@@ -18434,7 +18561,7 @@
 	}, this);
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ (function(module, exports) {
 
 	exports.emit = (eventName, data) => {
@@ -18445,11 +18572,11 @@
 
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	const RelationAnnotation = __webpack_require__(13);
-	const Annotation = __webpack_require__(12);
+	const RelationAnnotation = __webpack_require__(14);
+	const Annotation = __webpack_require__(13);
 	
 	class ArrowConnector{
 	  constructor(annotationContainer){
@@ -18514,117 +18641,6 @@
 	}
 	
 	module.exports = ArrowConnector;
-
-
-/***/ }),
-/* 22 */
-/***/ (function(module, exports) {
-
-	class AnnotationContainer{
-	  constructor(){
-	    this.set = new Set();
-	    this.maxId = 0;
-	  }
-	
-	  /**
-	   * htmlanno only
-	   */
-	  isAnnotation(obj){
-	    return (undefined != obj.equals && undefined != obj.getId);
-	  }
-	
-	  /**
-	   * Issue a ID for annotation object.
-	   *
-	   * htmlanno only
-	   */
-	  nextId(){
-	    return ++this.maxId;
-	  }
-	
-	  add(annotation){
-	    if (!this.isAnnotation(annotation)) {
-	      return false;
-	    }
-	    this.maxId = Math.max(this.maxId, parseInt(annotation.getId()));
-	    this.set.add(annotation);
-	    return true;
-	  }
-	
-	  findById(id){
-	    let obj = null;
-	    this.set.forEach((elm)=>{
-	      if (elm.getId() == id) {
-	        obj = elm;
-	      }
-	    });
-	    return obj;
-	  }
-	
-	  // TODO: 排他制御
-	  remove(annotationOrId){
-	    let elm = typeof(annotationOrId) === "string" ?
-	      this.findById(annotationOrId):
-	      this.findById(annotationOrId.getId());
-	
-	    if (undefined != elm) {
-	      if (undefined != elm.remove) {
-	        elm.remove();
-	      }
-	      return this.set.delete(elm);
-	    }
-	    return false;
-	  }
-	
-	  /**
-	   * htmlanno only
-	   */
-	  forEach(callback){
-	    this.set.forEach(callback);
-	  }
-	
-	  // TODO: pdfanno only
-	  destroy(){
-	  }
-	
-	  filter(callback) {
-	    let newContainer = new AnnotationContainer();
-	    this.set.forEach((elm) => {
-	      if (callback(elm)) {
-	        newContainer.add(elm);
-	      }
-	    });
-	    return newContainer;
-	  }
-	
-	  /**
-	   * Get all annotations from the container.
-	   */
-	  getAllAnnotations(){
-	    let list = [];
-	    this.set.forEach(a => list.push(a));
-	    return list;
-	  }
-	
-	  getSelectedAnnotations(){
-	    let list = [];
-	    this.set.forEach((annotation) => {
-	      if (annotation.selected) {
-	        list.push(annotation);
-	      }
-	    });
-	    return list;
-	  }
-	
-	  // TODO: pdfanno only
-	  enableAll(){
-	  }
-	
-	  // TODO: pdfanno only
-	  disableAll(){
-	  }
-	}
-	module.exports = AnnotationContainer;
 
 
 /***/ }),
