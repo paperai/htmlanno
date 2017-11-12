@@ -74,8 +74,12 @@ class Highlighter{
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
     selection.setSingleRange(range);
+
+    return selection;
   }
 
+  // これはRangyが必要なケースでのファクトリメソッドとする
+  // マウス操作によるハイライト追加を想定
   highlight(label){
     const selection = rangy.getSelection();
     if (0 == selection.rangeCount){
@@ -87,24 +91,18 @@ class Highlighter{
     if (selection.isCollapsed){
       return;
     }
-
-    const id = this.highlights.nextId();
     const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
     const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-    return this.create(id, startOffset, endOffset, label);
+
+    return this._create(startOffset, endOffset, label, selection);
   }
 
-  create(id, startOffset, endOffset, text, referenceId){
-    this.selectRange(startOffset, endOffset);
-    const selection = rangy.getSelection();
-    if (selection.isCollapsed){
-      return;
-    }
-
+  _create(startOffset, endOffset, text, selection, referenceId){
+    const highlight = new Highlight(startOffset, endOffset, text, referenceId);
     const temporaryElements = [];
-    let highlighter = rangy.createHighlighter();
+    const highlighter = rangy.createHighlighter();
     highlighter.addClassApplier(rangy.createClassApplier(
-      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
+      highlight.getClassName(),
       {
         ignoreWhiteSpace: true,
         onElementCreate: (element)=>{temporaryElements.push(element)},
@@ -112,16 +110,12 @@ class Highlighter{
       }
     ));
 
-    let highlight = null;
     highlighter.highlightSelection(
-      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
+      highlight.getClassName(),
       {exclusive: false}
     );
     if (temporaryElements.length > 0){
-      highlight = new Highlight(
-        id, startOffset, endOffset, temporaryElements, referenceId
-      );
-      highlight.setContent(text);
+      highlight.setDomElements(temporaryElements);
 
       // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
       this.highlights.add(highlight);
@@ -133,15 +127,14 @@ class Highlighter{
 
   addToml(id, toml, referenceId){
     try {
-      this.selectRange(toml.position[0], toml.position[1]);
-      const selection = rangy.getSelection();
+      const selection = this.selectRange(toml.position[0], toml.position[1]);
       if (!selection.isCollapsed){
-        const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
-        const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-        let span = this.create(
-          parseInt(id), startOffset, endOffset, toml.label, referenceId
+        const span = this._create(
+          toml.position[0], toml.position[1], toml.label,
+          selection, referenceId
         );
         if (null != span) {
+          span._id = id; // This is used to associate with RelationAnnotation. 
           span.blur();
         }
         return span;

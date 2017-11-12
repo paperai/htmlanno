@@ -51,7 +51,7 @@ test('selectRange(start,end) that includes multiple tags and empty line should s
   assert.equal(selected.toString(), "Introduction\n\nThere are a few characters that need to be treated differently when they are used in XHTML. This may be because they mean something special in XHTML (they are reserved characters), so they would be interpreted as part of the XHTML markup instead of content text. Or, it may be because they are characters beyond the standard (small) character set known as ASCII.\n\n\n\nMethod");
 });
 
-test('highlight should create a new <span class="htmlanno-highlight*"> tag(* is ID) by selected range on GUI.', (assert) => {
+test('highlight should create a new <span class="htmlanno-hl-*"> tag(* is ID) by selected range on GUI.', (assert) => {
   let range = new Range();
   // <div id="viewer">'s childNodes = 0:newline, 1:<h1>..</h1>
   // <h1>'s childNodes = 0:textnode
@@ -62,18 +62,18 @@ test('highlight should create a new <span class="htmlanno-highlight*"> tag(* is 
 
   const label = 'Highlight#highlightTest1';
   let result = instance.highlight(label);
-  assert.equal(result.id, '1');
+  assert.equal(result.uuid, '1');
   assert.equal(result.referenceId, undefined);
   assert.equal(result.startOffset, 1);
   assert.equal(result.endOffset, 13);
   assert.equal(result.getId(), '1');
-  let result_selected = $('span.htmlanno-highlight1');
+  let result_selected = $('span.htmlanno-hl-1');
   assert.equal(result_selected.length, 1);
   assert.equal(result_selected.text(), 'Introduction');
   assert.equal(result_selected.data('label'), label);
 });
 
-test('highlight should create multiple <span class="htmlanno-highlight*"> tag, each <span> tag includes each HTML tag in selected range.', (assert) => {
+test('highlight should create multiple <span class="htmlanno-hl-*"> tag, each <span> tag includes each HTML tag in selected range.', (assert) => {
   // 文頭から2つめの<h1>ブロックまでを選択
   // <div id="viewer">'s childNodes = 0:newline, 1:<h1>..</h1>, 2:newline, 3:<p>..</p>, 4:newlines(empty line), 5:<h1>..</h1>
   let range = new Range()
@@ -84,12 +84,12 @@ test('highlight should create multiple <span class="htmlanno-highlight*"> tag, e
 
   const label = 'Highlight#highlightTest2';
   let result = instance.highlight(label);
-  assert.equal(result.id, '1');
+  assert.equal(result.uuid, '1');
   assert.equal(result.referenceId, undefined);
   assert.equal(result.startOffset, 1);
   assert.equal(result.endOffset, 387);
   assert.equal(result.getId(), '1');
-  let result_selected = $('span.htmlanno-highlight1');
+  let result_selected = $('span.htmlanno-hl-1');
   assert.equal(result_selected.length, 3);
   assert.equal(result_selected[0].innerText, "Introduction");
   assert.equal(result_selected[1].innerText, 'There are a few characters that need to be treated differently when they are used in XHTML. This may be because they mean something special in XHTML (they are reserved characters), so they would be interpreted as part of the XHTML markup instead of content text. Or, it may be because they are characters beyond the standard (small) character set known as ASCII.');
@@ -97,35 +97,41 @@ test('highlight should create multiple <span class="htmlanno-highlight*"> tag, e
   assert.equal(result_selected.data('label'), label);
 });
 
-test('create should create new <span class="htmlanno-highlight*"> tag by start/end offset value from BASE_NODE(without newline and empty line).', (assert) => 
+test('_create should create new <span class="htmlanno-hl-*"> tag by start/end offset value from BASE_NODE(without newline and empty line).', (assert) => 
 {
-  const id = 'createTestId1';
+  let range = new Range();
+  // <div id="viewer">'s childNodes = 0:newline, 1:<h1>..</h1>
+  // <h1>'s childNodes = 0:textnode
+  range.setStart(document.getElementById('viewer').childNodes[1].childNodes[0], 0);
+  range.setEnd(document.getElementById('viewer').childNodes[1].childNodes[0], 12);
+  let selection = window.getSelection();
+  selection.addRange(range);
   const label = 'Highlight#createTest1';
-  let result = instance.create(id, 1, 13, label); // See #selectRange(1, 13)
+  let result = instance._create(1, 13, label, selection);
 
-  assert.equal(result.id, id);  // See #highlight(single)
+  assert.equal(result.uuid, '1');  // See #highlight(single)
   assert.equal(result.reqferenceId, undefined);
   assert.equal(result.startOffset, 1);
   assert.equal(result.endOffset, 13);
-  assert.equal(result.getId(), id);
-  let result_selected = $('span.htmlanno-highlight' + id);
+  assert.equal(result.getId(), '1');
+  let result_selected = $('span.htmlanno-hl-1');
   assert.equal(result_selected.length, 1);
   assert.equal(result_selected.text(), 'Introduction');
   assert.equal(result_selected.data('label'), label);
 });
 
-test('create should create multiple <span class="htmlanno-highlight*"> tag, each <span> tag includes each HTML tag in  range specified start/end offset value from BASE_NODE(without newline and empty line).', (assert) => 
+test('_create should create multiple <span class="htmlanno-hl-*"> tag, each <span> tag includes each HTML tag in  range specified start/end offset value from BASE_NODE(without newline and empty line).', (assert) => 
 {
-  const id = 'createTestId2';
+  const selection = instance.selectRange(1, 387);
   const label = 'Highlight#createTest2';
-  let result = instance.create(id, 1, 387, label); // See #selectRange(1, 387)
+  let result = instance._create(1, 387, label, selection); // See #selectRange(1, 387)
 
-  assert.equal(result.id, id);  // See #highlight(multi)
+  assert.equal(result.uuid, '1');  // See #highlight(multi)
   assert.equal(result.reqferenceId, undefined);
   assert.equal(result.startOffset, 1);
   assert.equal(result.endOffset, 387);
-  assert.equal(result.getId(), id);
-  let result_selected = $('span.htmlanno-highlight' + id);
+  assert.equal(result.getId(), '1');
+  let result_selected = $('span.htmlanno-hl-1');
   assert.equal(result_selected.data('label'), label);
   assert.equal(result_selected.length, 3);
   assert.equal(result_selected[0].innerText, "Introduction");
