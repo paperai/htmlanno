@@ -6,43 +6,59 @@ const Annotation = require('../src/annotation.js');
 QUnit.module('Annotation', {
   before: () => {
     instance = undefined;
-    dummyId = 12345;
     dummyReferenceId = 'sampleText';
   },
   beforeEach: () => {
     window.annotationContainer = new AnnotationContainer();
-    instance = new Annotation(dummyId, dummyReferenceId);
+    instance = new Annotation(dummyReferenceId);
+    annotationContainer.add(instance);
   }
 });
 
 test('instance should have id, referenceId, and selection info.(_selected, _selectedTimestamp)', (assert) => {
-  assert.equal(instance.id, dummyId);
+  assert.equal(instance.uuid, '1');
   assert.equal(instance.referenceId, dummyReferenceId);
   assert.equal(instance._selected, false);
   assert.equal(instance._selectedTimestamp, undefined);
 });
 
-test('getId() should return UUID that create by Annotation.createId() with #id and #referenceId.', (assert) => {
-  assert.equal(instance.getId(), Annotation.createId(instance.id, instance.referenceId));
-  assert.equal(instance.getId(), (dummyId + '-' + dummyReferenceId));
+// TODO: uuid()を実装したのでこの機能はもう不要か？
+test('getId() should return UUID that create by Annotation.createId() with #uuid and #referenceId.', (assert) => {
+  assert.equal(instance.getId(), Annotation.createId(instance.uuid, instance.referenceId));
 });
 
-test('getId() should return UUID that equal to #id when #referenceId is undefined', (assert) => {
-  let withoutReferenceId = new Annotation(dummyId);
+// TODO: uuid()を実装したのでこの機能はもう不要か？
+test('getId() should return UUID that equal to #uuid when #referenceId is undefined', (assert) => {
+  let withoutReferenceId = new Annotation();
+  annotationContainer.add(withoutReferenceId);
 
-  assert.equal(withoutReferenceId.getId(), dummyId);
+  assert.equal(withoutReferenceId.getId(), '2');
 });
 
 test('getId() should return UUID that replaced the string of cannot use to HTML class name on #referenceId', (assert) => {
   let cannotUseToHtmlChars = ['(', ')', '.', '#'];  // 実際にエラーとなった文字列を順次追加しています
-  let replacedUUID = dummyId + '-' + '_text_text_';
+  let replacedReferenceId = '_text_text_';
 
-  cannotUseToHtmlChars.forEach((c) => {
+  cannotUseToHtmlChars.forEach((c, index) => {
     let referenceId = c + 'text' + c + 'text' + c;  // 文頭、文中、文末
-    instance = new Annotation(dummyId, referenceId);
+    instance = new Annotation(referenceId);
+    annotationContainer.add(instance);
 
-    assert.equal(instance.getId(), replacedUUID);
+    assert.equal(instance.uuid, (index + 2).toString());
+    assert.equal(instance.getId(), instance.uuid + '-' + replacedReferenceId);
   }); 
+});
+
+test('uuid(getter) is start at one, and incremented automatically at instance creation. (instance must add to annotaionContainer)', (assert) => {
+  assert.equal(instance.uuid, '1'); // beforeEach()で毎回1初期化され、インスタンスがannotationContainerへ登録される
+
+  const other1 = new Annotation();
+  annotationContainer.add(other1);
+  assert.equal(other1.uuid, '2');
+
+  const other2 = new Annotation();
+  annotationContainer.add(other2);
+  assert.equal(other2.uuid, '3');
 });
 
 test('getReferenceId() should return #referenceId', (assert) => {
@@ -58,7 +74,8 @@ test('equals() should return false when argument is undefined', (assert) => {
 });
 
 test('equals() should return false when argument is other Annotation object', (assert) => {
-  let other = new Annotation(dummyId, dummyReferenceId);
+  let other = new Annotation(dummyReferenceId);
+  annotationContainer.add(other);
   assert.notOk(instance.equals(other));
 });
 

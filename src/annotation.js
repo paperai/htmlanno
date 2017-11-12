@@ -1,16 +1,16 @@
 const AnnoUI = require('anno-ui');
 
 class Annotation {
-  constructor(id, referenceId) {
-    this.id = id;
+  constructor(referenceId) {
     this.referenceId = referenceId;
     this._selected = false;
     this._selectedTimestamp = undefined;
     this._uuid = AnnoUI.util.uuid();
+    this.__id = undefined;
   }
 
   getId() {
-    return Annotation.createId(this.id, this.referenceId);
+    return Annotation.createId(this.uuid, this.referenceId);
   }
 
   getReferenceId() {
@@ -19,6 +19,22 @@ class Annotation {
 
   equals(obj) {
     return undefined != obj && this === obj;
+  }
+
+  /**
+   * Set ID (This is not UUID and referenceID).
+   * _id(getter/setter) is only used by TomlTool#saveToml().
+   */
+  set _id(value) {
+    this.__id = value;
+  }
+
+  /**
+   * Set ID (This is not UUID and referenceID).
+   * _id(getter/setter) is only used by TomlTool#saveToml().
+   */
+  get _id() {
+    return this.__id;
   }
 
   /**
