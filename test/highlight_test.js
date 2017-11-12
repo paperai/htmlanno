@@ -9,7 +9,6 @@ const Highlight = require('../src/highlight.js');
 QUnit.module('Highlight', {
   before: () => {
     this.instance = undefined;
-    this.dummyId = new Date().getTime().toString();
     this.dummyStart = 10;
     this.dummyEnd   = 15;
   },
@@ -18,7 +17,11 @@ QUnit.module('Highlight', {
   },
   beforeEach: () => {
     window.annotationContainer = new AnnotationContainer();
-    // 実際にはインスタンス生成に先立って設置されたHTMLタグをjQueryで選択したもの
+
+    this.instance = new Highlight(this.dummyStart, this.dummyEnd, 'test label 1');
+    annotationContainer.add(this.instance);
+
+    // ハイライトする対象を生成、dummyParentNodeでラップしてから div#viewer へ追加登録する
     this.dummyElements = [
       document.createElement('span'),
       document.createElement('span'),
@@ -26,35 +29,47 @@ QUnit.module('Highlight', {
     ];
     this.dummyParentNode = document.createElement('div');
     this.dummyElements.forEach((elm) => {
-      // @see Highlighter#create
-      elm.className = 'htmlanno-highlight' + this.dummyId;
-      elm.innerText = 'TEST TEST TEST';
+      elm.classList.add(this.instance.getClassName());
       this.dummyParentNode.appendChild(elm);
     });
+    this.dummyElements[0].innerHTML = 'TEST TEST TEST ' + Math.random().toString();
+    this.dummyElements[1].innerHTML = 'TEST TEST TEST ' + Math.random().toString();
+    this.dummyElements[2].innerHTML = 'TES';
     $('#viewer')[0].appendChild(this.dummyParentNode);
-    this.instance = new Highlight(
-      this.dummyId,
-      this.dummyStart,
-      this.dummyEnd,
-      this.dummyElements
-    );
+
+    this.selectedContent = this.dummyElements[0].innerHTML + this.dummyElements[1].innerHTML + this.dummyElements[2].innerHTML;
   },
   afterEach: () => {
     this.instance.remove(); // これをやらないとイベントリスナ等が残る場合がある(クラスによる)
     $('#viewer')[0].removeChild(this.dummyParentNode);
   }
 }, () => {
-  test('instance should have #id, #startOffset, #endOffset, #elements, #topElement, #circle and #jObject', (assert) => {
-    assert.ok(this.instance.id === this.dummyId);
+  test('instance should have #uuid, #startOffset, #endOffset, #elements, #topElement, #circle and #jObject', (assert) => {
+    assert.ok(this.instance.uuid === '1');
     assert.ok(this.instance.startOffset === this.dummyStart);
     assert.ok(this.instance.endOffset === this.dummyEnd);
+    assert.equal(this.instance.elements, undefined);
+    assert.equal(this.instance.topElement, undefined);
+    assert.equal(this.instance.circle, undefined);
+    assert.equal(this.instance.jObject, undefined);
+    assert.equal(this.instance.getClassName(), 'htmlanno-hl-1');
+  });
+
+  test('setDomElements() should set argument to #elements, and update #topElements, #circle and #jObject', (assert) => {
+    this.instance.setDomElements(this.dummyElements);
+
     assert.ok(this.instance.elements === this.dummyElements);
     assert.ok(this.instance.topElement === this.dummyElements[0]);
     assert.equal(this.instance.circle.constructor.name, 'Circle');
     assert.ok(this.instance.circle.highlight === this.instance);
     assert.equal(this.instance.jObject.length, 3);
-    this.instance.jObject.each((i, elm) => {
-      assert.ok(elm.classList.contains('htmlanno-highlight' + this.dummyId));
+    this.instance.jObject.each((index, elm) => {
+      assert.equal(elm.innerText, this.dummyElements[index].innerText);
+      // test for  #setClass()
+      // インスタンスにおいて付与するCSS定義用クラス名
+      assert.ok(elm.classList.contains('htmlanno-highlight'));
+      // ハイライト対象を選択する際に付与するID付きクラス名(beforeではこれだけが付いている)
+      assert.ok(elm.classList.contains('htmlanno-hl-1'));
     });
   });
   
@@ -65,53 +80,21 @@ QUnit.module('Highlight', {
   // コンストラクタから呼び出される
   QUnit.skip('addCircle');
   
-  test('getClassName() should return "htmlanno-hl-" + #id', (assert) => {
-    assert.equal(this.instance.getClassName(), 'htmlanno-hl-' + this.dummyId);
+  test('getClassName() should return "htmlanno-hl-" + #uuid', (assert) => {
+    assert.equal(this.instance.getClassName(), 'htmlanno-hl-' + this.instance.uuid);
   });
   
-  test('getClassName() should return "htmlanno-hl-" + #id + "-" + #referenceId when it has referenceId', (assert) => {
-    let withReferenceId = new Highlight(
-      this.dummyId, this.dummyStart, this.dummyEnd, this.dummyElements, 'referenceId'
+  test('getClassName() should return "htmlanno-hl-" + #uuid + "-" + #referenceId when it has referenceId', (assert) => {
+    const withReferenceId = new Highlight(
+      this.dummyStart, this.dummyEnd, 'with reference id', 'referenceId'
     );
-    assert.equal(withReferenceId.getClassName(), 'htmlanno-hl-' + this.dummyId + '-referenceId');
+    annotationContainer.add(withReferenceId);
+    assert.equal(withReferenceId.getClassName(), 'htmlanno-hl-' + withReferenceId.uuid + '-referenceId');
     withReferenceId.remove(); // これをやらないとイベントリスナ等が残る場合がある(クラスによる)
   });
   
   // TODO: 後回し
   QUnit.skip('getBoundingClientRect()');
-  
-  // このメソッドは現状コンストラクタで呼び出されてしまうので、コンストラクタで更新された部分を再初期化してから挙動を確認する
-  // 処理内容としてはIDとなるHTMLクラス名のセットと、CSS定義用HTMLクラス名の埋め込み
-  // 埋め込むクラスの種類と名前の長さを整理したほうがいいと思う
-  test('setClass()', (assert) => {
-    newElements = [
-      document.createElement('span'),
-      document.createElement('span'),
-      document.createElement('span')
-    ];
-    newElements.forEach((elm) => {
-      // @see Highlighter#create
-      // #beforeEach()と異なりreferenceId付きとしている
-      elm.className = 'htmlanno-highlight' + this.dummyId + '-reference001_txt';
-      elm.innerText = 'TEST TEST TEST';
-      $('#viewer')[0].appendChild(elm);
-    });
-    this.instance.elements = newElements;
-    // この値を元に Annotation.createId() によって 'reference001_txt' へ変換される
-    this.instance.referenceId = 'reference001.txt';
-
-    this.instance.setClass();
-
-    newElements.forEach((elm) => {
-      assert.equal(3, elm.classList.length);
-      // ハイライト対象を選択する際に付与するID付きクラス名(beforeではこれだけが付いている)
-      assert.ok(elm.classList.contains('htmlanno-highlight'+this.dummyId + '-reference001_txt'));
-      // インスタンスにおいて付与するID付きクラス名。不要？
-      assert.ok(elm.classList.contains('htmlanno-hl-' + this.dummyId + '-reference001_txt'));
-      // インスタンスにおいて付与するCSS定義用クラス名
-      assert.ok(elm.classList.contains('htmlanno-highlight'));
-    });
-  });
   
   // TODO: 後回し
   // setClass()内で呼び出している
@@ -131,7 +114,7 @@ QUnit.module('Highlight', {
     this.instance.remove();
 
     // ハイライトの<span>が削除され、<span>が持っていたinnerTextが代わりに配置される
-    assert.equal('TEST TEST TESTTEST TEST TESTTEST TEST TEST', this.dummyParentNode.innerHTML);
+    assert.equal(this.dummyParentNode.innerHTML, this.selectedContent);
     assert.notOk(globalEvent.listenerMap.has(this.instance.circle));
     assert.equal(0, $('div#circle-dummyId.htmlanno-circle').length);
 
