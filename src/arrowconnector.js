@@ -6,34 +6,30 @@ class ArrowConnector{
     this.annotations = annotationContainer;
   }
 
-  get(id, referenceId){
-    this.annotations.findById(Annotation.createId(id, referenceId));
-  }
-
-  add(data){
-    this.annotations.add(data);
-  }
-
-  createRelation(id, startingCircle, endingCircle, direction, text, referenceId){
-    let relation = new RelationAnnotation(id, startingCircle, endingCircle, direction, referenceId);
-    this.annotations.add(relation);
-    relation.setContent(text);
-
-    return relation;
-  }
-
   addToml(id, toml, referenceId){
-    return this.createRelation(
-      id,
-      this.annotations.findById(
-        Annotation.createId(parseInt(toml.ids[0]), referenceId)
-      ).circle,
-      this.annotations.findById(
-        Annotation.createId(parseInt(toml.ids[1]), referenceId)
-      ).circle,
-      toml.dir, toml.label,
-      referenceId
-    );
+    let startingHighlight = undefined;
+    let endingHighlight = undefined;
+    annotationContainer.forEach((annotation) => {
+      if (annotation._id == toml.ids[0]) {
+        startingHighlight = annotation;
+      }
+      if (annotation._id == toml.ids[1]) {
+        endingHighlight = annotation;
+      }
+    });
+    if (undefined != startingHighlight && undefined != endingHighlight) {
+      const relation = new RelationAnnotation(
+        startingHighlight.circle, endingHighlight.circle,
+        toml.dir,
+        referenceId
+      );
+      relation.setContent(toml.label);
+      annotationContainer.add(relation);
+
+      return relation;
+    } else {
+      return null;
+    }
   }
 
   remove(referenceId){
