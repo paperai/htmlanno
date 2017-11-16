@@ -1,0 +1,55 @@
+version = 0.1
+
+[1]
+type = "span"
+position = [100, 105]
+text = "XHTML"
+label = "AA"
+
+[2]
+type = "span"
+position = [158, 164]
+text = "XHTML "
+label = "BB"
+
+[3]
+type = "relation"
+dir = "one-way"
+ids = ["1", "2"]
+label = "AA -> BB"
+
+[4]
+type = "span"
+position = [309, 320]
+text = "characters "
+label = "C1"
+
+[5]
+type = "span"
+position = [470, 481]
+text = "characters "
+label = "D1"
+
+[6]
+type = "relation"
+dir = "two-way"
+ids = ["4", "5"]
+label = "C1<>D1"
+
+[7]
+type = "span"
+position = [543, 553]
+text = "character "
+label = "E1"
+
+[8]
+type = "span"
+position = [611, 621]
+text = "character "
+label = "F1"
+
+[9]
+type = "relation"
+dir = "link"
+ids = ["8", "7"]
+label = "E1--F1"
