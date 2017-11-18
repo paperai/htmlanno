@@ -5,8 +5,10 @@ const Annotation = require('../src/annotation.js');
 
 QUnit.module('Annotation', {
   before: () => {
+    // TODO: 以下2つ、this. 付に変更
     instance = undefined;
     dummyReferenceId = 'sampleText';
+    this.uuidPattern = /^[a-zA-Z0-9]{8}$/;
   },
   beforeEach: () => {
     window.annotationContainer = new AnnotationContainer();
@@ -16,7 +18,8 @@ QUnit.module('Annotation', {
 });
 
 test('instance should have id, referenceId, and selection info.(_selected, _selectedTimestamp)', (assert) => {
-  assert.equal(instance.uuid, '1');
+  assert.equal(instance.uuid.length, 8);
+  assert.ok(this.uuidPattern.test(instance.uuid))
   assert.equal(instance.referenceId, dummyReferenceId);
   assert.equal(instance._selected, false);
   assert.equal(instance._selectedTimestamp, undefined);
@@ -32,7 +35,7 @@ test('getId() should return UUID that equal to #uuid when #referenceId is undefi
   let withoutReferenceId = new Annotation();
   annotationContainer.add(withoutReferenceId);
 
-  assert.equal(withoutReferenceId.getId(), '2');
+  assert.ok(this.uuidPattern.test(withoutReferenceId.getId()));
 });
 
 test('getId() should return UUID that replaced the string of cannot use to HTML class name on #referenceId', (assert) => {
@@ -44,21 +47,21 @@ test('getId() should return UUID that replaced the string of cannot use to HTML 
     instance = new Annotation(referenceId);
     annotationContainer.add(instance);
 
-    assert.equal(instance.uuid, (index + 2).toString());
     assert.equal(instance.getId(), instance.uuid + '-' + replacedReferenceId);
   }); 
 });
 
-test('uuid(getter) is start at one, and incremented automatically at instance creation. (instance must add to annotaionContainer)', (assert) => {
-  assert.equal(instance.uuid, '1'); // beforeEach()で毎回1初期化され、インスタンスがannotationContainerへ登録される
+test('uuid(getter) is incremented automatically at instance creation. (instance must add to annotaionContainer)', (assert) => {
+  assert.ok(this.uuidPattern.test(instance.uuid));
 
   const other1 = new Annotation();
-  annotationContainer.add(other1);
-  assert.equal(other1.uuid, '2');
+  assert.ok(this.uuidPattern.test(other1.uuid));
+  assert.notEqual(instance.uuid, other1.uuid);
 
   const other2 = new Annotation();
-  annotationContainer.add(other2);
-  assert.equal(other2.uuid, '3');
+  assert.ok(this.uuidPattern.test(other2.uuid));
+  assert.notEqual(instance.uuid, other2.uuid);
+  assert.notEqual(other1.uuid, other2.uuid);
 });
 
 test('getReferenceId() should return #referenceId', (assert) => {

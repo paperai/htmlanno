@@ -32,6 +32,7 @@ QUnit.module('RelationAnnotation', {
   before: () => {
     this.instance = undefined;
     this.onewayDirection = 'one-way';
+    this.uuidPattern = /^[a-zA-Z0-9]{8}$/;
   },
   beforeEach: () => {
     window.annotationContainer = new AnnotationContainer();
@@ -57,7 +58,9 @@ QUnit.module('RelationAnnotation', {
 });
 
 test('instance should have #uuid, #startingCircle, #endignCircle, #_direction and #arrow', (assert) => {
-  assert.equal(this.instance.uuid, '3'); // beforeEach()においてHighlightを2つ作っているので3始まり
+  assert.ok(this.uuidPattern.test(this.instance.uuid));
+  assert.notEqual(this.instance.uuid, this.dummyStartingHighlight.uuid);
+  assert.notEqual(this.instance.uuid, this.dummyEndingHighlight.uuid);
 
   assert.ok(this.instance.startingCircle == this.dummyStartingCircle);
   assert.ok(this.instance.endingCircle == this.dummyEndingCircle);
@@ -66,7 +69,7 @@ test('instance should have #uuid, #startingCircle, #endignCircle, #_direction an
   assert.equal(this.instance.arrow.id, this.instance.uuid);
   assert.equal(this.instance.arrow.fromX, this.dummyStartingCircle.positionCenter().left);
   assert.equal(this.instance.arrow.fromY, this.dummyStartingCircle.positionCenter().top);
-  assert.equal($('#htmlanno-svg-screen > #arrow-3').length, 1);
+  assert.equal($('#htmlanno-svg-screen > #arrow-' + this.instance.getId()).length, 1);
   // TODO: instance.arrow はdirectionによってjObjectの生成を変更するが、手間がかかるので後回しとする
   // TODO: 各種イベントハンドラのセット、イベントの送出についてテスト
   // TODO: テストしづらいし妙に複雑な構造なので整理を検討。初期から手を入れていない箇所
@@ -96,12 +99,12 @@ test('remove() should remove arrow from GUI, and emit "annotationDeleted" event'
   addEventListener('annotationDeleted', annotationDeletedHandler);
 
   // Before
-  assert.equal($('#htmlanno-svg-screen > #arrow-3').length, 1);
+  assert.equal($('#htmlanno-svg-screen > #arrow-' + this.instance.getId()).length, 1);
   this.instance.remove();
   // After
-  assert.equal($('#htmlanno-svg-screen > #arrow-3').length, 0);
+  assert.equal($('#htmlanno-svg-screen > #arrow-' + this.instance.getId()).length, 0);
 
-  assert.verifySteps(['annotationDeleted: 3']);
+  assert.verifySteps(['annotationDeleted: ' + this.instance.getId()]);
   removeEventListener('annotationDeleted', annotationDeletedHandler);
 });
 
@@ -119,14 +122,14 @@ test('remove() should unselect itself when it is selected before remove and emit
 
   this.instance.select();
   // Before
-  assert.equal($('#htmlanno-svg-screen > #arrow-3').length, 1);
+  assert.equal($('#htmlanno-svg-screen > #arrow-' + this.instance.getId()).length, 1);
   this.instance.remove();
   // After
-  assert.equal($('#htmlanno-svg-screen > #arrow-3').length, 0);
+  assert.equal($('#htmlanno-svg-screen > #arrow-' + this.instance.getId()).length, 0);
 
   assert.verifySteps([
-    'annotationDeselected: 3',
-    'annotationDeleted: 3'
+    'annotationDeselected: ' + this.instance.getId(),
+    'annotationDeleted: ' + this.instance.getId()
   ]);
   removeEventListener('annotationDeselected', annotationDeselectedHandler);
   removeEventListener('annotationDeleted', annotationDeletedHandler);

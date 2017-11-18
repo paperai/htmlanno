@@ -33,14 +33,15 @@ test('saveToml should return Array that include all annotation as TOML format st
   assert.equal(highlight._id, undefined);
   const toml = TomlTool.saveToml(annotationContainer);
   assert.equal(highlight._id, 1);
-  assert.equal(
+  assert.deepEqual(
     toml,
     [
       [
         'version = 0.1',
+        '',
         '[1]',
         'type = "span"',
-        'position: [123, 456]',
+        'position = [123, 456]',
         'text = "TEST TESTTEST TEST"',
         'label = "highlight 1"'
       ].join("\n")

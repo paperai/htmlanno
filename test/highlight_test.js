@@ -11,6 +11,7 @@ QUnit.module('Highlight', {
     this.instance = undefined;
     this.dummyStart = 10;
     this.dummyEnd   = 15;
+    this.uuidPattern = /^[a-zA-Z0-9]{8}$/;
   },
   after: () => {
     window.globalEvent = undefined;
@@ -45,14 +46,14 @@ QUnit.module('Highlight', {
   }
 }, () => {
   test('instance should have #uuid, #startOffset, #endOffset, #elements, #topElement, #circle and #jObject', (assert) => {
-    assert.ok(this.instance.uuid === '1');
+    assert.ok(this.uuidPattern.test(this.instance.uuid));
     assert.ok(this.instance.startOffset === this.dummyStart);
     assert.ok(this.instance.endOffset === this.dummyEnd);
     assert.equal(this.instance.elements, undefined);
     assert.equal(this.instance.topElement, undefined);
     assert.equal(this.instance.circle, undefined);
     assert.equal(this.instance.jObject, undefined);
-    assert.equal(this.instance.getClassName(), 'htmlanno-hl-1');
+    assert.equal(this.instance.getClassName(), 'htmlanno-hl-' + this.instance.uuid);
   });
 
   test('setDomElements() should set argument to #elements, and update #topElements, #circle and #jObject', (assert) => {
@@ -69,7 +70,7 @@ QUnit.module('Highlight', {
       // インスタンスにおいて付与するCSS定義用クラス名
       assert.ok(elm.classList.contains('htmlanno-highlight'));
       // ハイライト対象を選択する際に付与するID付きクラス名(beforeではこれだけが付いている)
-      assert.ok(elm.classList.contains('htmlanno-hl-1'));
+      assert.ok(elm.classList.contains('htmlanno-hl-' + this.instance.uuid));
     });
   });
   
