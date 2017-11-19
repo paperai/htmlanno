@@ -76,7 +76,7 @@ class AnnotationContainer{
   }
 
   /**
-   * Get all annotations from the container.
+   * Get all annotation from the container.
    */
   getAllAnnotations(){
     let list = [];
@@ -93,6 +93,20 @@ class AnnotationContainer{
     });
     return list;
   }
+
+  /**
+   * Get all primary annotation from container.
+   */
+  getPrimaryAnnotations() {
+    let list = [];
+    this.set.forEach((a) => {
+      if (a.isPrimary()) {
+        list.push(a);
+      }
+    });
+    return list;
+  }
+    
 
   // TODO: pdfanno only
   enableAll(){

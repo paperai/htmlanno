@@ -139,6 +139,39 @@ QUnit.skip('getAllAnnotations()', (assert) => {
 QUnit.skip('getSelectedAnnotation()', (assert) => {
 });
 
+test('getPrimaryAnnotations() should return the array that includes only primary annotations', (assert) => {
+  const primary1 = new Annotation();
+  const reference1 = new Annotation('ref1');
+  const primary2 = new Annotation();
+  const reference2 = new Annotation('ref1');
+  instance.add(primary1);
+  instance.add(reference1);
+  instance.add(primary2);
+  instance.add(reference2);
+
+  const result = instance.getPrimaryAnnotations();
+  assert.equal(result.length, 2);
+  assert.ok(result.includes(primary1));
+  assert.ok(result.includes(primary2));
+  result.forEach((elm) => {
+    assert.ok(elm.isPrimary());
+  });
+});
+
+test('getPrimaryAnnotations() should return the empty array when instance is not have primary annotation.', (assert) => {
+  const reference1 = new Annotation('ref1');
+  const reference2 = new Annotation('ref1');
+  const reference3 = new Annotation('ref2');
+  const reference4 = new Annotation('ref2');
+  instance.add(reference1);
+  instance.add(reference2);
+  instance.add(reference3);
+  instance.add(reference4);
+
+  const result = instance.getPrimaryAnnotations();
+  assert.deepEqual(result, []);
+});
+
 // pdfannoとの互換性のため用意したダミーなので省略
 QUnit.skip('enableAll()', (assert) => {
 });

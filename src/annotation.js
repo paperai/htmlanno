@@ -113,6 +113,10 @@ class Annotation {
   removeColor() {
   }
 
+  isPrimary() {
+    return this.referenceId == undefined;
+  }
+
   // TODO: Anno-UI events 辺りで提供してほしい
   dispatchWindowEvent(eventName, data) {
     let event = document.createEvent('CustomEvent')

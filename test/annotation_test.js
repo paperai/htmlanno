@@ -121,3 +121,16 @@ QUnit.skip('selectedTimestamp(getter) should return #_selectedTimestamp', (asser
 
 QUnit.skip('blur() should reset #_selected and emit an event "annotationDeselected"', (assert) => {
 });
+
+test('isPrimary() should return true when instance is primary annotation (=referenceId is undefined)', (assert) => {
+  const primary = new Annotation();
+  assert.equal(primary.referenceId, undefined);
+  assert.ok(primary.isPrimary());
+});
+
+test('isPrimary() should return false when instance is reference annotation (=referenceId is not undefined)', (assert) => {
+  const reference = new Annotation('abc');
+  assert.notEqual(reference.referenceId, undefined);
+  assert.notOk(reference.isPrimary());
+});
+
