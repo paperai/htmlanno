@@ -1917,7 +1917,6 @@
 	    return val && 'length' in val
 	}
 	
-	
 	/**
 	 * Generate a universally unique identifier
 	 *
@@ -1925,11 +1924,20 @@
 	 */
 	function uuid () {
 	
-	    let uid = 0
-	    window.annotationContainer.getAllAnnotations().forEach(a => {
-	        uid = Math.max(uid, parseInt(a.uuid))
-	    })
-	    return String(uid + 1)
+	    // Length of ID characters.
+	    const ID_LENGTH = 8
+	
+	    // Candidates.
+	    const BASE = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+	
+	    // The number of candidates.
+	    const BASE_LEN = BASE.length
+	
+	    let id = ''
+	    for (let i = 0; i < ID_LENGTH; i++) {
+	        id += BASE[ Math.floor(Math.random() * BASE_LEN) ]
+	    }
+	    return id
 	}
 	
 	
@@ -3066,7 +3074,7 @@
 	        })
 	
 	        // Conver to TOML style.
-	        const toml = Object(__WEBPACK_IMPORTED_MODULE_1__utils__["tomlString"])(data)
+	        const toml = __WEBPACK_IMPORTED_MODULE_1__utils__["tomlString"](data)
 	        console.log(toml)
 	
 	        // Download.
@@ -7407,7 +7415,7 @@
 	    const $progressBar = $('.js-upload-progress')
 	
 	    // Upload and analyze the PDF.
-	    Object(__WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */])({
+	    __WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */]({
 	        contentFile,
 	        willStartCallback : () => {
 	            // Reset the result text.
