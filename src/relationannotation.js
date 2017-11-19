@@ -4,15 +4,15 @@ const globalEvent = window.globalEvent;
 const Annotation = require("./annotation.js");
 
 class RelationAnnotation extends Annotation {
-  constructor(id, startingCircle, endingCircle, direction, referenceId){
-    super(id, referenceId);
+  constructor(startingCircle, endingCircle, direction, referenceId){
+    super(referenceId);
     this.startingCircle = startingCircle;
     this.endingCircle = endingCircle;
 
     this._direction = direction;
 
     this.arrow = new RenderRelation(
-      Annotation.createId(id, referenceId),
+      Annotation.createId(this.uuid, this.referenceId),
       startingCircle.positionCenter(),
       this._direction
     );
@@ -54,7 +54,7 @@ class RelationAnnotation extends Annotation {
       this.blur();
     } else {
       this.arrow.select();
-      this.selected = true;
+      this._selected = true;
       this.dispatchWindowEvent('annotationSelected', this);
     }
   }
@@ -82,23 +82,21 @@ class RelationAnnotation extends Annotation {
   }
 
   saveToml(){
+    // There is used '_id'. the uuid is set by constructor inner process, the _id is set by TomlTool#saveToml().
     return [
       'type = "relation"',
       `dir = "${this._direction}"`,
-      `ids = ["${this.startingCircle.highlight.id}", "${this.endingCircle.highlight.id}"]`,
+      `ids = ["${this.startingCircle.highlight._id}", "${this.endingCircle.highlight._id}"]`,
       `label = "${this.content()}"`
     ].join("\n");
   }
 
-  equals(obj){
-    if (undefined == obj || this !== obj) {
-      return false;
-    }
-    else {
-      // TODO: 同一ID、同一のstarting/entering等でチェックするか？
-      return true;
-    }
-  }
+  /**
+   * TODO: 同一ID、同一のstarting/entering等でチェックするか？
+   * equals(obj){
+   *   return super.equals(obj);
+   * }
+   */
 
   static isMydata(toml){
     return (

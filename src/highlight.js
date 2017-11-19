@@ -4,13 +4,17 @@ const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
 const Annotation = require("./annotation.js");
 
 class Highlight extends Annotation {
-  constructor(id, startOffset, endOffset, elements, referenceId){
-    super(id, referenceId);
+  constructor(startOffset, endOffset, content, referenceId){
+    super(referenceId);
     this.startOffset = startOffset;
     this.endOffset = endOffset;
 
+    this.setContent(content);
+  }
+
+  setDomElements(elements) {
     this.elements = elements;
-    this.topElement = elements[0];
+    this.topElement = this.elements[0];
 
     this.addCircle();
     this.setClass();
@@ -20,6 +24,8 @@ class Highlight extends Annotation {
         this.handleHoverIn.bind(this),
         this.handleHoverOut.bind(this)
     );
+    // Move _content to jObject's data-label
+    this.setContent(this._content);
   }
 
   handleHoverIn(e){
@@ -43,7 +49,7 @@ class Highlight extends Annotation {
   }
 
   getClassName(){
-    return `htmlanno-hl-${Highlight.createId(this.id, this.referenceId)}`;
+    return `htmlanno-hl-${Highlight.createId(this.uuid, this.referenceId)}`;
   }
 
   getBoundingClientRect(){
@@ -70,9 +76,11 @@ class Highlight extends Annotation {
   }
 
   removeClass(name){
-    this.elements.forEach((e)=>{
-      $(e).removeClass(name);
-    });
+    if (undefined != this.elements) {
+      this.elements.forEach((e)=>{
+        $(e).removeClass(name);
+      });
+    }
   }
 
   select(){
@@ -92,7 +100,9 @@ class Highlight extends Annotation {
 
   remove(){
     this.blur();
-    this.circle.remove();
+    if (undefined != this.circle) {
+      this.circle.remove();
+    }
     // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
     $(`.${this.getClassName()}`).each((i, elm) => {
       $(elm).replaceWith(elm.childNodes);
@@ -105,31 +115,33 @@ class Highlight extends Annotation {
     return [
       'type = "span"',
       `position = [${this.startOffset}, ${this.endOffset}]`,
-      'text = "' + $(this.elements).text() + '"',
+      'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
       `label = "${this.content()}"`
     ].join("\n");
   }
 
-  equals(obj){
-    if (undefined == obj || this !== obj) {
-      return false;
-    }
-    else {
-      // TODO: 同一ID、同一選択範囲等でチェックするか？
-      return true;
-    }
-  }
+  /**
+   * TODO: 同一ID、同一選択範囲等でチェックするか？
+   * equals(obj){
+   *   return super.equals(obj);
+   * }
+   */
 
   static isMydata(toml){
     return (undefined != toml && "span" == toml.type);
   }
 
   setContent(text){
-    this.jObject[0].setAttribute('data-label', text);
+    if (undefined == this.jObject) {
+      this._content = text;
+    } else {
+      this.jObject[0].setAttribute('data-label', text);
+      this._content = undefined;
+    }
   }
 
   content(){
-    return this.jObject[0].getAttribute('data-label');
+    return undefined == this.jObject ? this._content : this.jObject[0].getAttribute('data-label');
   }
 
   get type() {
@@ -141,6 +153,9 @@ class Highlight extends Annotation {
   }
 
   blink() {
+    if (undefined == this.jObject) {
+      return;
+    }
     this.circle.jObject.addClass('htmlanno-circle-hover');
     setTimeout(() => {
       this.circle.jObject.removeClass('htmlanno-circle-hover');
@@ -152,6 +167,9 @@ class Highlight extends Annotation {
   }
 
   removeColor() {
+    if (undefined == this.jObject) {
+      return;
+    }
     this.jObject[0].style.backgroundColor = undefined;
   } 
 }

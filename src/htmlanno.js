@@ -307,11 +307,11 @@ class Htmlanno{
         start = selected[1];
         end   = selected[0];
       }
-      let relation = this.arrowConnector.createRelation(
-        annotationContainer.nextId(),
-        start.circle, end.circle,
-        params.type, params.text
+      const relation = new RelationAnnotation(
+        start.circle, end.circle, params.type
       );
+      relation.setContent(params.text);
+      annotationContainer.add(relation);
       this.unselectHighlight();
       WindowEvent.emit('annotationrendered');
       relation.select();

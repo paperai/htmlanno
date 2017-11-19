@@ -374,11 +374,11 @@
 	        start = selected[1];
 	        end   = selected[0];
 	      }
-	      let relation = this.arrowConnector.createRelation(
-	        annotationContainer.nextId(),
-	        start.circle, end.circle,
-	        params.type, params.text
+	      const relation = new RelationAnnotation(
+	        start.circle, end.circle, params.type
 	      );
+	      relation.setContent(params.text);
+	      annotationContainer.add(relation);
 	      this.unselectHighlight();
 	      WindowEvent.emit('annotationrendered');
 	      relation.select();
@@ -1917,7 +1917,6 @@
 	    return val && 'length' in val
 	}
 	
-	
 	/**
 	 * Generate a universally unique identifier
 	 *
@@ -1925,11 +1924,20 @@
 	 */
 	function uuid () {
 	
-	    let uid = 0
-	    window.annotationContainer.getAllAnnotations().forEach(a => {
-	        uid = Math.max(uid, parseInt(a.uuid))
-	    })
-	    return String(uid + 1)
+	    // Length of ID characters.
+	    const ID_LENGTH = 8
+	
+	    // Candidates.
+	    const BASE = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+	
+	    // The number of candidates.
+	    const BASE_LEN = BASE.length
+	
+	    let id = ''
+	    for (let i = 0; i < ID_LENGTH; i++) {
+	        id += BASE[ Math.floor(Math.random() * BASE_LEN) ]
+	    }
+	    return id
 	}
 	
 	
@@ -3066,7 +3074,7 @@
 	        })
 	
 	        // Conver to TOML style.
-	        const toml = Object(__WEBPACK_IMPORTED_MODULE_1__utils__["tomlString"])(data)
+	        const toml = __WEBPACK_IMPORTED_MODULE_1__utils__["tomlString"](data)
 	        console.log(toml)
 	
 	        // Download.
@@ -7407,7 +7415,7 @@
 	    const $progressBar = $('.js-upload-progress')
 	
 	    // Upload and analyze the PDF.
-	    Object(__WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */])({
+	    __WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */]({
 	        contentFile,
 	        willStartCallback : () => {
 	            // Reset the result text.
@@ -7597,10 +7605,15 @@
 	const Annotation = __webpack_require__(13);
 	
 	exports.saveToml = (annotationSet)=>{
-	  let data = ["version = 0.1"];
+	  const data = ["version = 0.1"];
+	  let id = 1;
+	  annotationSet.forEach((annotation)=>{
+	    annotation._id = id;
+	    id ++;
+	  });
 	  annotationSet.forEach((annotation)=>{
 	    data.push("");
-	    data.push(`[${annotation.getId()}]`);
+	    data.push(`[${annotation._id}]`);
 	    data.push(annotation.saveToml());
 	  });
 	  return [data.join("\n")];
@@ -11716,13 +11729,17 @@
 	const Annotation = __webpack_require__(13);
 	
 	class Highlight extends Annotation {
-	  constructor(id, startOffset, endOffset, elements, referenceId){
-	    super(id, referenceId);
+	  constructor(startOffset, endOffset, content, referenceId){
+	    super(referenceId);
 	    this.startOffset = startOffset;
 	    this.endOffset = endOffset;
 	
+	    this.setContent(content);
+	  }
+	
+	  setDomElements(elements) {
 	    this.elements = elements;
-	    this.topElement = elements[0];
+	    this.topElement = this.elements[0];
 	
 	    this.addCircle();
 	    this.setClass();
@@ -11732,6 +11749,8 @@
 	        this.handleHoverIn.bind(this),
 	        this.handleHoverOut.bind(this)
 	    );
+	    // Move _content to jObject's data-label
+	    this.setContent(this._content);
 	  }
 	
 	  handleHoverIn(e){
@@ -11755,7 +11774,7 @@
 	  }
 	
 	  getClassName(){
-	    return `htmlanno-hl-${Highlight.createId(this.id, this.referenceId)}`;
+	    return `htmlanno-hl-${Highlight.createId(this.uuid, this.referenceId)}`;
 	  }
 	
 	  getBoundingClientRect(){
@@ -11782,9 +11801,11 @@
 	  }
 	
 	  removeClass(name){
-	    this.elements.forEach((e)=>{
-	      $(e).removeClass(name);
-	    });
+	    if (undefined != this.elements) {
+	      this.elements.forEach((e)=>{
+	        $(e).removeClass(name);
+	      });
+	    }
 	  }
 	
 	  select(){
@@ -11804,7 +11825,9 @@
 	
 	  remove(){
 	    this.blur();
-	    this.circle.remove();
+	    if (undefined != this.circle) {
+	      this.circle.remove();
+	    }
 	    // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
 	    $(`.${this.getClassName()}`).each((i, elm) => {
 	      $(elm).replaceWith(elm.childNodes);
@@ -11817,31 +11840,33 @@
 	    return [
 	      'type = "span"',
 	      `position = [${this.startOffset}, ${this.endOffset}]`,
-	      'text = "' + $(this.elements).text() + '"',
+	      'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
 	      `label = "${this.content()}"`
 	    ].join("\n");
 	  }
 	
-	  equals(obj){
-	    if (undefined == obj || this !== obj) {
-	      return false;
-	    }
-	    else {
-	      // TODO: 同一ID、同一選択範囲等でチェックするか？
-	      return true;
-	    }
-	  }
+	  /**
+	   * TODO: 同一ID、同一選択範囲等でチェックするか？
+	   * equals(obj){
+	   *   return super.equals(obj);
+	   * }
+	   */
 	
 	  static isMydata(toml){
 	    return (undefined != toml && "span" == toml.type);
 	  }
 	
 	  setContent(text){
-	    this.jObject[0].setAttribute('data-label', text);
+	    if (undefined == this.jObject) {
+	      this._content = text;
+	    } else {
+	      this.jObject[0].setAttribute('data-label', text);
+	      this._content = undefined;
+	    }
 	  }
 	
 	  content(){
-	    return this.jObject[0].getAttribute('data-label');
+	    return undefined == this.jObject ? this._content : this.jObject[0].getAttribute('data-label');
 	  }
 	
 	  get type() {
@@ -11853,6 +11878,9 @@
 	  }
 	
 	  blink() {
+	    if (undefined == this.jObject) {
+	      return;
+	    }
 	    this.circle.jObject.addClass('htmlanno-circle-hover');
 	    setTimeout(() => {
 	      this.circle.jObject.removeClass('htmlanno-circle-hover');
@@ -11864,6 +11892,9 @@
 	  }
 	
 	  removeColor() {
+	    if (undefined == this.jObject) {
+	      return;
+	    }
 	    this.jObject[0].style.backgroundColor = undefined;
 	  } 
 	}
@@ -12022,20 +12053,40 @@
 	const AnnoUI = __webpack_require__(6);
 	
 	class Annotation {
-	  constructor(id, referenceId) {
-	    this.id = id;
+	  constructor(referenceId) {
 	    this.referenceId = referenceId;
 	    this._selected = false;
 	    this._selectedTimestamp = undefined;
 	    this._uuid = AnnoUI.util.uuid();
+	    this.__id = undefined;
 	  }
 	
 	  getId() {
-	    return Annotation.createId(this.id, this.referenceId);
+	    return Annotation.createId(this.uuid, this.referenceId);
 	  }
 	
 	  getReferenceId() {
 	    return this.referenceId;
+	  }
+	
+	  equals(obj) {
+	    return undefined != obj && this === obj;
+	  }
+	
+	  /**
+	   * Set ID (This is not UUID and referenceID).
+	   * _id(getter/setter) is only used by TomlTool#saveToml().
+	   */
+	  set _id(value) {
+	    this.__id = value;
+	  }
+	
+	  /**
+	   * Set ID (This is not UUID and referenceID).
+	   * _id(getter/setter) is only used by TomlTool#saveToml().
+	   */
+	  get _id() {
+	    return this.__id;
 	  }
 	
 	  /**
@@ -12100,8 +12151,8 @@
 	  }
 	
 	  blur() {
-	    this.selected = false;
-	    this.dispatchWindowEvent('annotationDeselected');
+	    this._selected = false;
+	    this.dispatchWindowEvent('annotationDeselected', this);
 	  }
 	
 	  blink() {
@@ -12144,15 +12195,15 @@
 	const Annotation = __webpack_require__(13);
 	
 	class RelationAnnotation extends Annotation {
-	  constructor(id, startingCircle, endingCircle, direction, referenceId){
-	    super(id, referenceId);
+	  constructor(startingCircle, endingCircle, direction, referenceId){
+	    super(referenceId);
 	    this.startingCircle = startingCircle;
 	    this.endingCircle = endingCircle;
 	
 	    this._direction = direction;
 	
 	    this.arrow = new RenderRelation(
-	      Annotation.createId(id, referenceId),
+	      Annotation.createId(this.uuid, this.referenceId),
 	      startingCircle.positionCenter(),
 	      this._direction
 	    );
@@ -12194,7 +12245,7 @@
 	      this.blur();
 	    } else {
 	      this.arrow.select();
-	      this.selected = true;
+	      this._selected = true;
 	      this.dispatchWindowEvent('annotationSelected', this);
 	    }
 	  }
@@ -12222,23 +12273,21 @@
 	  }
 	
 	  saveToml(){
+	    // There is used '_id'. the uuid is set by constructor inner process, the _id is set by TomlTool#saveToml().
 	    return [
 	      'type = "relation"',
 	      `dir = "${this._direction}"`,
-	      `ids = ["${this.startingCircle.highlight.id}", "${this.endingCircle.highlight.id}"]`,
+	      `ids = ["${this.startingCircle.highlight._id}", "${this.endingCircle.highlight._id}"]`,
 	      `label = "${this.content()}"`
 	    ].join("\n");
 	  }
 	
-	  equals(obj){
-	    if (undefined == obj || this !== obj) {
-	      return false;
-	    }
-	    else {
-	      // TODO: 同一ID、同一のstarting/entering等でチェックするか？
-	      return true;
-	    }
-	  }
+	  /**
+	   * TODO: 同一ID、同一のstarting/entering等でチェックするか？
+	   * equals(obj){
+	   *   return super.equals(obj);
+	   * }
+	   */
 	
 	  static isMydata(toml){
 	    return (
@@ -12535,8 +12584,12 @@
 	    range.setStart(start.node, start.offset);
 	    range.setEnd(end.node, end.offset);
 	    selection.setSingleRange(range);
+	
+	    return selection;
 	  }
 	
+	  // これはRangyが必要なケースでのファクトリメソッドとする
+	  // マウス操作によるハイライト追加を想定
 	  highlight(label){
 	    const selection = rangy.getSelection();
 	    if (0 == selection.rangeCount){
@@ -12548,24 +12601,18 @@
 	    if (selection.isCollapsed){
 	      return;
 	    }
-	
-	    const id = this.highlights.nextId();
 	    const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
 	    const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-	    return this.create(id, startOffset, endOffset, label);
+	
+	    return this._create(startOffset, endOffset, label, selection);
 	  }
 	
-	  create(id, startOffset, endOffset, text, referenceId){
-	    this.selectRange(startOffset, endOffset);
-	    const selection = rangy.getSelection();
-	    if (selection.isCollapsed){
-	      return;
-	    }
-	
+	  _create(startOffset, endOffset, text, selection, referenceId){
+	    const highlight = new Highlight(startOffset, endOffset, text, referenceId);
 	    const temporaryElements = [];
-	    let highlighter = rangy.createHighlighter();
+	    const highlighter = rangy.createHighlighter();
 	    highlighter.addClassApplier(rangy.createClassApplier(
-	      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
+	      highlight.getClassName(),
 	      {
 	        ignoreWhiteSpace: true,
 	        onElementCreate: (element)=>{temporaryElements.push(element)},
@@ -12573,16 +12620,12 @@
 	      }
 	    ));
 	
-	    let highlight = null;
 	    highlighter.highlightSelection(
-	      `htmlanno-highlight${Annotation.createId(id, referenceId)}`,
+	      highlight.getClassName(),
 	      {exclusive: false}
 	    );
 	    if (temporaryElements.length > 0){
-	      highlight = new Highlight(
-	        id, startOffset, endOffset, temporaryElements, referenceId
-	      );
-	      highlight.setContent(text);
+	      highlight.setDomElements(temporaryElements);
 	
 	      // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
 	      this.highlights.add(highlight);
@@ -12594,15 +12637,14 @@
 	
 	  addToml(id, toml, referenceId){
 	    try {
-	      this.selectRange(toml.position[0], toml.position[1]);
-	      const selection = rangy.getSelection();
+	      const selection = this.selectRange(toml.position[0], toml.position[1]);
 	      if (!selection.isCollapsed){
-	        const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
-	        const endOffset   = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
-	        let span = this.create(
-	          parseInt(id), startOffset, endOffset, toml.label, referenceId
+	        const span = this._create(
+	          toml.position[0], toml.position[1], toml.label,
+	          selection, referenceId
 	        );
 	        if (null != span) {
+	          span._id = id; // This is used to associate with RelationAnnotation. 
 	          span.blur();
 	        }
 	        return span;
@@ -18583,34 +18625,30 @@
 	    this.annotations = annotationContainer;
 	  }
 	
-	  get(id, referenceId){
-	    this.annotations.findById(Annotation.createId(id, referenceId));
-	  }
-	
-	  add(data){
-	    this.annotations.add(data);
-	  }
-	
-	  createRelation(id, startingCircle, endingCircle, direction, text, referenceId){
-	    let relation = new RelationAnnotation(id, startingCircle, endingCircle, direction, referenceId);
-	    this.annotations.add(relation);
-	    relation.setContent(text);
-	
-	    return relation;
-	  }
-	
 	  addToml(id, toml, referenceId){
-	    return this.createRelation(
-	      id,
-	      this.annotations.findById(
-	        Annotation.createId(parseInt(toml.ids[0]), referenceId)
-	      ).circle,
-	      this.annotations.findById(
-	        Annotation.createId(parseInt(toml.ids[1]), referenceId)
-	      ).circle,
-	      toml.dir, toml.label,
-	      referenceId
-	    );
+	    let startingHighlight = undefined;
+	    let endingHighlight = undefined;
+	    annotationContainer.forEach((annotation) => {
+	      if (annotation._id == toml.ids[0]) {
+	        startingHighlight = annotation;
+	      }
+	      if (annotation._id == toml.ids[1]) {
+	        endingHighlight = annotation;
+	      }
+	    });
+	    if (undefined != startingHighlight && undefined != endingHighlight) {
+	      const relation = new RelationAnnotation(
+	        startingHighlight.circle, endingHighlight.circle,
+	        toml.dir,
+	        referenceId
+	      );
+	      relation.setContent(toml.label);
+	      annotationContainer.add(relation);
+	
+	      return relation;
+	    } else {
+	      return null;
+	    }
 	  }
 	
 	  remove(referenceId){
