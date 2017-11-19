@@ -141,7 +141,7 @@ class Htmlanno{
     });
 
     AnnoUI.annoListDropdown.setup({
-      getAnnotations: annotationContainer.getAllAnnotations.bind(annotationContainer),
+      getAnnotations: annotationContainer.getPrimaryAnnotations.bind(annotationContainer),
       scrollToAnnotation: this.scrollToAnnotation.bind(this)
     });
 
