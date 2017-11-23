@@ -98,10 +98,10 @@ class Highlight extends Annotation {
     super.blur();
   }
 
-  remove(){
+  remove(batch = false){
     this.blur();
     if (undefined != this.circle) {
-      this.circle.remove();
+      this.circle.remove(batch);
     }
     // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
     $(`.${this.getClassName()}`).each((i, elm) => {

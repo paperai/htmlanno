@@ -7,10 +7,14 @@ class Annotation {
     this._selectedTimestamp = undefined;
     this._uuid = AnnoUI.util.uuid();
     this.__id = undefined;
+    this._cache_id = null;
   }
 
   getId() {
-    return Annotation.createId(this.uuid, this.referenceId);
+    if (this._cache_id == null) {
+      this._cache_id = Annotation.createId(this._uuid, this.referenceId);
+    }
+    return this._cache_id;
   }
 
   getReferenceId() {
