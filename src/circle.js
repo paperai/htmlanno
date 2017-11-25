@@ -118,12 +118,13 @@ class Circle{
     this.jObject.css("transition", "0.2s");
   }
 
-  remove(){
+  remove(batch = false){
     globalEvent.emit("removecircle", this);
     this.jObject.remove();
     globalEvent.removeObject(this);
     const idx = Circle.instances.findIndex((e)=>e===this);
-    if (idx !== -1){
+
+    if (idx !== -1 && !batch){
       Circle.instances.splice(idx, 1);
       Circle.instances.forEach((cir)=>{
         cir.resetPosition();

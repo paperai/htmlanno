@@ -11837,10 +11837,10 @@
 	    super.blur();
 	  }
 	
-	  remove(){
+	  remove(batch = false){
 	    this.blur();
 	    if (undefined != this.circle) {
-	      this.circle.remove();
+	      this.circle.remove(batch);
 	    }
 	    // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
 	    $(`.${this.getClassName()}`).each((i, elm) => {
@@ -12040,12 +12040,13 @@
 	    this.jObject.css("transition", "0.2s");
 	  }
 	
-	  remove(){
+	  remove(batch = false){
 	    globalEvent.emit("removecircle", this);
 	    this.jObject.remove();
 	    globalEvent.removeObject(this);
 	    const idx = Circle.instances.findIndex((e)=>e===this);
-	    if (idx !== -1){
+	
+	    if (idx !== -1 && !batch){
 	      Circle.instances.splice(idx, 1);
 	      Circle.instances.forEach((cir)=>{
 	        cir.resetPosition();
@@ -12073,10 +12074,14 @@
 	    this._selectedTimestamp = undefined;
 	    this._uuid = AnnoUI.util.uuid();
 	    this.__id = undefined;
+	    this._cache_id = null;
 	  }
 	
 	  getId() {
-	    return Annotation.createId(this.uuid, this.referenceId);
+	    if (this._cache_id == null) {
+	      this._cache_id = Annotation.createId(this._uuid, this.referenceId);
+	    }
+	    return this._cache_id;
 	  }
 	
 	  getReferenceId() {
@@ -12662,7 +12667,7 @@
 	          selection, referenceId
 	        );
 	        if (null != span) {
-	          span._id = id; // This is used to associate with RelationAnnotation. 
+	          span._id = id; // This is used to associate with RelationAnnotation.
 	          span.blur();
 	        }
 	        return span;
@@ -12682,8 +12687,8 @@
 	  remove(referenceId){
 	    if (undefined == referenceId) {
 	      return new Promise((resolve) => {
-	        this.highlights.forEach((annotation, i)=>{
-	          this.highlights.remove(i);
+	        this.highlights.forEach((highlight)=>{
+	          highlight.remove(true);
 	        });
 	        resolve(undefined);
 	      });
@@ -12705,7 +12710,7 @@
 	  }
 	
 	  _remove(annotation, index) {
-	    return new Promise((resolve, reject) => { 
+	    return new Promise((resolve, reject) => {
 	      this.highlights.remove(index);
 	    }).catch((reject) => {
 	      console.log(reject);

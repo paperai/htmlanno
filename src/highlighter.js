@@ -134,7 +134,7 @@ class Highlighter{
           selection, referenceId
         );
         if (null != span) {
-          span._id = id; // This is used to associate with RelationAnnotation. 
+          span._id = id; // This is used to associate with RelationAnnotation.
           span.blur();
         }
         return span;
@@ -154,8 +154,8 @@ class Highlighter{
   remove(referenceId){
     if (undefined == referenceId) {
       return new Promise((resolve) => {
-        this.highlights.forEach((annotation, i)=>{
-          this.highlights.remove(i);
+        this.highlights.forEach((highlight)=>{
+          highlight.remove(true);
         });
         resolve(undefined);
       });
@@ -177,7 +177,7 @@ class Highlighter{
   }
 
   _remove(annotation, index) {
-    return new Promise((resolve, reject) => { 
+    return new Promise((resolve, reject) => {
       this.highlights.remove(index);
     }).catch((reject) => {
       console.log(reject);
