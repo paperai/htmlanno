@@ -127,11 +127,11 @@ class Annotation {
   }
 
   isPrimary() {
-    return undefined != this._fileContent ? this._fileContent.primary : (undefined == this.referenceId);
+    return undefined == this.referenceId;
   }
 
   isReference() {
-    return undefined != this._fileContent ? this._fileContent.reference : (undefined != this.referenceId);
+    return undefined != this.referenceId;
   }
 
   /**
