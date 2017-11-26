@@ -18,7 +18,7 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-exports.renderAnnotation = (tomlObj, highlighter, arrowConnector, referenceId, color) => {
+exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, color) => {
   for(key in tomlObj) {
     if ("version" == key) {
       continue;
@@ -38,18 +38,20 @@ exports.renderAnnotation = (tomlObj, highlighter, arrowConnector, referenceId, c
     } else if (undefined != color) {
       annotation.setColor(color);
     }
+    annotation.setFileContent(annotationFileObj);
   }
 };
 
 /**
- * @param objectOrText ... TomlObject(Hash) or Toml source text.
+ * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
  * @param highlighter ... Highlight annotation containr.
  * @param arrowConnector ... Relation annotation container.
  * @param referenceId (optional) ... Used to identify annotations.
  */
-exports.loadToml = (objectOrText, highlighter, arrowConnector, referenceId, color)=>{
-  if ('string' == typeof(objectOrText)) {
-    objectOrText = TomlParser.parse(objectOrText);
-  }
-  exports.renderAnnotation(objectOrText, highlighter, arrowConnector, referenceId, color);
+exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, color)=>{
+  const toml = 'string' == typeof(annotationFileObj.content) ?
+    TomlParser.parse(annotationFileObj.content) :
+    annotationFileObj.content;
+
+  exports.renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, color);
 };
