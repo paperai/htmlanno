@@ -39,19 +39,64 @@ class AnnotationContainer{
     return obj;
   }
 
-  // TODO: 排他制御
   remove(annotationOrId){
-    let elm = typeof(annotationOrId) === "string" ?
+    const elm = typeof(annotationOrId) === "string" ?
       this.findById(annotationOrId):
       this.findById(annotationOrId.getId());
 
     if (undefined != elm) {
-      if (undefined != elm.remove) {
-        elm.remove();
-      }
+      this._removeIfDefined(elm);
       return this.set.delete(elm);
     }
     return false;
+  }
+
+  /**
+   * Remove all annotation(primary and reference).
+   */
+  removeAll(referenceId) {
+    this.forEach((annotation) => {
+      this._removeIfDefined(annotation);
+    });
+    this.set = new Set();
+  }
+
+  /**
+   * Remove all primary annotation.
+   */
+  removePrimaryAll() {
+    const newSet = new Set();
+    this.forEach((annotation) => {
+      if (annotation.isPrimary()) {
+        this._removeIfDefined(annotation);
+      } else {
+        newSet.add(annotation);
+      }
+    });
+    this.set = newSet;
+  }
+
+  /**
+   * Remove all the specified reference annotation.
+   * @param referenceId ... referenceId of target reference annotations.
+   */
+  removeReference(referenceId) {
+    if (undefined == referenceId) {
+      throw new "referenceId is undefined."
+    }
+    const newSet = new Set();
+    this.forEach((annotation) => {
+      if (referenceId == annotation.getReferenceId()) {
+        this._removeIfDefined(annotation);
+      } else {
+        newSet.add(annotation);
+      }
+    });
+    this.set = newSet;
+  }
+
+  _removeIfDefined(object) {
+    return undefined == object.remove ? undefined : object.remove();
   }
 
   /**
@@ -106,7 +151,6 @@ class AnnotationContainer{
     });
     return list;
   }
-    
 
   // TODO: pdfanno only
   enableAll(){
