@@ -93,8 +93,8 @@ QUnit.skip('blur()', (assert) => {
 
 test('remove() should remove arrow from GUI, and emit "annotationDeleted" event', (assert) => {
   let annotationDeletedHandler = (event) => {
-    assert.step('annotationDeleted: ' + event.detail.getId());
-    assert.ok(event.detail === this.instance);
+    assert.step('annotationDeleted: ' + event.detail.uuid);
+    assert.ok(event.detail.uuid === this.instance.uuid);
   };
   addEventListener('annotationDeleted', annotationDeletedHandler);
 
@@ -104,19 +104,19 @@ test('remove() should remove arrow from GUI, and emit "annotationDeleted" event'
   // After
   assert.equal($('#htmlanno-svg-screen > #arrow-' + this.instance.getId()).length, 0);
 
-  assert.verifySteps(['annotationDeleted: ' + this.instance.getId()]);
+  assert.verifySteps(['annotationDeleted: ' + this.instance.uuid]);
   removeEventListener('annotationDeleted', annotationDeletedHandler);
 });
 
 test('remove() should unselect itself when it is selected before remove and emit', (assert) => {
   let annotationDeletedHandler = (event) => {
-    assert.step('annotationDeleted: ' + event.detail.getId());
-    assert.ok(event.detail === this.instance);
+    assert.step('annotationDeleted: ' + event.detail.uuid);
+    assert.ok(event.detail.uuid, this.instance.uuid);
   };
   addEventListener('annotationDeleted', annotationDeletedHandler);
   let annotationDeselectedHandler = (event) => {
-    assert.step('annotationDeselected: ' + event.detail.getId());
-    assert.ok(event.detail === this.instance);
+    assert.step('annotationDeselected: ' + event.detail.uuid);
+    assert.ok(event.detail.uuid === this.instance.uuid);
   };
   addEventListener('annotationDeselected', annotationDeselectedHandler);
 
@@ -128,8 +128,8 @@ test('remove() should unselect itself when it is selected before remove and emit
   assert.equal($('#htmlanno-svg-screen > #arrow-' + this.instance.getId()).length, 0);
 
   assert.verifySteps([
-    'annotationDeselected: ' + this.instance.getId(),
-    'annotationDeleted: ' + this.instance.getId()
+    'annotationDeselected: ' + this.instance.uuid,
+    'annotationDeleted: ' + this.instance.uuid
   ]);
   removeEventListener('annotationDeselected', annotationDeselectedHandler);
   removeEventListener('annotationDeleted', annotationDeletedHandler);

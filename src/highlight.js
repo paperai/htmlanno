@@ -108,7 +108,7 @@ class Highlight extends Annotation {
       $(elm).replaceWith(elm.childNodes);
     });
     this.jObject = null;
-    this.dispatchWindowEvent('annotationDeleted', this);
+    this.dispatchWindowEvent('annotationDeleted', {uuid: this.uuid});
   }
 
   saveToml(){
