@@ -143,6 +143,25 @@ test('removeAll() should not any raise error when instance is empty.', (assert) 
   assert.equal(this.instance.set.size, 0);
 });
 
+test('removeAll() should call Annotation#remove(true) (batch removing mode)', (assert) => {
+  [
+    this.annotationSet.primary1,
+    this.annotationSet.primary2,
+    this.annotationSet.reference1,
+    this.annotationSet.reference2,
+    this.annotationSet.reference3
+  ].forEach((elm) => {
+    elm.remove = (batchMode) => {
+      assert.ok(batchMode);
+      assert.step('remove is called');
+    };
+  });
+  assert.equal(this.instanceWithSomeElements.set.size, 5);
+  this.instanceWithSomeElements.removeAll();
+  assert.equal(this.instanceWithSomeElements.set.size, 0);
+  assert.verifySteps(['remove is called', 'remove is called','remove is called','remove is called','remove is called']);
+});
+
 test('removePrimaryAll() should remove only the primary annotation that is no referenceId.', (assert) => {
   [
     this.annotationSet.primary1,
@@ -182,6 +201,29 @@ test('removePrimaryAll() should not any raise error when instance does not have 
   this.instance.removePrimaryAll();
   assert.equal(this.instance.set.size, 2);
   assert.verifySteps([]);
+});
+
+test('removePrimaryAll() should call Annotation#remove(true) (batch removing mode)', (assert) => {
+  [
+    this.annotationSet.primary1,
+    this.annotationSet.primary2,
+    this.annotationSet.reference1,
+    this.annotationSet.reference2,
+    this.annotationSet.reference3
+  ].forEach((elm) => {
+    elm.remove = (batchMode) => {
+      assert.ok(batchMode);
+      assert.step('remove is called. isPrimary = ' + elm.isPrimary());
+    };
+  });
+  assert.equal(this.instanceWithSomeElements.set.size, 5);
+  assert.equal(this.instanceWithSomeElements.getPrimaryAnnotations().length, 2);
+  this.instanceWithSomeElements.removePrimaryAll();
+  assert.equal(this.instanceWithSomeElements.set.size, 3);
+  assert.notEqual(this.instanceWithSomeElements.findById(this.annotationSet.reference1.getId()), null);
+  assert.notEqual(this.instanceWithSomeElements.findById(this.annotationSet.reference2.getId()), null);
+  assert.notEqual(this.instanceWithSomeElements.findById(this.annotationSet.reference3.getId()), null);
+  assert.verifySteps(['remove is called. isPrimary = true', 'remove is called. isPrimary = true']);
 });
 
 test('removeReference() should remove only the reference annotations that is specified by referenceId.', (assert) => {
@@ -233,6 +275,38 @@ test('removeReference() should not any raise error when instance does not have t
   assert.equal(this.instance.set.size, 2);
   assert.verifySteps([]);
 });  
+
+test('removeReference() should call Annotation#remove(true) (batch removing mode)', (assert) => {
+  const referenceId = new Date().getTime().toString() + '1';
+  const reference1 = new Annotation(referenceId);
+  const reference2 = new Annotation(referenceId);
+  [
+    this.annotationSet.primary1,
+    this.annotationSet.primary2,
+    reference1,
+    reference2,
+    this.annotationSet.reference3
+  ].forEach((elm) => {
+    elm.remove = (batchMode) => {
+      assert.ok(batchMode);
+      assert.step('remove is called. isPrimary = ' + elm.isPrimary());
+    };
+  });
+  assert.ok(this.instance.add(this.annotationSet.primary1));
+  assert.ok(this.instance.add(this.annotationSet.primary2));
+  assert.ok(this.instance.add(reference1));
+  assert.ok(this.instance.add(reference2));
+  assert.ok(this.instance.add(this.annotationSet.reference3));
+
+  assert.equal(this.instance.set.size, 5);
+  assert.equal(this.instance.getPrimaryAnnotations().length, 2);
+  this.instance.removeReference(referenceId);
+  assert.equal(this.instance.set.size, 3);
+  assert.notEqual(this.instance.findById(this.annotationSet.primary1.getId()), null);
+  assert.notEqual(this.instance.findById(this.annotationSet.primary2.getId()), null);
+  assert.notEqual(this.instance.findById(this.annotationSet.reference3.getId()), null);
+  assert.verifySteps(['remove is called. isPrimary = false', 'remove is called. isPrimary = false']);
+});
 
 // #setのforEach()を呼び出しているだけなので省略
 QUnit.skip('forEach()', (assert) => {

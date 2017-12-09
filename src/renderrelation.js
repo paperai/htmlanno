@@ -121,7 +121,10 @@ class RenderRelation{
     this.jObjectOutline.hide();
   }
 
-  remove(){
+  /**
+   * @param batch ... Not use, this is for Highlight class.
+   */ 
+  remove(batch = false){
     this.jObject.remove();
     this.jObjectOutline.remove();
     globalEvent.removeObject(this);

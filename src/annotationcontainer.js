@@ -39,6 +39,12 @@ class AnnotationContainer{
     return obj;
   }
 
+  /**
+   * Remove an annotation.
+   *
+   * @param annotationOrId ... Annotation object or Annotation#getId() value
+   * @return removed Annotation object or false(when specified annotation does not find).
+   */
   remove(annotationOrId){
     const elm = typeof(annotationOrId) === "string" ?
       this.findById(annotationOrId):
@@ -53,22 +59,26 @@ class AnnotationContainer{
 
   /**
    * Remove all annotation(primary and reference).
+   *
+   * This method use Batch-removing mode.
    */
   removeAll(referenceId) {
     this.forEach((annotation) => {
-      this._removeIfDefined(annotation);
+      this._removeIfDefined(annotation, true);
     });
     this.set = new Set();
   }
 
   /**
    * Remove all primary annotation.
+   *
+   * This method use Batch-removing mode.
    */
   removePrimaryAll() {
     const newSet = new Set();
     this.forEach((annotation) => {
       if (annotation.isPrimary()) {
-        this._removeIfDefined(annotation);
+        this._removeIfDefined(annotation, true);
       } else {
         newSet.add(annotation);
       }
@@ -79,24 +89,33 @@ class AnnotationContainer{
   /**
    * Remove all the specified reference annotation.
    * @param referenceId ... referenceId of target reference annotations.
+   * @return Array that includes removed annotation objects;
+   *
+   * This method use Batch-removing mode.
    */
   removeReference(referenceId) {
     if (undefined == referenceId) {
       throw new "referenceId is undefined."
     }
     const newSet = new Set();
+    const removed = [];
     this.forEach((annotation) => {
       if (referenceId == annotation.getReferenceId()) {
-        this._removeIfDefined(annotation);
+        this._removeIfDefined(annotation, true);
+        removed.push(annotation);
       } else {
         newSet.add(annotation);
       }
     });
     this.set = newSet;
+    return removed;
   }
 
-  _removeIfDefined(object) {
-    return undefined == object.remove ? undefined : object.remove();
+  /**
+   * Real removing process.
+   */
+  _removeIfDefined(object, batch = false) {
+    return undefined == object.remove ? undefined : object.remove(batch);
   }
 
   /**
@@ -130,7 +149,7 @@ class AnnotationContainer{
   }
 
   getSelectedAnnotations(){
-    let list = [];
+    const list = [];
     this.set.forEach((annotation) => {
       if (annotation.selected) {
         list.push(annotation);
@@ -143,10 +162,10 @@ class AnnotationContainer{
    * Get all primary annotation from container.
    */
   getPrimaryAnnotations() {
-    let list = [];
-    this.set.forEach((a) => {
-      if (a.isPrimary()) {
-        list.push(a);
+    const list = [];
+    this.set.forEach((annotation) => {
+      if (annotation.isPrimary()) {
+        list.push(annotation);
       }
     });
     return list;
