@@ -395,6 +395,9 @@ class Htmlanno{
         annotation.primary = false;
       }
     });
+    // Because AnnotationContainer#removePrimaryAll() reconstructs inner set, #getAnnotations() is not return correctly collection.
+    // For update annoList count, 'annotationDeleted' event need to emit after all process.
+    WindowEvent.emit('annotationDeleted', {uuid: undefined});
   }
 
   /**
@@ -402,9 +405,8 @@ class Htmlanno{
    * @param fileNames ... not used.
    */
   displayReferenceAnnotation(fileNames) {
-    this._hideReferenceAnnotation(
-      this.getUiAnnotations(true)
-    ).then((resolve) => {
+    const removePromise = this._hideReferenceAnnotation(this.getUiAnnotations(true));
+    removePromise.then((resolve) => {
       const selectedUiAnnotations = this.getUiAnnotations(false);
       selectedUiAnnotations.forEach((uiAnnotation) => {
         const annotationFileObj = this.fileContainer.getAnnotation(uiAnnotation.name);
@@ -419,6 +421,9 @@ class Htmlanno{
           }
         }
       });
+    })
+    .catch((reject) => {
+      console.log(reject);
     });
   }
 
@@ -462,22 +467,19 @@ class Htmlanno{
     const fileContentNames = uiAnnotations.map((ann) => {
       return ann.name;
     });
-    const referenceAnnotations = this._getAnnotations((annotation) => {
-      return fileContentNames.includes(annotation.fileContentName) && annotation.isReference();
-    });
-
     const promises = [];
-    referenceAnnotations.forEach((annotation) => {
-       promises.push(new Promise((resolve, reject) => {
-         WindowEvent.emit('annotationDeleted', {detail: {uuid: annotation.uuid} });
-       }));
-    });
-    this.fileContainer.getAnnotations(referenceAnnotations).forEach((annotationObj) => {
+    this.fileContainer.getAnnotations(fileContentNames).forEach((annotationFileObj) => {
       promises.push(new Promise((resolve, reject) => {
         annotationFileObj.reference = false;
-        annotationContainer.removeReference(annotationFileObj.name);
+        resolve(annotationContainer.removeReference(annotationFileObj.name));
       }));
     });
+    promises.push(new Promise((resolve, reject) => {
+      // Because AnnotationContainer#removeReference() reconstructs inner set, #getAnnotations() is not return correctly collection.
+      // For update annoList count, 'annotationDeleted' event need to emit after all process.
+      WindowEvent.emit('annotationDeleted', {uuid: undefined});
+      resolve(true);
+    }));
     return Promise.all(promises);
   }
 
@@ -642,7 +644,6 @@ class Htmlanno{
   remove(annotation) {
     return new Promise((resolve, reject) => {
       annotationContainer.remove(annotation);
-      WindowEvent.emit('annotationDeleted', {detail: {uuid: annotation.uuid} });
       resolve(annotation);
     });
   }
