@@ -618,7 +618,7 @@
 	          // BIOESの場合Content fileとPrimary annotationがセットなので、
 	          // これがRefereneで使用されていることは起こりえない。
 	          results[1].annotation.primary = true;
-	          TomlTool.renderAnnotation(
+	          TomlTool.loadToml(
 	            results[1].annotation,
 	            this.highlighter,
 	            this.arrowConnector
@@ -704,10 +704,15 @@
 	
 	  removeAll() {
 	    annotationContainer.removeAll();
+	    // Because AnnotationContainer#removeAll() reconstructs inner set, #getAnnotations() is not return correctly collection.
+	    // For update annoList count, 'annotationDeleted' event need to emit after all process.
+	    WindowEvent.emit('annotationDeleted', {uuid: undefined});
 	  }
 	
 	  /**
 	   * @return Promise
+	   *
+	   * TODO: _hideUnselectedPrimaryAnnotations でのみ使用。廃止できるか？
 	   */
 	  remove(annotation) {
 	    return new Promise((resolve, reject) => {
