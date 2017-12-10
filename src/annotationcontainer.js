@@ -76,14 +76,17 @@ class AnnotationContainer{
    */
   removePrimaryAll() {
     const newSet = new Set();
+    const removed = [];
     this.forEach((annotation) => {
       if (annotation.isPrimary()) {
         this._removeIfDefined(annotation, true);
+        removed.push(annotation);
       } else {
         newSet.add(annotation);
       }
     });
     this.set = newSet;
+    return removed;
   }
 
   /**
