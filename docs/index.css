@@ -207,27 +207,27 @@
 }
 
 #viewer h1 {
-  font-size: xx-large;
+  font-size: 250%;
 }
 
 #viewer h2 {
-  font-size: x-large;
+  font-size: 200%;
 }
 
 #viewer h3 {
-  font-size: large;
+  font-size: 150%;
 }
 
 #viewer h4 {
-  font-size: small;
+  font-size: 70%;
 }
 
 #viewer h5 {
-  font-size: x-small;
+  font-size: 50%;
 }
 
 #viewer h6 {
-  font-size: xx-small;
+  font-size: 20%;
 }
 
 #viewer ul, #viewer ol {
