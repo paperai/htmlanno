@@ -89,7 +89,9 @@ class Highlight extends Annotation {
     } else {
       this.addClass("htmlanno-highlight-selected");
       this.selected = true;
-      this.dispatchWindowEvent('annotationSelected', this);
+      if (this.isEditable()) {
+        this.dispatchWindowEvent('annotationSelected', this);
+      }
     }
   }
 

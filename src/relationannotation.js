@@ -55,7 +55,9 @@ class RelationAnnotation extends Annotation {
     } else {
       this.arrow.select();
       this._selected = true;
-      this.dispatchWindowEvent('annotationSelected', this);
+      if (this.isEditable()) {
+        this.dispatchWindowEvent('annotationSelected', this);
+      }
     }
   }
 
