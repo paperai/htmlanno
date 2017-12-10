@@ -160,7 +160,7 @@
 	
 	    AnnoUI.browseButton.setup({
 	      loadFiles :                          this.loadFiles.bind(this),
-	      clearAllAnnotations :                this.remove.bind(this),
+	      clearAllAnnotations :                this.removeAll.bind(this),
 	      displayCurrentReferenceAnnotations : this.displayReferenceAnnotation.bind(this),
 	      displayCurrentPrimaryAnnotations :   () => {}, // not use. @see restoreAnnotations()
 	      getContentFiles :                    this.getContentFiles.bind(this),
@@ -300,10 +300,11 @@
 	      if (e.keyCode === 46 || e.keyCode == 8) {
 	        if (document.body == e.target){
 	          e.preventDefault();
-	          lastSelected.remove();
-	          annotationContainer.remove(lastSelected);
-	          let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
-	          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
+	          if (lastSelected.isEditable()) {
+	            annotationContainer.remove(lastSelected); // In this function, lastSelected#remove() is called.
+	            let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
+	            WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
+	          }
 	        }
 	      // esc
 	      } else if (e.keyCode === 27) {
@@ -398,23 +399,73 @@
 	    });
 	  }
 	
-	  displayPrimaryAnnotation(fileName) {
-	    let annotation = this.fileContainer.getAnnotation(fileName);
-	    annotation.primary = true;
-	    if ('bioes' == annotation.subtype) {
-	      this._renderBioesAnnotation(annotation);
-	    } else {
-	      this._renderAnnotation(annotation);
-	    }
+	  _getAnnotations(selectorFunction) {
+	    const results = [];
+	    annotationContainer.forEach((annotation) => {
+	      if (selectorFunction(annotation)) {
+	        results.push(annotation);
+	      }
+	    });
+	    return results;
 	  }
 	
+	  _getAnnotationsByFileContentName(targetName, optionalCheck) {
+	    return this._getAnnotations((annotation) => {
+	      if (targetName == annotation.fileContentName) {
+	        return undefined != optionalCheck ? optionalCheck(annotation) : true;
+	      }
+	    });
+	  }
+	
+	  /**
+	   * Anno-Ui -> rendering
+	   */
+	  displayPrimaryAnnotation(fileName) {
+	    const promises = this._hideUnselectedPrimaryAnnotations();
+	
+	    Promise.all(promises).then((resolve) => {
+	      const annotationFileObj = this.fileContainer.getAnnotation(fileName);
+	      annotationFileObj.primary = true;
+	      if ('bioes' == annotationFileObj.subtype) {
+	        this._renderBioesAnnotation(annotationFileObj);
+	      } else {
+	        this._renderAnnotation(annotationFileObj);
+	      }
+	    });
+	  }
+	
+	  _hideUnselectedPrimaryAnnotations() {
+	    const promises = [];
+	    this.getUiAnnotations(true, 'Primary').forEach((ann) => {
+	      this._getAnnotationsByFileContentName(ann.name, (annotation) => {
+	        return annotation.isPrimary();
+	      }).forEach((annotation) => {
+	        // TODO: annotationContainer.removePrimaryAll() のほうが早いが、そもそもAnno-uiでclearPrimaryAnnotation()を呼び出さない理由が不明。
+	        promises.push(this.remove(annotation));
+	      });
+	      promises.push(new Promise((resolve, reject) => {
+	        // 操作対象を明確化したいのでAnnotationには機能実装していない
+	        const annotationFileObj = this.fileContainer.getAnnotation(ann.name);
+	        annotationFileObj.primary = false;
+	        resolve(annotationFileObj);
+	      }));
+	    });
+	    return promises;
+	  }
+	
+	  /**
+	   * Anno-ui -> rendering(clear)
+	   */
 	  clearPrimaryAnnotation() {
 	    this.fileContainer.annotations.forEach((annotation) => {
 	      if (annotation.primary) {
+	        annotationContainer.removePrimaryAll();
 	        annotation.primary = false;
 	      }
 	    });
-	    this.remove();
+	    // Because AnnotationContainer#removePrimaryAll() reconstructs inner set, #getAnnotations() is not return correctly collection.
+	    // For update annoList count, 'annotationDeleted' event need to emit after all process.
+	    WindowEvent.emit('annotationDeleted', {uuid: undefined});
 	  }
 	
 	  /**
@@ -422,51 +473,54 @@
 	   * @param fileNames ... not used.
 	   */
 	  displayReferenceAnnotation(fileNames) {
-	    this.hideReferenceAnnotation(this.getUiAnnotations(true)).then((resolve) => {
-	      let selectedUiAnnotations = this.getUiAnnotations(false);
+	    const removePromise = this._hideReferenceAnnotation(this.getUiAnnotations(true));
+	    removePromise.then((resolve) => {
+	      const selectedUiAnnotations = this.getUiAnnotations(false);
 	      selectedUiAnnotations.forEach((uiAnnotation) => {
-	        let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
-	        if (annotation.reference) {
-	          annotationContainer.forEach((annotationObj) => {
-	            if (uiAnnotation.name == annotationObj.referenceId) {
-	              annotationObj.setColor(uiAnnotation.color);
-	            }
-	          });
+	        const annotationFileObj = this.fileContainer.getAnnotation(uiAnnotation.name);
+	        if (annotationFileObj.reference) {
+	          this._changeReferenceColor(uiAnnotation.name);
 	        } else {
-	          annotation.reference = true;
-	          if ('bioes' == annotation.subtype) {
-	            this._renderBioesAnnotation(annotation, uiAnnotation);
+	          annotationFileObj.reference = true;
+	          if ('bioes' == annotationFileObj.subtype) {
+	            this._renderBioesAnnotation(annotationFileObj, uiAnnotation);
 	          } else { 
-	            this._renderAnnotation(annotation, uiAnnotation);
+	            this._renderAnnotation(annotationFileObj, uiAnnotation);
 	          }
 	        }
 	      });
+	    })
+	    .catch((reject) => {
+	      console.log(reject);
+	    });
+	  }
+	
+	  _changeReferenceColor(fileContentName, color) {
+	  }
+	
+	  /**
+	   * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
+	   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
+	   */
+	  _renderBioesAnnotation(annotationFileObj, uiAnnotation) {
+	    LoadBioesPromise.run(annotationFileObj, this).then((results) => {
+	      this._renderAnnotation(annotationFileObj, uiAnnotation);
 	    });
 	  }
 	
 	  /**
-	   * @param annotation ... Annotation object.
+	   * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
 	   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
 	   */
-	  _renderBioesAnnotation(annotation, uiAnnotation) {
-	    LoadBioesPromise.run(annotation, this).then((results) => {
-	      this._renderAnnotation(annotation, uiAnnotation);
-	    });
-	  }
-	
-	  /**
-	   * @param annotation ... Annotation object.
-	   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
-	   */
-	  _renderAnnotation(annotation, uiAnnotation) {
+	  _renderAnnotation(annotationFileObj, uiAnnotation) {
 	    if (undefined == uiAnnotation) {
 	      TomlTool.loadToml(
-	        annotation.content,
+	        annotationFileObj,
 	        this.highlighter, this.arrowConnector
 	      );
 	    } else {
 	      TomlTool.loadToml(
-	        annotation.content,
+	        annotationFileObj,
 	        this.highlighter, this.arrowConnector,
 	        uiAnnotation.name, uiAnnotation.color
 	      );
@@ -477,19 +531,23 @@
 	  /**
 	   * @return Promise
 	   */
-	  hideReferenceAnnotation(uiAnnotations) {
-	    let annotations = this.fileContainer.getAnnotations(
-	      uiAnnotations.map((ann) => {
-	        return ann.name;
-	      })
-	    );
-	    let promises = [];
-	    annotations.forEach((annotation) => {
-	      if (annotation.reference) {
-	        annotation.reference = false;
-	        promises.push(this.remove(annotation.name));
-	      }
+	  _hideReferenceAnnotation(uiAnnotations) {
+	    const fileContentNames = uiAnnotations.map((ann) => {
+	      return ann.name;
 	    });
+	    const promises = [];
+	    this.fileContainer.getAnnotations(fileContentNames).forEach((annotationFileObj) => {
+	      promises.push(new Promise((resolve, reject) => {
+	        annotationFileObj.reference = false;
+	        resolve(annotationContainer.removeReference(annotationFileObj.name));
+	      }));
+	    });
+	    promises.push(new Promise((resolve, reject) => {
+	      // Because AnnotationContainer#removeReference() reconstructs inner set, #getAnnotations() is not return correctly collection.
+	      // For update annoList count, 'annotationDeleted' event need to emit after all process.
+	      WindowEvent.emit('annotationDeleted', {uuid: undefined});
+	      resolve(true);
+	    }));
 	    return Promise.all(promises);
 	  }
 	
@@ -540,7 +598,7 @@
 	    switch(content.type) {
 	      case 'html':
 	        LoadHtmlPromise.run(content, this).then((results) => {
-	          this.remove();
+	          this.removeAll();
 	          content.content = results[1];
 	          content.source = undefined;
 	          document.getElementById('viewer').innerHTML = content.content;
@@ -552,7 +610,7 @@
 	
 	      case 'bioes':
 	        LoadBioesPromise.run(content, this).then((results) => {
-	          this.remove();
+	          this.removeAll();
 	          content.content = results[1].content;
 	          content.source = undefined;
 	          document.getElementById('viewer').innerHTML = content.content;
@@ -561,7 +619,7 @@
 	          // これがRefereneで使用されていることは起こりえない。
 	          results[1].annotation.primary = true;
 	          TomlTool.renderAnnotation(
-	            results[1].annotation.content,
+	            results[1].annotation,
 	            this.highlighter,
 	            this.arrowConnector
 	          );
@@ -574,7 +632,7 @@
 	
 	      case 'text':
 	        LoadTextPromise.run(content, this).then((results) => {
-	          this.remove();
+	          this.removeAll();
 	          content.content = results[1];
 	          content.source = undefined;
 	          document.getElementById('viewer').innerHTML = content.content;
@@ -644,28 +702,17 @@
 	    }
 	  }
 	
+	  removeAll() {
+	    annotationContainer.removeAll();
+	  }
+	
 	  /**
-	   * @return Promise (resolved)
+	   * @return Promise
 	   */
-	  remove(referenceId) {
-	    return Promise.all([
-	      this.highlighter.remove(referenceId),
-	      this.arrowConnector.remove(referenceId)
-	    ]).then((resolve) => {
-	      if (undefined == referenceId) {
-	        // All remove maybe.
-	        WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
-	      } else {
-	        if (0 != resolve.length) {
-	          // deleted.uuid(getter) is accessed after deleted it maybe.
-	          let uuid = resolve[0].uuid;
-	          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
-	        } else {
-	          WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
-	        }
-	      }
-	    }).catch((reject) => {
-	      console.log(reject);
+	  remove(annotation) {
+	    return new Promise((resolve, reject) => {
+	      annotationContainer.remove(annotation);
+	      resolve(annotation);
 	    });
 	  }
 	
@@ -687,7 +734,7 @@
 	  }
 	
 	  clearViewer() {
-	    this.remove();
+	    this.removeAll();
 	    document.getElementById('viewer').innerHTML = '';
 	  }
 	
@@ -1148,19 +1195,86 @@
 	    return obj;
 	  }
 	
-	  // TODO: 排他制御
+	  /**
+	   * Remove an annotation.
+	   *
+	   * @param annotationOrId ... Annotation object or Annotation#getId() value
+	   * @return removed Annotation object or false(when specified annotation does not find).
+	   */
 	  remove(annotationOrId){
-	    let elm = typeof(annotationOrId) === "string" ?
+	    const elm = typeof(annotationOrId) === "string" ?
 	      this.findById(annotationOrId):
 	      this.findById(annotationOrId.getId());
 	
 	    if (undefined != elm) {
-	      if (undefined != elm.remove) {
-	        elm.remove();
-	      }
+	      this._removeIfDefined(elm);
 	      return this.set.delete(elm);
 	    }
 	    return false;
+	  }
+	
+	  /**
+	   * Remove all annotation(primary and reference).
+	   *
+	   * This method use Batch-removing mode.
+	   */
+	  removeAll(referenceId) {
+	    this.forEach((annotation) => {
+	      this._removeIfDefined(annotation, true);
+	    });
+	    this.set = new Set();
+	  }
+	
+	  /**
+	   * Remove all primary annotation.
+	   *
+	   * This method use Batch-removing mode.
+	   */
+	  removePrimaryAll() {
+	    const newSet = new Set();
+	    const removed = [];
+	    this.forEach((annotation) => {
+	      if (annotation.isPrimary()) {
+	        this._removeIfDefined(annotation, true);
+	        removed.push(annotation);
+	      } else {
+	        newSet.add(annotation);
+	      }
+	    });
+	    this.set = newSet;
+	    return removed;
+	  }
+	
+	  /**
+	   * Remove all the specified reference annotation.
+	   * @param referenceId ... referenceId of target reference annotations.
+	   * @return Array that includes removed annotation objects;
+	   *
+	   * This method use Batch-removing mode.
+	   */
+	  removeReference(referenceId) {
+	    if (undefined == referenceId) {
+	      throw new "referenceId is undefined."
+	    }
+	    const newSet = new Set();
+	    const removed = [];
+	    this.forEach((annotation) => {
+	      if (referenceId == annotation.getReferenceId()) {
+	        this._removeIfDefined(annotation, true);
+	        removed.push(annotation);
+	      } else {
+	        newSet.add(annotation);
+	      }
+	    });
+	    this.set = newSet;
+	    return removed;
+	  }
+	
+	  /**
+	   * Real removing process.
+	   */
+	  _removeIfDefined(object, batch = false) {
+	    return undefined == object.remove ? undefined : object.remove(batch);
 	  }
 	
 	  /**
@@ -1194,7 +1308,7 @@
 	  }
 	
 	  getSelectedAnnotations(){
-	    let list = [];
+	    const list = [];
 	    this.set.forEach((annotation) => {
 	      if (annotation.selected) {
 	        list.push(annotation);
@@ -1207,15 +1321,14 @@
 	   * Get all primary annotation from container.
 	   */
 	  getPrimaryAnnotations() {
-	    let list = [];
-	    this.set.forEach((a) => {
-	      if (a.isPrimary()) {
-	        list.push(a);
+	    const list = [];
+	    this.set.forEach((annotation) => {
+	      if (annotation.isPrimary()) {
+	        list.push(annotation);
 	      }
 	    });
 	    return list;
 	  }
-	    
 	
 	  // TODO: pdfanno only
 	  enableAll(){
@@ -7633,7 +7746,7 @@
 	  return [data.join("\n")];
 	};
 	
-	exports.renderAnnotation = (tomlObj, highlighter, arrowConnector, referenceId, color) => {
+	exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, color) => {
 	  for(key in tomlObj) {
 	    if ("version" == key) {
 	      continue;
@@ -7653,20 +7766,22 @@
 	    } else if (undefined != color) {
 	      annotation.setColor(color);
 	    }
+	    annotation.setFileContent(annotationFileObj);
 	  }
 	};
 	
 	/**
-	 * @param objectOrText ... TomlObject(Hash) or Toml source text.
+	 * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
 	 * @param highlighter ... Highlight annotation containr.
 	 * @param arrowConnector ... Relation annotation container.
 	 * @param referenceId (optional) ... Used to identify annotations.
 	 */
-	exports.loadToml = (objectOrText, highlighter, arrowConnector, referenceId, color)=>{
-	  if ('string' == typeof(objectOrText)) {
-	    objectOrText = TomlParser.parse(objectOrText);
-	  }
-	  exports.renderAnnotation(objectOrText, highlighter, arrowConnector, referenceId, color);
+	exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, color)=>{
+	  const toml = 'string' == typeof(annotationFileObj.content) ?
+	    TomlParser.parse(annotationFileObj.content) :
+	    annotationFileObj.content;
+	
+	  exports.renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, color);
 	};
 
 
@@ -11828,7 +11943,9 @@
 	    } else {
 	      this.addClass("htmlanno-highlight-selected");
 	      this.selected = true;
-	      this.dispatchWindowEvent('annotationSelected', this);
+	      if (this.isEditable()) {
+	        this.dispatchWindowEvent('annotationSelected', this);
+	      }
 	    }
 	  }
 	
@@ -11847,7 +11964,7 @@
 	      $(elm).replaceWith(elm.childNodes);
 	    });
 	    this.jObject = null;
-	    this.dispatchWindowEvent('annotationDeleted', this);
+	    this.dispatchWindowEvent('annotationDeleted', {uuid: this.uuid});
 	  }
 	
 	  saveToml(){
@@ -12075,6 +12192,7 @@
 	    this._uuid = AnnoUI.util.uuid();
 	    this.__id = undefined;
 	    this._cache_id = null;
+	    this._fileContent = undefined;
 	  }
 	
 	  getId() {
@@ -12156,10 +12274,18 @@
 	    return 0;
 	  }
 	
+	  /**
+	   * @return this annotation is selected (on GUI)
+	   *
+	   * when need to check annotation file is selected or not, use AnnotationFileObj.select.
+	   */
 	  get selected() {
 	    return this._selected;
 	  }
 	
+	  /**
+	   * Set annotation selected status (on GUI)
+	   */
 	  set selected(value) {
 	    this._selected = value;
 	    this._selectedTimestamp = value ? new Date() : undefined;
@@ -12184,8 +12310,43 @@
 	  removeColor() {
 	  }
 	
+	  /**
+	   * true is Primary annotation
+	   * Note:
+	   * _fileContent.primary can not use for primary/reference check,  because that is shared between primary and reference.
+	   */
 	  isPrimary() {
-	    return this.referenceId == undefined;
+	    return undefined == this.referenceId;
+	  }
+	
+	  /**
+	   * true is Reference annotation
+	   * Note:
+	   * _fileContent.primary can not use for primary/reference check,  because that is shared between primary and reference.
+	   */
+	  isReference() {
+	    return undefined != this.referenceId;
+	  }
+	
+	  /**
+	   * set fileContent that is created by FileContainer#loadFiles(), other name is "AnnotationFileObj".
+	   */
+	  setFileContent(newValue) {
+	    this._fileContent = newValue;
+	  }
+	
+	  /**
+	   * @return AnnotationFileObj.name (nearlly equal <filename>.htmlanno)
+	   */
+	  get fileContentName() {
+	    return this._fileContent.name;
+	  }
+	
+	  /**
+	   * true is the annotation can edit and delete.(reference annotation can not editable)
+	   */
+	  isEditable() {
+	    return !this.isReference();
 	  }
 	
 	  // TODO: Anno-UI events 辺りで提供してほしい
@@ -12269,7 +12430,9 @@
 	    } else {
 	      this.arrow.select();
 	      this._selected = true;
-	      this.dispatchWindowEvent('annotationSelected', this);
+	      if (this.isEditable()) {
+	        this.dispatchWindowEvent('annotationSelected', this);
+	      }
 	    }
 	  }
 	
@@ -12282,7 +12445,7 @@
 	    this.blur();
 	    this.arrow.remove();
 	    globalEvent.removeObject(this);
-	    this.dispatchWindowEvent('annotationDeleted', this);
+	    this.dispatchWindowEvent('annotationDeleted', {uuid: this.uuid});
 	  }
 	
 	  handleHoverIn(e){
@@ -12483,7 +12646,10 @@
 	    this.jObjectOutline.hide();
 	  }
 	
-	  remove(){
+	  /**
+	   * @param batch ... Not use, this is for Highlight class.
+	   */ 
+	  remove(batch = false){
 	    this.jObject.remove();
 	    this.jObjectOutline.remove();
 	    globalEvent.removeObject(this);
