@@ -55,7 +55,9 @@ class RelationAnnotation extends Annotation {
     } else {
       this.arrow.select();
       this._selected = true;
-      this.dispatchWindowEvent('annotationSelected', this);
+      if (this.isEditable()) {
+        this.dispatchWindowEvent('annotationSelected', this);
+      }
     }
   }
 
@@ -68,7 +70,7 @@ class RelationAnnotation extends Annotation {
     this.blur();
     this.arrow.remove();
     globalEvent.removeObject(this);
-    this.dispatchWindowEvent('annotationDeleted', this);
+    this.dispatchWindowEvent('annotationDeleted', {uuid: this.uuid});
   }
 
   handleHoverIn(e){

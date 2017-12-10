@@ -89,7 +89,9 @@ class Highlight extends Annotation {
     } else {
       this.addClass("htmlanno-highlight-selected");
       this.selected = true;
-      this.dispatchWindowEvent('annotationSelected', this);
+      if (this.isEditable()) {
+        this.dispatchWindowEvent('annotationSelected', this);
+      }
     }
   }
 
@@ -108,7 +110,7 @@ class Highlight extends Annotation {
       $(elm).replaceWith(elm.childNodes);
     });
     this.jObject = null;
-    this.dispatchWindowEvent('annotationDeleted', this);
+    this.dispatchWindowEvent('annotationDeleted', {uuid: this.uuid});
   }
 
   saveToml(){

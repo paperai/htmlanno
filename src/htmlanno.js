@@ -93,7 +93,7 @@ class Htmlanno{
 
     AnnoUI.browseButton.setup({
       loadFiles :                          this.loadFiles.bind(this),
-      clearAllAnnotations :                this.remove.bind(this),
+      clearAllAnnotations :                this.removeAll.bind(this),
       displayCurrentReferenceAnnotations : this.displayReferenceAnnotation.bind(this),
       displayCurrentPrimaryAnnotations :   () => {}, // not use. @see restoreAnnotations()
       getContentFiles :                    this.getContentFiles.bind(this),
@@ -233,10 +233,11 @@ class Htmlanno{
       if (e.keyCode === 46 || e.keyCode == 8) {
         if (document.body == e.target){
           e.preventDefault();
-          lastSelected.remove();
-          annotationContainer.remove(lastSelected);
-          let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
-          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
+          if (lastSelected.isEditable()) {
+            annotationContainer.remove(lastSelected); // In this function, lastSelected#remove() is called.
+            let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
+            WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
+          }
         }
       // esc
       } else if (e.keyCode === 27) {
@@ -331,23 +332,73 @@ class Htmlanno{
     });
   }
 
-  displayPrimaryAnnotation(fileName) {
-    let annotation = this.fileContainer.getAnnotation(fileName);
-    annotation.primary = true;
-    if ('bioes' == annotation.subtype) {
-      this._renderBioesAnnotation(annotation);
-    } else {
-      this._renderAnnotation(annotation);
-    }
+  _getAnnotations(selectorFunction) {
+    const results = [];
+    annotationContainer.forEach((annotation) => {
+      if (selectorFunction(annotation)) {
+        results.push(annotation);
+      }
+    });
+    return results;
   }
 
+  _getAnnotationsByFileContentName(targetName, optionalCheck) {
+    return this._getAnnotations((annotation) => {
+      if (targetName == annotation.fileContentName) {
+        return undefined != optionalCheck ? optionalCheck(annotation) : true;
+      }
+    });
+  }
+
+  /**
+   * Anno-Ui -> rendering
+   */
+  displayPrimaryAnnotation(fileName) {
+    const promises = this._hideUnselectedPrimaryAnnotations();
+
+    Promise.all(promises).then((resolve) => {
+      const annotationFileObj = this.fileContainer.getAnnotation(fileName);
+      annotationFileObj.primary = true;
+      if ('bioes' == annotationFileObj.subtype) {
+        this._renderBioesAnnotation(annotationFileObj);
+      } else {
+        this._renderAnnotation(annotationFileObj);
+      }
+    });
+  }
+
+  _hideUnselectedPrimaryAnnotations() {
+    const promises = [];
+    this.getUiAnnotations(true, 'Primary').forEach((ann) => {
+      this._getAnnotationsByFileContentName(ann.name, (annotation) => {
+        return annotation.isPrimary();
+      }).forEach((annotation) => {
+        // TODO: annotationContainer.removePrimaryAll() のほうが早いが、そもそもAnno-uiでclearPrimaryAnnotation()を呼び出さない理由が不明。
+        promises.push(this.remove(annotation));
+      });
+      promises.push(new Promise((resolve, reject) => {
+        // 操作対象を明確化したいのでAnnotationには機能実装していない
+        const annotationFileObj = this.fileContainer.getAnnotation(ann.name);
+        annotationFileObj.primary = false;
+        resolve(annotationFileObj);
+      }));
+    });
+    return promises;
+  }
+
+  /**
+   * Anno-ui -> rendering(clear)
+   */
   clearPrimaryAnnotation() {
     this.fileContainer.annotations.forEach((annotation) => {
       if (annotation.primary) {
+        annotationContainer.removePrimaryAll();
         annotation.primary = false;
       }
     });
-    this.remove();
+    // Because AnnotationContainer#removePrimaryAll() reconstructs inner set, #getAnnotations() is not return correctly collection.
+    // For update annoList count, 'annotationDeleted' event need to emit after all process.
+    WindowEvent.emit('annotationDeleted', {uuid: undefined});
   }
 
   /**
@@ -355,51 +406,54 @@ class Htmlanno{
    * @param fileNames ... not used.
    */
   displayReferenceAnnotation(fileNames) {
-    this.hideReferenceAnnotation(this.getUiAnnotations(true)).then((resolve) => {
-      let selectedUiAnnotations = this.getUiAnnotations(false);
+    const removePromise = this._hideReferenceAnnotation(this.getUiAnnotations(true));
+    removePromise.then((resolve) => {
+      const selectedUiAnnotations = this.getUiAnnotations(false);
       selectedUiAnnotations.forEach((uiAnnotation) => {
-        let annotation = this.fileContainer.getAnnotation(uiAnnotation.name);
-        if (annotation.reference) {
-          annotationContainer.forEach((annotationObj) => {
-            if (uiAnnotation.name == annotationObj.referenceId) {
-              annotationObj.setColor(uiAnnotation.color);
-            }
-          });
+        const annotationFileObj = this.fileContainer.getAnnotation(uiAnnotation.name);
+        if (annotationFileObj.reference) {
+          this._changeReferenceColor(uiAnnotation.name);
         } else {
-          annotation.reference = true;
-          if ('bioes' == annotation.subtype) {
-            this._renderBioesAnnotation(annotation, uiAnnotation);
+          annotationFileObj.reference = true;
+          if ('bioes' == annotationFileObj.subtype) {
+            this._renderBioesAnnotation(annotationFileObj, uiAnnotation);
           } else { 
-            this._renderAnnotation(annotation, uiAnnotation);
+            this._renderAnnotation(annotationFileObj, uiAnnotation);
           }
         }
       });
+    })
+    .catch((reject) => {
+      console.log(reject);
+    });
+  }
+
+  _changeReferenceColor(fileContentName, color) {
+  }
+
+  /**
+   * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
+   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
+   */
+  _renderBioesAnnotation(annotationFileObj, uiAnnotation) {
+    LoadBioesPromise.run(annotationFileObj, this).then((results) => {
+      this._renderAnnotation(annotationFileObj, uiAnnotation);
     });
   }
 
   /**
-   * @param annotation ... Annotation object.
+   * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
    * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
    */
-  _renderBioesAnnotation(annotation, uiAnnotation) {
-    LoadBioesPromise.run(annotation, this).then((results) => {
-      this._renderAnnotation(annotation, uiAnnotation);
-    });
-  }
-
-  /**
-   * @param annotation ... Annotation object.
-   * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
-   */
-  _renderAnnotation(annotation, uiAnnotation) {
+  _renderAnnotation(annotationFileObj, uiAnnotation) {
     if (undefined == uiAnnotation) {
       TomlTool.loadToml(
-        annotation.content,
+        annotationFileObj,
         this.highlighter, this.arrowConnector
       );
     } else {
       TomlTool.loadToml(
-        annotation.content,
+        annotationFileObj,
         this.highlighter, this.arrowConnector,
         uiAnnotation.name, uiAnnotation.color
       );
@@ -410,19 +464,23 @@ class Htmlanno{
   /**
    * @return Promise
    */
-  hideReferenceAnnotation(uiAnnotations) {
-    let annotations = this.fileContainer.getAnnotations(
-      uiAnnotations.map((ann) => {
-        return ann.name;
-      })
-    );
-    let promises = [];
-    annotations.forEach((annotation) => {
-      if (annotation.reference) {
-        annotation.reference = false;
-        promises.push(this.remove(annotation.name));
-      }
+  _hideReferenceAnnotation(uiAnnotations) {
+    const fileContentNames = uiAnnotations.map((ann) => {
+      return ann.name;
     });
+    const promises = [];
+    this.fileContainer.getAnnotations(fileContentNames).forEach((annotationFileObj) => {
+      promises.push(new Promise((resolve, reject) => {
+        annotationFileObj.reference = false;
+        resolve(annotationContainer.removeReference(annotationFileObj.name));
+      }));
+    });
+    promises.push(new Promise((resolve, reject) => {
+      // Because AnnotationContainer#removeReference() reconstructs inner set, #getAnnotations() is not return correctly collection.
+      // For update annoList count, 'annotationDeleted' event need to emit after all process.
+      WindowEvent.emit('annotationDeleted', {uuid: undefined});
+      resolve(true);
+    }));
     return Promise.all(promises);
   }
 
@@ -473,7 +531,7 @@ class Htmlanno{
     switch(content.type) {
       case 'html':
         LoadHtmlPromise.run(content, this).then((results) => {
-          this.remove();
+          this.removeAll();
           content.content = results[1];
           content.source = undefined;
           document.getElementById('viewer').innerHTML = content.content;
@@ -485,7 +543,7 @@ class Htmlanno{
 
       case 'bioes':
         LoadBioesPromise.run(content, this).then((results) => {
-          this.remove();
+          this.removeAll();
           content.content = results[1].content;
           content.source = undefined;
           document.getElementById('viewer').innerHTML = content.content;
@@ -494,7 +552,7 @@ class Htmlanno{
           // これがRefereneで使用されていることは起こりえない。
           results[1].annotation.primary = true;
           TomlTool.renderAnnotation(
-            results[1].annotation.content,
+            results[1].annotation,
             this.highlighter,
             this.arrowConnector
           );
@@ -507,7 +565,7 @@ class Htmlanno{
 
       case 'text':
         LoadTextPromise.run(content, this).then((results) => {
-          this.remove();
+          this.removeAll();
           content.content = results[1];
           content.source = undefined;
           document.getElementById('viewer').innerHTML = content.content;
@@ -577,28 +635,17 @@ class Htmlanno{
     }
   }
 
+  removeAll() {
+    annotationContainer.removeAll();
+  }
+
   /**
-   * @return Promise (resolved)
+   * @return Promise
    */
-  remove(referenceId) {
-    return Promise.all([
-      this.highlighter.remove(referenceId),
-      this.arrowConnector.remove(referenceId)
-    ]).then((resolve) => {
-      if (undefined == referenceId) {
-        // All remove maybe.
-        WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
-      } else {
-        if (0 != resolve.length) {
-          // deleted.uuid(getter) is accessed after deleted it maybe.
-          let uuid = resolve[0].uuid;
-          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
-        } else {
-          WindowEvent.emit('annotationDeleted', {detail: {uuid: undefined} });
-        }
-      }
-    }).catch((reject) => {
-      console.log(reject);
+  remove(annotation) {
+    return new Promise((resolve, reject) => {
+      annotationContainer.remove(annotation);
+      resolve(annotation);
     });
   }
 
@@ -620,7 +667,7 @@ class Htmlanno{
   }
 
   clearViewer() {
-    this.remove();
+    this.removeAll();
     document.getElementById('viewer').innerHTML = '';
   }
 

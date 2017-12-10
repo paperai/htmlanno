@@ -8,6 +8,7 @@ class Annotation {
     this._uuid = AnnoUI.util.uuid();
     this.__id = undefined;
     this._cache_id = null;
+    this._fileContent = undefined;
   }
 
   getId() {
@@ -89,10 +90,18 @@ class Annotation {
     return 0;
   }
 
+  /**
+   * @return this annotation is selected (on GUI)
+   *
+   * when need to check annotation file is selected or not, use AnnotationFileObj.select.
+   */
   get selected() {
     return this._selected;
   }
 
+  /**
+   * Set annotation selected status (on GUI)
+   */
   set selected(value) {
     this._selected = value;
     this._selectedTimestamp = value ? new Date() : undefined;
@@ -117,8 +126,43 @@ class Annotation {
   removeColor() {
   }
 
+  /**
+   * true is Primary annotation
+   * Note:
+   * _fileContent.primary can not use for primary/reference check,  because that is shared between primary and reference.
+   */
   isPrimary() {
-    return this.referenceId == undefined;
+    return undefined == this.referenceId;
+  }
+
+  /**
+   * true is Reference annotation
+   * Note:
+   * _fileContent.primary can not use for primary/reference check,  because that is shared between primary and reference.
+   */
+  isReference() {
+    return undefined != this.referenceId;
+  }
+
+  /**
+   * set fileContent that is created by FileContainer#loadFiles(), other name is "AnnotationFileObj".
+   */
+  setFileContent(newValue) {
+    this._fileContent = newValue;
+  }
+
+  /**
+   * @return AnnotationFileObj.name (nearlly equal <filename>.htmlanno)
+   */
+  get fileContentName() {
+    return this._fileContent.name;
+  }
+
+  /**
+   * true is the annotation can edit and delete.(reference annotation can not editable)
+   */
+  isEditable() {
+    return !this.isReference();
   }
 
   // TODO: Anno-UI events 辺りで提供してほしい
