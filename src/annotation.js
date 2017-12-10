@@ -126,10 +126,20 @@ class Annotation {
   removeColor() {
   }
 
+  /**
+   * true is Primary annotation
+   * Note:
+   * _fileContent.primary can not use for primary/reference check,  because that is shared between primary and reference.
+   */
   isPrimary() {
     return undefined == this.referenceId;
   }
 
+  /**
+   * true is Reference annotation
+   * Note:
+   * _fileContent.primary can not use for primary/reference check,  because that is shared between primary and reference.
+   */
   isReference() {
     return undefined != this.referenceId;
   }
@@ -146,6 +156,13 @@ class Annotation {
    */
   get fileContentName() {
     return this._fileContent.name;
+  }
+
+  /**
+   * true is the annotation can edit and delete.(reference annotation can not editable)
+   */
+  isEditable() {
+    return !this.isReference();
   }
 
   // TODO: Anno-UI events 辺りで提供してほしい
