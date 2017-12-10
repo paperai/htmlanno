@@ -233,10 +233,11 @@ class Htmlanno{
       if (e.keyCode === 46 || e.keyCode == 8) {
         if (document.body == e.target){
           e.preventDefault();
-          lastSelected.remove();
-          annotationContainer.remove(lastSelected);
-          let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
-          WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
+          if (lastSelected.isEditable()) {
+            annotationContainer.remove(lastSelected); // In this function, lastSelected#remove() is called.
+            let uuid = lastSelected.uuid; // lastSelected.uuid(getter) is accessed after deleted it maybe.
+            WindowEvent.emit('annotationDeleted', {detail: {uuid: uuid} });
+          }
         }
       // esc
       } else if (e.keyCode === 27) {
