@@ -198,42 +198,87 @@
 /* Override bootstrap. */
 #viewer {
   background-color: white;
+  /* This font-size set by JavaScript (default 14px) */
 }
 
 #viewer h1, #viewer h2, #viewer h3, #viewer h4, #viewer h5, #viewer h6 {
-  font-weight: bolder;
-  padding-top: 1em;
   color: black;
+  display: block;
+  font-weight: bold;
 }
 
 #viewer h1 {
-  font-size: 250%;
+  font-size: 2em;
+  margin-top: 0.67em;
+  margin-bottom: 0.67em;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 #viewer h2 {
-  font-size: 200%;
+  font-size: 1.5em;
+  margin-top: 0.83em;
+  margin-bottom: 0.83em;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 #viewer h3 {
-  font-size: 150%;
+  font-size: 1.17em;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 #viewer h4 {
-  font-size: 70%;
+  margin-top: 1.33em;
+  margin-bottom: 1.33em;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 #viewer h5 {
-  font-size: 50%;
+  font-size: .83em;
+  margin-top: 1.67em;
+  margin-bottom: 1.67em;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 #viewer h6 {
-  font-size: 20%;
+  font-size: .67em;
+  margin-top: 2.33em;
+  margin-bottom: 2.33em;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+#viewer p {
+  display: block;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+#viewer a:link {
+  text-decoration: underline;
+  cursor: auto;
+}
+
+#viewer a:visited {
+  text-decoration: underline;
+  cursor: auto;
 }
 
 #viewer ul, #viewer ol {
+  display: block;
+  margin-top: 1em;
+  margin-bottom: 1 em;
+  margin-left: 0;
+  margin-right: 0;
   padding-left: 40px;
-  margin-top: 16px;
-  margin-bottom: 16px;
 }
 
 #viewer ul li {
@@ -252,11 +297,20 @@
   list-style-type: decimal;
 }
 
-#viewer dl dt, #viewer dl dd {
-  font-weight: normal;
+#viewer dl {
+  display: block;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+#viewer dl dt {
+  display: block;
 }
 
 #viewer dl dd {
+  display: block;
   margin-left: 40px;
 }
 
