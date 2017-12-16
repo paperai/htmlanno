@@ -1,4 +1,5 @@
-const $ = require("jquery");
+const $ = require('jquery');
+const URI = require('urijs');
 
 const EventManager = require("./eventmanager");
 const AnnotationContainer = require("./annotationcontainer.js");
@@ -47,7 +48,23 @@ class Htmlanno{
       this.unselectRelation();
     });
     this.wrapGlobalEvents();
-    this.loadDefaultData();
+
+    const query = URI(document.URL).query(true);
+    if (undefined != query.xhtml) { // anno=だけあってもレンダリングできないので、コンテンツ系のみ存在チェックを行う
+      this.fileContainer.loadURI(query).then((readResult) => {
+        if (0 != readResult.contents.length) {
+          this.reloadContent(readResult.contents[0].name).then((resolve) => {
+            if (0 != readResult.annotations.length) {
+              this.renderPrimaryAnnotation(readResult.annotations[0]);
+            }
+          });
+        }
+      }).catch(
+        this.showReadError
+      );
+    } else {
+      this.loadDefaultData();
+    }
   }
 
   storageKey(){
@@ -352,19 +369,24 @@ class Htmlanno{
 
   /**
    * Anno-Ui -> rendering
+   * @see renderPrimaryAnnotation()
    */
   displayPrimaryAnnotation(fileName) {
     const promises = this._hideUnselectedPrimaryAnnotations();
-
     Promise.all(promises).then((resolve) => {
-      const annotationFileObj = this.fileContainer.getAnnotation(fileName);
-      annotationFileObj.primary = true;
-      if ('bioes' == annotationFileObj.subtype) {
-        this._renderBioesAnnotation(annotationFileObj);
-      } else {
-        this._renderAnnotation(annotationFileObj);
-      }
+      this.renderPrimaryAnnotation(
+        this.fileContainer.getAnnotation(fileName)
+      );
     });
+  }
+
+  renderPrimaryAnnotation(annotationFileObj) {
+    annotationFileObj.primary = true;
+    if ('bioes' == annotationFileObj.subtype) {
+      this._renderBioesAnnotation(annotationFileObj);
+    } else {
+      this._renderAnnotation(annotationFileObj);
+    }
   }
 
   _hideUnselectedPrimaryAnnotations() {
@@ -522,6 +544,9 @@ class Htmlanno{
     return this.fileContainer.annotations;
   }
 
+  /**
+   * @return Promise
+   */
   reloadContent(fileName) {
     this.useDefaultData = false;
     this._currentContentFileName = fileName;
@@ -530,7 +555,7 @@ class Htmlanno{
     let content = this.fileContainer.getContent(fileName);
     switch(content.type) {
       case 'html':
-        LoadHtmlPromise.run(content, this).then((results) => {
+        return LoadHtmlPromise.run(content, this).then((results) => {
           this.removeAll();
           content.content = results[1];
           content.source = undefined;
@@ -539,10 +564,9 @@ class Htmlanno{
         }).catch((reject) => {
           this.showReadError();
         });
-        break;
 
       case 'bioes':
-        LoadBioesPromise.run(content, this).then((results) => {
+        return LoadBioesPromise.run(content, this).then((results) => {
           this.removeAll();
           content.content = results[1].content;
           content.source = undefined;
@@ -561,10 +585,9 @@ class Htmlanno{
         }).catch((reject) => {
           this.showReadError();
         });
-        break;
 
       case 'text':
-        LoadTextPromise.run(content, this).then((results) => {
+        return LoadTextPromise.run(content, this).then((results) => {
           this.removeAll();
           content.content = results[1];
           content.source = undefined;
@@ -573,7 +596,6 @@ class Htmlanno{
         }).catch((reject) => {
           this.showReadError();
         });
-        break;
 
       default:
         WindowEvent.emit(
