@@ -11,7 +11,8 @@
     "jquery": "^3.1.1",
     "rangy": "^1.3.0",
     "toml": "^2.3.2",
-    "anno-ui": "github:paperai/anno-ui"
+    "anno-ui": "github:paperai/anno-ui",
+    "urijs": "^1.19.0"
   },
   "devDependencies": {
     "jasmine-core": "^2.7.0",
