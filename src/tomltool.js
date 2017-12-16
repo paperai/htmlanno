@@ -32,13 +32,15 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
     if (RelationAnnotation.isMydata(tomlObj[key])) {
       annotation = arrowConnector.addToml(key, tomlObj[key], referenceId);
     }
-    if (null == annotation) {
+    if (null != annotation) {
+      annotation.setFileContent(annotationFileObj);
+      if (undefined != color) {
+        annotation.setColor(color);
+      }
+    } else {
       console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
       console.log(tomlObj[key]);
-    } else if (undefined != color) {
-      annotation.setColor(color);
     }
-    annotation.setFileContent(annotationFileObj);
   }
 };
 
