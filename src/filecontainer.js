@@ -1,4 +1,7 @@
+const URI = require('urijs');
+
 const Bioes = require('./bioes.js');
+const LoadHtmlPromise = require('./loadhtmlpromise.js');
 
 class FileContainer {
   constructor() {
@@ -9,12 +12,12 @@ class FileContainer {
   /**
    * @param files ... Array of File(Blob)
    *
-   * @return Promise({contents, annotations}) or Promise(cannot_read_filename)
+   * @return Promise.resolve({contents, annotations})
    */
   loadFiles(files) {
     this._contents = [];
     this._annotations = [];
-    let categoraizedFiles = this._categorize(files);
+    const categoraizedFiles = this._categorize(files);
 
     return Promise.all([
       new Promise((resolve, reject) => {
@@ -33,6 +36,63 @@ class FileContainer {
         resolve(true);
       })
     ]).then(this._allResult.bind(this));
+  }
+
+  /**
+   * @param query ... Object of parsed URI query.
+   * @see urijs ( https://www.npmjs.com/package/urijs )
+   *
+   * @return Promise.resolve({contents, annotations}) or Promise.reject(error)
+   */
+  loadURI(query) {
+    this._contents = [];
+    this._annotations = [];
+    const _fileContainer = this;
+
+    const promises = [];
+    if (undefined != query.xhtml) {
+      const contentUri = URI(query.xhtml);
+      promises.push(new Promise((resolve, reject) => {
+        $.ajax({
+          type: 'GET',
+          url: query.xhtml,
+          dataType: 'html',
+          success: function(webContent) {
+            _fileContainer._contents.push(
+              LoadHtmlPromise.createContainer(
+                contentUri.filename(), webContent, undefined
+              )
+            );
+            resolve(true);
+          },
+          error: function(error, httpStatus) {
+            reject('error: ' + httpStatus);
+          }
+        });
+      }));
+    }
+    if (undefined != query.anno) {
+      const contentUri = URI(query.anno);
+      promises.push(new Promise((resolve, reject) => {
+        $.ajax({
+          type: 'GET',
+          url: query.anno,
+          dataType: 'text',
+          success: function(webContent) {
+            _fileContainer._annotations.push(
+              _fileContainer._createAnnotationContainer(
+                contentUri.filename(), webContent, undefined
+              )
+            );
+            resolve(true);
+          },
+          error: function(error, httpStatus) {
+            reject('error: ' + httpStatus);
+          }
+        });
+      }));    
+    }
+    return Promise.all(promises).then(this._allResult.bind(this));
   }
 
   /**
@@ -115,22 +175,6 @@ class FileContainer {
   }
 
   /**
-   * Read `file`, parse read result as HTML, and call `callback` with parse result.
-   * @param file ... HTML file object
-   * @param callback ... callback(read result) or callback(undefined)
-   * @see FileContainer.parseHtml
-   */ 
-  static htmlLoader(file, callback) {
-    FileContainer._fileReader(file, (read_result) => {
-      if (undefined == read_result) {
-        callback(undefined);
-      } else {
-        callback(FileContainer.parseHtml(read_result));
-      }
-    });
-  }
-
-  /**
    * Read `file`, and call `callback` with read result that wrapped `<p>` tag.
    * @param file ... Plain text file object
    * @param callback ... callback(read result) or callback(undefined)
@@ -165,6 +209,9 @@ class FileContainer {
     });
   }
 
+  /**
+   * TODO: まだHtmlannoクラスで使うため残します
+   */
   static parseHtml(html) {
     let sgmlFunc  = new RegExp(/<\?.+\?>/g);
     let comment   = new RegExp(/<!--.+-->/g);
@@ -182,6 +229,9 @@ class FileContainer {
     }
   }
 
+  /**
+   * TODO: 順次AbstractFile._fileReader() へ移行
+   */
   static _fileReader(file, callback) {
     let reader = new FileReader();
     reader.onload = () => {
@@ -204,13 +254,13 @@ class FileContainer {
 
   _createHtmlContents(files) {
     files.forEach((file) => {
-      this._contents.push({
-        type   : 'html',
-        name   : this._excludeBaseDirName(file.webkitRelativePath),
-        content: undefined,
-        source : file,
-        selected: false
-      });
+      this._contents.push(
+        LoadHtmlPromise.createContainer(
+          this._excludeBaseDirName(file.webkitRelativePath),
+          undefined,
+          file
+        )
+      );
     });
   }
 
@@ -253,15 +303,11 @@ class FileContainer {
       promises.push(new Promise((resolve, reject) => {
         let reader = new FileReader();
         reader.onload = ()=>{
-          resolve({
-            type     : 'annotation',
-            subtype  : undefined,
-            name     : this._excludeBaseDirName(file.webkitRelativePath),
-            content  : reader.result,
-            source   : undefined,
-            primary  : false,
-            reference: false
-          });
+          resolve(this._createAnnotationContainer(
+            this._excludeBaseDirName(file.webkitRelativePath),
+            reader.result,
+            undefined
+          ));
         };
         reader.onerror = () => { alert("Load failed."); };  // TODO: UI実装後に適時変更
         reader.onabort = () => { alert("Load aborted."); }; // TODO: UI実装後に適宜変更
@@ -270,6 +316,18 @@ class FileContainer {
       }));
     });
     return promises;
+  }
+
+  _createAnnotationContainer(name,content, source) {
+    return {
+      type     : 'annotation',
+      subtype  : undefined,
+      name     : name,
+      content  : content,
+      source   : source,
+      primary  : false,
+      reference: false
+    };
   }
 
   _categorize(files){
