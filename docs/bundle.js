@@ -512,7 +512,7 @@
 	      });
 	      annotationContainer.forEach((annotation) => {
 	        selectedUiAnnotations.forEach((uiAnnotation) => {
-	          if (annotation.fileContentName == uiAnnotation.name) {
+	          if (annotation.fileContentName == uiAnnotation.name && annotation.isReference()) {
 	            annotation.setColor(uiAnnotation.color);
 	          }
 	        });
