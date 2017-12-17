@@ -71,6 +71,10 @@
   transform: scale(2);
 }
 
+.htmlanno-ref-highlight {
+  border-bottom: solid 2px green;
+}
+
 .htmlanno-arrow{
   fill:none;
   stroke:red;

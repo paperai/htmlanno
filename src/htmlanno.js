@@ -434,9 +434,7 @@ class Htmlanno{
       const selectedUiAnnotations = this.getUiAnnotations(false);
       selectedUiAnnotations.forEach((uiAnnotation) => {
         const annotationFileObj = this.fileContainer.getAnnotation(uiAnnotation.name);
-        if (annotationFileObj.reference) {
-          this._changeReferenceColor(uiAnnotation.name);
-        } else {
+        if (!annotationFileObj.reference) {
           annotationFileObj.reference = true;
           if ('bioes' == annotationFileObj.subtype) {
             this._renderBioesAnnotation(annotationFileObj, uiAnnotation);
@@ -445,13 +443,17 @@ class Htmlanno{
           }
         }
       });
+      annotationContainer.forEach((annotation) => {
+        selectedUiAnnotations.forEach((uiAnnotation) => {
+          if (annotation.fileContentName == uiAnnotation.name) {
+            annotation.setColor(uiAnnotation.color);
+          }
+        });
+      });
     })
     .catch((reject) => {
       console.log(reject);
     });
-  }
-
-  _changeReferenceColor(fileContentName, color) {
   }
 
   /**
