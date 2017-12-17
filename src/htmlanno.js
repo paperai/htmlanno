@@ -26,7 +26,7 @@ const WindowEvent = require('./windowevent.js');
 class Htmlanno{
   constructor(){
     this.defaultDataUri = './sample/sample.xhtml';
-    this.defaultDataName = this.excludeBaseUriName(this.defaultDataUri); // これは固定値だが指示都合上定数にしてはならない
+    this.defaultDataName = URI(this.defaultDataUri).filename(); // これは固定値だが指示都合上定数にしてはならない
     this._currentContentFileName = undefined;
     /**
      * @see #reloadContent
@@ -51,11 +51,11 @@ class Htmlanno{
 
     const query = URI(document.URL).query(true);
     if (undefined != query.xhtml) { // anno=だけあってもレンダリングできないので、コンテンツ系のみ存在チェックを行う
-      this.fileContainer.loadURI(query).then((readResult) => {
-        if (0 != readResult.contents.length) {
-          this.reloadContent(readResult.contents[0].name).then((resolve) => {
-            if (0 != readResult.annotations.length) {
-              this.renderPrimaryAnnotation(readResult.annotations[0]);
+      this.fileContainer.loadURI(query).then((container) => {
+        if (0 != container.contents.length) {
+          this.reloadContent(container.contents[0].name).then((resolve) => {
+            if (0 != container.annotations.length) {
+              this.renderPrimaryAnnotation(container.annotations[0]);
             }
           });
         }
@@ -67,6 +67,7 @@ class Htmlanno{
     }
   }
 
+  // TODO: not use now.
   storageKey(){
     return "htmlanno-save-"+document.location.href;
   }
@@ -698,14 +699,18 @@ class Htmlanno{
     document.getElementById('viewer').innerHTML = '';
   }
 
-  showReadError() {
-      WindowEvent.emit('open-alert-dialog', {message: 'Read error.'});
-  }
-
-  // TODO: FileContainer#_excludeBaseDirName() とほぼ同等。 Web上ファイルを扱うようになった場合、これはそちらの処理に入れる
-  excludeBaseUriName(uri) {
-    let fragments = uri.split('/');
-    return fragments[fragments.length - 1];
+  showReadError(error) {
+    const messages = ['Read error.'];
+    if (undefined != error) {
+      console.log(error);
+      if (undefined != error.message) {
+        messages.push(error.message);
+      }
+      if (undefined != error.statusText) {
+        messages.push(error.statusText);
+      }
+    }
+    WindowEvent.emit('open-alert-dialog', {message: messages.join('<br />')});
   }
 
   get currentContentFileName() {
