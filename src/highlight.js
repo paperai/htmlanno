@@ -65,8 +65,13 @@ class Highlight extends Annotation {
   }
 
   setClass(){
-    this.addClass(this.getClassName());
-    this.addClass("htmlanno-highlight");
+    const classNames = [this.getClassName()];
+    if (this.isPrimary()) {
+      classNames.push('htmlanno-highlight');
+    } else {
+      classNames.push('htmlanno-ref-highlight');
+    }
+    this.addClass(classNames.join(' '));
   }
 
   addClass(name){
@@ -87,9 +92,9 @@ class Highlight extends Annotation {
     if (this.selected) {
       this.blur();
     } else {
-      this.addClass("htmlanno-highlight-selected");
-      this.selected = true;
       if (this.isEditable()) {
+        this.selected = true;
+        this.addClass("htmlanno-highlight-selected");
         this.dispatchWindowEvent('annotationSelected', this);
       }
     }
@@ -165,7 +170,11 @@ class Highlight extends Annotation {
   }
 
   setColor(color) {
-    this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
+    if (this.isPrimary()) {
+      this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
+    } else {
+      this.jObject[0].style.borderBottomColor = tinycolor(color).setAlpha(0.2).toRgbString();
+    }
   }
 
   removeColor() {
