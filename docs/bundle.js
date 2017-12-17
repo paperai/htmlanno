@@ -501,9 +501,7 @@
 	      const selectedUiAnnotations = this.getUiAnnotations(false);
 	      selectedUiAnnotations.forEach((uiAnnotation) => {
 	        const annotationFileObj = this.fileContainer.getAnnotation(uiAnnotation.name);
-	        if (annotationFileObj.reference) {
-	          this._changeReferenceColor(uiAnnotation.name);
-	        } else {
+	        if (!annotationFileObj.reference) {
 	          annotationFileObj.reference = true;
 	          if ('bioes' == annotationFileObj.subtype) {
 	            this._renderBioesAnnotation(annotationFileObj, uiAnnotation);
@@ -512,13 +510,17 @@
 	          }
 	        }
 	      });
+	      annotationContainer.forEach((annotation) => {
+	        selectedUiAnnotations.forEach((uiAnnotation) => {
+	          if (annotation.fileContentName == uiAnnotation.name) {
+	            annotation.setColor(uiAnnotation.color);
+	          }
+	        });
+	      });
 	    })
 	    .catch((reject) => {
 	      console.log(reject);
 	    });
-	  }
-	
-	  _changeReferenceColor(fileContentName, color) {
 	  }
 	
 	  /**
@@ -15289,8 +15291,13 @@
 	  }
 	
 	  setClass(){
-	    this.addClass(this.getClassName());
-	    this.addClass("htmlanno-highlight");
+	    const classNames = [this.getClassName()];
+	    if (this.isPrimary()) {
+	      classNames.push('htmlanno-highlight');
+	    } else {
+	      classNames.push('htmlanno-ref-highlight');
+	    }
+	    this.addClass(classNames.join(' '));
 	  }
 	
 	  addClass(name){
@@ -15311,9 +15318,9 @@
 	    if (this.selected) {
 	      this.blur();
 	    } else {
-	      this.addClass("htmlanno-highlight-selected");
-	      this.selected = true;
 	      if (this.isEditable()) {
+	        this.selected = true;
+	        this.addClass("htmlanno-highlight-selected");
 	        this.dispatchWindowEvent('annotationSelected', this);
 	      }
 	    }
@@ -15389,7 +15396,11 @@
 	  }
 	
 	  setColor(color) {
-	    this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
+	    if (this.isPrimary()) {
+	      this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
+	    } else {
+	      this.jObject[0].style.borderBottomColor = tinycolor(color).setAlpha(0.2).toRgbString();
+	    }
 	  }
 	
 	  removeColor() {
