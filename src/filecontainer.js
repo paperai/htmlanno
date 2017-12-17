@@ -66,7 +66,7 @@ class FileContainer {
             resolve(true);
           },
           error: function(error, httpStatus) {
-            reject('error: ' + httpStatus);
+            reject(error);
           }
         });
       }));
@@ -87,7 +87,7 @@ class FileContainer {
             resolve(true);
           },
           error: function(error, httpStatus) {
-            reject('error: ' + httpStatus);
+            reject(error);
           }
         });
       }));    
