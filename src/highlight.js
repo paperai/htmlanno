@@ -1,5 +1,6 @@
 const $ = require("jquery");
 const Circle = require("./circle.js");
+const Diamond = require('./diamond.js');
 const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
 const Annotation = require("./annotation.js");
 
@@ -44,7 +45,11 @@ class Highlight extends Annotation {
 
   addCircle(){
     this.topElement.setAttribute("style", "position:relative;");
-    this.circle = new Circle(this.id, this);
+    if (this.isPrimary()) {
+      this.circle = new Circle(this.id, this);
+    } else {
+      this.circle = new Diamond(this.id, this);
+    }
     this.circle.appendTo(this.topElement);
   }
 
