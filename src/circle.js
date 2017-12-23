@@ -12,7 +12,7 @@ class Circle{
     this.highlight = highlight;
     this.size = 10;
 
-    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="htmlanno-circle"></div>`);
+    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="${this.className()}"></div>`);
 
     this.jObject.on("click", (e)=>{
       this.highlight.select();
@@ -38,12 +38,8 @@ class Circle{
     return "circle-"+this.id;
   }
 
-  emptyImg(){
-    const img = document.createElement('img');
-    // empty image
-    img.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-
-    return img;
+  className() {
+    return 'htmlanno-circle';
   }
 
   originalPosition(){

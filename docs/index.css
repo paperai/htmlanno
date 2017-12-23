@@ -45,6 +45,7 @@
   border: 1px solid #f88;
 }
 
+/* Circle (for Primary Annoation) */
 .htmlanno-circle{
   position:absolute;
   white-space:nowrap;
@@ -62,13 +63,39 @@
   white-space:nowrap;
   width:0px;
   height:0px;
-  /* display:none; */
 }
 
 .htmlanno-circle:hover, .htmlanno-circle-hover {
   box-shadow: rgba(113,135,164,.6) 1px 1px 1px 1px;
   transition:0.2s;
   transform: scale(2);
+}
+
+/* Diamond (For Reference Annotation) */
+.htmlanno-diamond {
+  position:absolute;
+  white-space:nowrap;
+  width:10px;
+  height:10px;
+  background-color:blue;
+  border-radius: 0%;
+  transform: rotate(45deg) scale(0.7);
+  transition:0.2s;
+}
+
+.htmlanno-diamond-marker {
+  position:absolute;
+  margin:0px;
+  padding:0px;
+  white-space:nowrap;
+  width:0px;
+  height:0px;
+}
+
+.htmlanno-diamond:hover, .htmlanno-diamond-hover {
+  box-shadow: rgba(113,135,164,.6) 1px 1px 1px 1px;
+  transition:0.2s;
+  transform: scale(1.4) rotate(45deg);
 }
 
 .htmlanno-ref-highlight {
