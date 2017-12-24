@@ -1,5 +1,6 @@
 const $ = require("jquery");
 const globalEvent = window.globalEvent;
+const Circle = require('./circle.js');
 
 class RenderRelation{
   constructor(id, position, direction){
@@ -55,13 +56,28 @@ class RenderRelation{
   curvePath(fromX, fromY, toX, toY){
     const arcHeight = 30;
 
-    const y = Math.min(fromY, toY) - arcHeight;
+    // As default, start from right side of marker and end right side.
+    // When start position is left than end position, start from left side of maker, and end right side.
+    if (fromX < toX) {
+      fromX += Circle.size;
+    } else {
+      toX += Circle.size;
+    }
     const dx = (fromX - toX) / 4;
-
-    // TODO
-    this.halfY = this.y(0.55, fromY, y, y, toY);
-
-    return `M ${fromX},${fromY} C ${fromX-dx},${y} ${toX+dx},${y} ${toX},${toY}`;
+    const y = Math.min(fromY, toY) - arcHeight;
+    if (Math.abs(fromX - toX) < arcHeight) {
+      // the FROM is near the TO on x-axis.
+      if (fromY > toY) {
+        // the FROM is under the TO
+        return `M ${fromX}, ${fromY} C ${fromX + arcHeight}, ${y} ${toX - dx},${y} ${toX}, ${toY}`;
+      } else {
+        // right half circle curve.
+        const dy = (fromY - toY) / 2;
+        return `M ${fromX}, ${fromY} Q ${fromX + arcHeight}, ${fromY - dy} ${toX}, ${toY}`;
+      }
+    } else {
+      return `M ${fromX}, ${fromY} C ${fromX - dx},${y} ${toX + dx}, ${y} ${toX}, ${toY}`;
+    }
   }
 
   on(name, handler){
@@ -97,20 +113,28 @@ class RenderRelation{
     globalEvent.emit("svgupdate", this);
   }
 
+  /**
+   * Set start position.
+   * @param position ... right-top of the marker.
+   *
+   *    + <-- position
+   * ###  <-- the marker
+   * ###
+   * ========== <-- span
+   *
+   */
   move(position){
     this.fromX = position.left;
     this.fromY = position.top;
   }
 
+  /**
+   * Set end position, adjust start position, and draw arc angle.
+   */
   point(position){
     const path = this.curvePath(this.fromX, this.fromY, position.left, position.top);
     this.jObject.attr("d", path);
     this.jObjectOutline.attr("d", path);
-  }
-
-  y(t, y1, y2, y3, y4){
-    const tp = 1 - t;
-    return t*t*t*y4 + 3*t*t*tp*y3 + 3*t*tp*tp*y2 + tp*tp*tp*y1;
   }
 
   select(){

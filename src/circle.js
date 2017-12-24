@@ -10,7 +10,6 @@ class Circle{
     Circle.instances.push(this);
     this.id = id;
     this.highlight = highlight;
-    this.size = 10;
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="${this.className()}"></div>`);
 
@@ -66,7 +65,7 @@ class Circle{
   }
 
   divPosition(){
-    return {left: -this.size/2, top: -this.size -5 -(this.samePositionCircles() * 12)}
+    return {left: - Circle.size / 2, top: - Circle.size -5 - (this.samePositionCircles() * 12)}
   }
 
   positionCenter(){
@@ -75,7 +74,7 @@ class Circle{
     pos.left += p.left;
     pos.top += p.top;
     pos.left += 15;
-    pos.top += 5;
+    pos.top += Circle.size + 5;
 
     return pos;
   }
@@ -84,7 +83,6 @@ class Circle{
     this.jObject.appendTo(target);
     this.jObject.css("left", `0px`);
     this.jObject.css("top", `0px`);
-    // this.jObject.css("transition", "0.0s");
     this.basePosition = this.jObject.offset();
     this.basePosition.top -= $("#viewer").offset().top;
     this.basePosition.left -= $("#viewer").offset().left;
@@ -95,7 +93,7 @@ class Circle{
 
   isHit(x, y){
     const c = this.positionCenter();
-    return c.left <= x+this.size && c.left >= x-this.size && c.top <= y+this.size && c.top >= y-this.size;
+    return c.left <= x+Circle.size && c.left >= x-Circle.size && c.top <= y+CirCle.size && c.top >= y-CirCle.size;
   }
 
   resetPosition(){
@@ -131,5 +129,7 @@ class Circle{
     }
   }
 }
+
+Circle.size = 10;
 
 module.exports = Circle;
