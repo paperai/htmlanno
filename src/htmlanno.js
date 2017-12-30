@@ -226,9 +226,6 @@ class Htmlanno{
 
     if (Circle.instances){
       Circle.instances.forEach((cir)=>{
-        cir.resetPosition();
-      });
-      Circle.instances.forEach((cir)=>{
         cir.reposition();
       });
     }

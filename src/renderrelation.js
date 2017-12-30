@@ -55,18 +55,22 @@ class RenderRelation{
 
   curvePath(fromX, fromY, toX, toY){
     const arcHeight = 30;
+    const halfCircleSize = Circle.size / 2;
 
     // As default, start from right side of marker and end right side.
     // When start position is left than end position, start from left side of maker, and end right side.
     if (fromX < toX) {
-      fromX += Circle.size;
+      fromX += halfCircleSize;
+      toX -= halfCircleSize;
     } else {
-      toX += Circle.size;
+      fromX -= halfCircleSize;
+      toX += halfCircleSize;
     }
     const dx = (fromX - toX) / 4;
     const y = Math.min(fromY, toY) - arcHeight;
     if (Math.abs(fromX - toX) < arcHeight) {
       // the FROM is near the TO on x-axis.
+      toX += Circle.size;
       if (fromY > toY) {
         // the FROM is under the TO
         return `M ${fromX}, ${fromY} C ${fromX + arcHeight}, ${y} ${toX - dx},${y} ${toX}, ${toY}`;
