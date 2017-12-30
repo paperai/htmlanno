@@ -46,9 +46,9 @@ class Highlight extends Annotation {
   addCircle(){
     this.topElement.setAttribute("style", "position:relative;");
     if (this.isPrimary()) {
-      this.circle = new Circle(this.id, this);
+      this.circle = new Circle(this.getId(), this);
     } else {
-      this.circle = new Diamond(this.id, this);
+      this.circle = new Diamond(this.getId(), this);
     }
     this.circle.appendTo(this.topElement);
   }

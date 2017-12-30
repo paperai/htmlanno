@@ -10,7 +10,6 @@ class Circle{
     Circle.instances.push(this);
     this.id = id;
     this.highlight = highlight;
-    this.size = 10;
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="${this.className()}"></div>`);
 
@@ -46,7 +45,7 @@ class Circle{
     return this.basePosition;
   }
 
-  samePositionCircles(){
+  samePositionCircles() {
     let n = 0;
     for (let i = 0; i < Circle.instances.length; i++){
       const cir = Circle.instances[i];
@@ -61,50 +60,57 @@ class Circle{
         n += 1;
       }
     }
-
     return n;
   }
 
   divPosition(){
-    return {left: -this.size/2, top: -this.size -5 -(this.samePositionCircles() * 12)}
+    return {left: - Circle.size / 2, top: - Circle.size -5 - (this.samePositionCircles() * 12)}
   }
 
+  /**
+   * circle position based on #viewerWrapper
+   */
   positionCenter(){
     const pos = this.divPosition();
-    const p = this.originalPosition();
-    pos.left += p.left;
-    pos.top += p.top;
-    pos.left += 15;
-    pos.top += 5;
-
+    let parent = this.jObject[0].offsetParent;
+    while(null != parent && 'viewerWrapper' != parent.id) {
+      pos.left += parent.offsetLeft;
+      pos.top  += parent.offsetTop;
+      parent = parent.offsetParent;
+    }
+    pos.left += Circle.size / 2;
+    pos.top  += Circle.size / 2;
     return pos;
   }
 
   appendTo(target){
     this.jObject.appendTo(target);
-    this.jObject.css("left", `0px`);
-    this.jObject.css("top", `0px`);
-    // this.jObject.css("transition", "0.0s");
-    this.basePosition = this.jObject.offset();
-    this.basePosition.top -= $("#viewer").offset().top;
-    this.basePosition.left -= $("#viewer").offset().left;
+    this.basePosition = this._calculateBasePosition();
     const pos = this.divPosition();
     this.jObject.css("left", `${pos.left}px`);
     this.jObject.css("top", `${pos.top}px`);
   }
 
-  isHit(x, y){
-    const c = this.positionCenter();
-    return c.left <= x+this.size && c.left >= x-this.size && c.top <= y+this.size && c.top >= y-this.size;
+  /**
+   * calculate offset value from parent node that is not Annotation.
+   * In case of some annotations set to same position, an annotation (A) is child HTML element of other annotation (B). 
+   * Annotation A's offset is {left: 0, top: 0}, because A's offset is position from B, and A position equals B.
+   * This method seek the parent node that offset is not {left: 0, top:0}.
+   */
+  _calculateBasePosition() {
+    let parent = this.jObject[0].offsetParent;
+    const pos = {top: parent.offsetTop, left: parent.offsetLeft};
+    while(0 == pos.top && 0 == pos.left && null != parent.offsetParent) {
+      parent = parent.offsetParent;
+      pos.top = parent.offsetTop;
+      pos.left = parent.offsetLeft;
+    }
+    return pos;  
   }
 
-  resetPosition(){
-    this.jObject.css("transition", "0.0s");
-    this.jObject.css("left", `0px`);
-    this.jObject.css("top", `0px`);
-    this.basePosition = this.jObject.offset();
-    this.basePosition.top -= $("#viewer").offset().top;
-    this.basePosition.left -= $("#viewer").offset().left;
+  isHit(x, y){
+    const c = this.positionCenter();
+    return c.left <= x+Circle.size && c.left >= x-Circle.size && c.top <= y+CirCle.size && c.top >= y-CirCle.size;
   }
 
   reposition(){
@@ -123,13 +129,12 @@ class Circle{
     if (idx !== -1 && !batch){
       Circle.instances.splice(idx, 1);
       Circle.instances.forEach((cir)=>{
-        cir.resetPosition();
-      });
-      Circle.instances.forEach((cir)=>{
         cir.reposition();
       });
     }
   }
 }
+
+Circle.size = 10;
 
 module.exports = Circle;

@@ -48,6 +48,7 @@
 /* Circle (for Primary Annoation) */
 .htmlanno-circle{
   position:absolute;
+  margin: 0;
   white-space:nowrap;
   width:10px;
   height:10px;
@@ -74,6 +75,7 @@
 /* Diamond (For Reference Annotation) */
 .htmlanno-diamond {
   position:absolute;
+  margin: 0;
   white-space:nowrap;
   width:10px;
   height:10px;

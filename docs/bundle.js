@@ -293,9 +293,6 @@
 	
 	    if (Circle.instances){
 	      Circle.instances.forEach((cir)=>{
-	        cir.resetPosition();
-	      });
-	      Circle.instances.forEach((cir)=>{
 	        cir.reposition();
 	      });
 	    }
@@ -15440,9 +15437,9 @@
 	  addCircle(){
 	    this.topElement.setAttribute("style", "position:relative;");
 	    if (this.isPrimary()) {
-	      this.circle = new Circle(this.id, this);
+	      this.circle = new Circle(this.getId(), this);
 	    } else {
-	      this.circle = new Diamond(this.id, this);
+	      this.circle = new Diamond(this.getId(), this);
 	    }
 	    this.circle.appendTo(this.topElement);
 	  }
@@ -15603,7 +15600,6 @@
 	    Circle.instances.push(this);
 	    this.id = id;
 	    this.highlight = highlight;
-	    this.size = 10;
 	
 	    this.jObject = $(`<div id="${this.domId()}" draggable="true" class="${this.className()}"></div>`);
 	
@@ -15639,7 +15635,7 @@
 	    return this.basePosition;
 	  }
 	
-	  samePositionCircles(){
+	  samePositionCircles() {
 	    let n = 0;
 	    for (let i = 0; i < Circle.instances.length; i++){
 	      const cir = Circle.instances[i];
@@ -15654,50 +15650,57 @@
 	        n += 1;
 	      }
 	    }
-	
 	    return n;
 	  }
 	
 	  divPosition(){
-	    return {left: -this.size/2, top: -this.size -5 -(this.samePositionCircles() * 12)}
+	    return {left: - Circle.size / 2, top: - Circle.size -5 - (this.samePositionCircles() * 12)}
 	  }
 	
+	  /**
+	   * circle position based on #viewerWrapper
+	   */
 	  positionCenter(){
 	    const pos = this.divPosition();
-	    const p = this.originalPosition();
-	    pos.left += p.left;
-	    pos.top += p.top;
-	    pos.left += 15;
-	    pos.top += 5;
-	
+	    let parent = this.jObject[0].offsetParent;
+	    while(null != parent && 'viewerWrapper' != parent.id) {
+	      pos.left += parent.offsetLeft;
+	      pos.top  += parent.offsetTop;
+	      parent = parent.offsetParent;
+	    }
+	    pos.left += Circle.size / 2;
+	    pos.top  += Circle.size / 2;
 	    return pos;
 	  }
 	
 	  appendTo(target){
 	    this.jObject.appendTo(target);
-	    this.jObject.css("left", `0px`);
-	    this.jObject.css("top", `0px`);
-	    // this.jObject.css("transition", "0.0s");
-	    this.basePosition = this.jObject.offset();
-	    this.basePosition.top -= $("#viewer").offset().top;
-	    this.basePosition.left -= $("#viewer").offset().left;
+	    this.basePosition = this._calculateBasePosition();
 	    const pos = this.divPosition();
 	    this.jObject.css("left", `${pos.left}px`);
 	    this.jObject.css("top", `${pos.top}px`);
 	  }
 	
-	  isHit(x, y){
-	    const c = this.positionCenter();
-	    return c.left <= x+this.size && c.left >= x-this.size && c.top <= y+this.size && c.top >= y-this.size;
+	  /**
+	   * calculate offset value from parent node that is not Annotation.
+	   * In case of some annotations set to same position, an annotation (A) is child HTML element of other annotation (B). 
+	   * Annotation A's offset is {left: 0, top: 0}, because A's offset is position from B, and A position equals B.
+	   * This method seek the parent node that offset is not {left: 0, top:0}.
+	   */
+	  _calculateBasePosition() {
+	    let parent = this.jObject[0].offsetParent;
+	    const pos = {top: parent.offsetTop, left: parent.offsetLeft};
+	    while(0 == pos.top && 0 == pos.left && null != parent.offsetParent) {
+	      parent = parent.offsetParent;
+	      pos.top = parent.offsetTop;
+	      pos.left = parent.offsetLeft;
+	    }
+	    return pos;  
 	  }
 	
-	  resetPosition(){
-	    this.jObject.css("transition", "0.0s");
-	    this.jObject.css("left", `0px`);
-	    this.jObject.css("top", `0px`);
-	    this.basePosition = this.jObject.offset();
-	    this.basePosition.top -= $("#viewer").offset().top;
-	    this.basePosition.left -= $("#viewer").offset().left;
+	  isHit(x, y){
+	    const c = this.positionCenter();
+	    return c.left <= x+Circle.size && c.left >= x-Circle.size && c.top <= y+CirCle.size && c.top >= y-CirCle.size;
 	  }
 	
 	  reposition(){
@@ -15716,14 +15719,13 @@
 	    if (idx !== -1 && !batch){
 	      Circle.instances.splice(idx, 1);
 	      Circle.instances.forEach((cir)=>{
-	        cir.resetPosition();
-	      });
-	      Circle.instances.forEach((cir)=>{
 	        cir.reposition();
 	      });
 	    }
 	  }
 	}
+	
+	Circle.size = 10;
 	
 	module.exports = Circle;
 
@@ -16088,6 +16090,7 @@
 
 	const $ = __webpack_require__(1);
 	const globalEvent = window.globalEvent;
+	const Circle = __webpack_require__(17);
 	
 	class RenderRelation{
 	  constructor(id, position, direction){
@@ -16142,14 +16145,33 @@
 	
 	  curvePath(fromX, fromY, toX, toY){
 	    const arcHeight = 30;
+	    const halfCircleSize = Circle.size / 2;
 	
-	    const y = Math.min(fromY, toY) - arcHeight;
+	    // As default, start from right side of marker and end right side.
+	    // When start position is left than end position, start from left side of maker, and end right side.
+	    if (fromX < toX) {
+	      fromX += halfCircleSize;
+	      toX -= halfCircleSize;
+	    } else {
+	      fromX -= halfCircleSize;
+	      toX += halfCircleSize;
+	    }
 	    const dx = (fromX - toX) / 4;
-	
-	    // TODO
-	    this.halfY = this.y(0.55, fromY, y, y, toY);
-	
-	    return `M ${fromX},${fromY} C ${fromX-dx},${y} ${toX+dx},${y} ${toX},${toY}`;
+	    const y = Math.min(fromY, toY) - arcHeight;
+	    if (Math.abs(fromX - toX) < arcHeight) {
+	      // the FROM is near the TO on x-axis.
+	      toX += Circle.size;
+	      if (fromY > toY) {
+	        // the FROM is under the TO
+	        return `M ${fromX}, ${fromY} C ${fromX + arcHeight}, ${y} ${toX - dx},${y} ${toX}, ${toY}`;
+	      } else {
+	        // right half circle curve.
+	        const dy = (fromY - toY) / 2;
+	        return `M ${fromX}, ${fromY} Q ${fromX + arcHeight}, ${fromY - dy} ${toX}, ${toY}`;
+	      }
+	    } else {
+	      return `M ${fromX}, ${fromY} C ${fromX - dx},${y} ${toX + dx}, ${y} ${toX}, ${toY}`;
+	    }
 	  }
 	
 	  on(name, handler){
@@ -16185,20 +16207,28 @@
 	    globalEvent.emit("svgupdate", this);
 	  }
 	
+	  /**
+	   * Set start position.
+	   * @param position ... right-top of the marker.
+	   *
+	   *    + <-- position
+	   * ###  <-- the marker
+	   * ###
+	   * ========== <-- span
+	   *
+	   */
 	  move(position){
 	    this.fromX = position.left;
 	    this.fromY = position.top;
 	  }
 	
+	  /**
+	   * Set end position, adjust start position, and draw arc angle.
+	   */
 	  point(position){
 	    const path = this.curvePath(this.fromX, this.fromY, position.left, position.top);
 	    this.jObject.attr("d", path);
 	    this.jObjectOutline.attr("d", path);
-	  }
-	
-	  y(t, y1, y2, y3, y4){
-	    const tp = 1 - t;
-	    return t*t*t*y4 + 3*t*t*tp*y3 + 3*t*tp*tp*y2 + tp*tp*tp*y1;
 	  }
 	
 	  select(){
