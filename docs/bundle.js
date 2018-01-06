@@ -15646,7 +15646,7 @@
 	      const t1 = cir.originalPosition().top;
 	      const l2 = this.originalPosition().left;
 	      const t2 = this.originalPosition().top;
-	      if (Math.abs(Math.floor(l1-l2)) <= 3 && Math.abs(Math.floor(t1-t2)) <= 3) {
+	      if (Math.abs(Math.floor(l1-l2)) <= Circle.size && Math.abs(Math.floor(t1-t2)) <= Circle.size) {
 	        n += 1;
 	      }
 	    }
@@ -16146,32 +16146,62 @@
 	  curvePath(fromX, fromY, toX, toY){
 	    const arcHeight = 30;
 	    const halfCircleSize = Circle.size / 2;
+	    const svgParts = [];
 	
-	    // As default, start from right side of marker and end right side.
-	    // When start position is left than end position, start from left side of maker, and end right side.
-	    if (fromX < toX) {
-	      fromX += halfCircleSize;
-	      toX -= halfCircleSize;
-	    } else {
-	      fromX -= halfCircleSize;
-	      toX += halfCircleSize;
-	    }
-	    const dx = (fromX - toX) / 4;
-	    const y = Math.min(fromY, toY) - arcHeight;
-	    if (Math.abs(fromX - toX) < arcHeight) {
-	      // the FROM is near the TO on x-axis.
-	      toX += Circle.size;
-	      if (fromY > toY) {
-	        // the FROM is under the TO
-	        return `M ${fromX}, ${fromY} C ${fromX + arcHeight}, ${y} ${toX - dx},${y} ${toX}, ${toY}`;
+	    if (this._nearPosition(fromX, toX, arcHeight)) {
+	      if (this._nearPosition(fromY, toY, arcHeight)) {
+	        if (Math.abs(fromX - toX) < Math.abs(fromY - toY)) {
+	          // vertical near position (two cubic bezier curve)
+	          if (fromY > toY) {
+	            // Under to Top
+	            svgParts.push(`M ${fromX - halfCircleSize} ${fromY + Circle.size}`);
+	            svgParts.push(`C ${fromX - arcHeight} ${fromY - halfCircleSize}, ${fromX - arcHeight} ${toY}, ${toX - arcHeight} ${toY}`);
+	            svgParts.push(`S ${toX - arcHeight} ${toY - arcHeight}, ${toX} ${toY}`);
+	          } else {
+	            svgParts.push(`M ${fromX} ${fromY}`);
+	            svgParts.push(`C ${fromX - arcHeight} ${fromY - arcHeight}, ${fromX - arcHeight} ${fromY}, ${toX - arcHeight} ${fromY}`);
+	            svgParts.push(`S ${toX - arcHeight} ${toY - halfCircleSize}, ${toX - halfCircleSize} ${toY + Circle.size}`);
+	          }
+	        } else {
+	          // horizontal near position (2 times height quadratic bezier curve)
+	          svgParts.push(`M ${fromX} ${fromY}`);
+	          svgParts.push(`Q ${fromX} ${toY - (arcHeight * 2)} ${toX} ${toY}`);
+	        }
 	      } else {
-	        // right half circle curve.
-	        const dy = (fromY - toY) / 2;
-	        return `M ${fromX}, ${fromY} Q ${fromX + arcHeight}, ${fromY - dy} ${toX}, ${toY}`;
+	        fromX += halfCircleSize;
+	        toX += halfCircleSize;
+	        svgParts.push(`M ${fromX} ${fromY}`);
+	        if (fromY > toY) {
+	          // the FROM is under the TO (right-side to right-side by cubic bezier curve)
+	          svgParts.push(`C ${fromX + arcHeight} ${toY - arcHeight}, ${toX + arcHeight} ${toY - arcHeight}, ${toX} ${toY}`);
+	        } else {
+	          // right-side to right-side by arc curve
+	          const dy = (fromY - toY) / 2;
+	          svgParts.push(`Q ${fromX + arcHeight} ${fromY - dy}, ${toX} ${toY}`);
+	        }
 	      }
 	    } else {
-	      return `M ${fromX}, ${fromY} C ${fromX - dx},${y} ${toX + dx}, ${y} ${toX}, ${toY}`;
+	      const dx = (fromX - toX) / 4;
+	      const y = Math.min(fromY, toY) - arcHeight;
+	      if (fromX > toX) {
+	        // left-side to right-side by cubic bezier curve
+	        fromX -= halfCircleSize;
+	        toX += halfCircleSize;
+	        svgParts.push(`M ${fromX} ${fromY}`);
+	        svgParts.push(`C ${fromX - dx},${y} ${toX + dx}, ${y} ${toX}, ${toY}`);
+	      } else {
+	        // right-side to left-side by cubic bezier curve
+	        fromX += halfCircleSize;
+	        toX -= halfCircleSize;
+	        svgParts.push(`M ${fromX} ${fromY}`);
+	        svgParts.push(`C ${fromX - dx},${y} ${toX + dx}, ${y} ${toX}, ${toY}`);
+	      }
 	    }
+	    return svgParts.join(' ');
+	  }
+	
+	  _nearPosition(from, to, limit) {
+	    return (Math.abs(from - to) < limit)
 	  }
 	
 	  on(name, handler){
