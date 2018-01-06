@@ -56,7 +56,7 @@ class Circle{
       const t1 = cir.originalPosition().top;
       const l2 = this.originalPosition().left;
       const t2 = this.originalPosition().top;
-      if (Math.abs(Math.floor(l1-l2)) <= 3 && Math.abs(Math.floor(t1-t2)) <= 3) {
+      if (Math.abs(Math.floor(l1-l2)) <= Circle.size && Math.abs(Math.floor(t1-t2)) <= Circle.size) {
         n += 1;
       }
     }
