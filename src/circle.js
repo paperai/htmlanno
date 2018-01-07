@@ -3,10 +3,6 @@ const globalEvent = window.globalEvent;
 
 class Circle{
   constructor(id, highlight){
-    if (!Circle.instances){
-      Circle.instances = [];
-    }
-
     Circle.instances.push(this);
     this.id = id;
     this.highlight = highlight;
@@ -126,15 +122,27 @@ class Circle{
     globalEvent.removeObject(this);
     const idx = Circle.instances.findIndex((e)=>e===this);
 
-    if (idx !== -1 && !batch){
+    if (idx !== -1){
       Circle.instances.splice(idx, 1);
-      Circle.instances.forEach((cir)=>{
+      if (!batch) {
+        Circle.instances.forEach((cir)=>{
+          cir.reposition();
+        });
+      }
+    }
+  }
+
+  static repositionAll() {
+    return new Promise((resolve, reject) => {
+      Circle.instances.forEach((cir) => {
         cir.reposition();
       });
-    }
+      resolve();
+    });
   }
 }
 
 Circle.size = 10;
+Circle.instances = [];
 
 module.exports = Circle;
