@@ -176,6 +176,7 @@ class Highlight extends Annotation {
 
   setColor(color) {
     if (this.isPrimary()) {
+      this.jObject[0].style.borderColor = tinycolor(color).toRgbString();
       this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
     } else {
       this.jObject[0].style.borderBottomColor = tinycolor(color).setAlpha(0.2).toRgbString();

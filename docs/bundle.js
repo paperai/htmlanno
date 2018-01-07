@@ -15567,6 +15567,7 @@
 	
 	  setColor(color) {
 	    if (this.isPrimary()) {
+	      this.jObject[0].style.borderColor = tinycolor(color).toRgbString();
 	      this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
 	    } else {
 	      this.jObject[0].style.borderBottomColor = tinycolor(color).setAlpha(0.2).toRgbString();
@@ -16438,8 +16439,8 @@
 	    );
 	    if (temporaryElements.length > 0){
 	      highlight.setDomElements(temporaryElements);
-	
-	      // TODO: 同一のSpan(定義は別途検討)を許さないのであればここでエラー判定必要
+	      // TODO: #44 label-color.
+	      highlight.setColor({r: 255, g: 165, b: 0});
 	      this.highlights.add(highlight);
 	    }
 	    selection.removeAllRanges();
