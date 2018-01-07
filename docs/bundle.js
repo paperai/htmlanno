@@ -480,6 +480,7 @@
 	    this.fileContainer.annotations.forEach((annotation) => {
 	      if (annotation.primary) {
 	        annotationContainer.removePrimaryAll();
+	        Circle.repositionAll();
 	        annotation.primary = false;
 	      }
 	    });
@@ -564,6 +565,7 @@
 	        resolve(annotationContainer.removeReference(annotationFileObj.name));
 	      }));
 	    });
+	    promises.push(Circle.repositionAll());
 	    promises.push(new Promise((resolve, reject) => {
 	      // Because AnnotationContainer#removeReference() reconstructs inner set, #getAnnotations() is not return correctly collection.
 	      // For update annoList count, 'annotationDeleted' event need to emit after all process.
@@ -726,9 +728,11 @@
 	
 	  removeAll() {
 	    annotationContainer.removeAll();
-	    // Because AnnotationContainer#removeAll() reconstructs inner set, #getAnnotations() is not return correctly collection.
-	    // For update annoList count, 'annotationDeleted' event need to emit after all process.
-	    WindowEvent.emit('annotationDeleted', {uuid: undefined});
+	    Circle.repositionAll().then(() => {
+	      // Because AnnotationContainer#removeAll() reconstructs inner set, #getAnnotations() is not return correctly collection.
+	      // For update annoList count, 'annotationDeleted' event need to emit after all process.
+	      WindowEvent.emit('annotationDeleted', {uuid: undefined});
+	    });
 	  }
 	
 	  /**
@@ -15567,10 +15571,14 @@
 	
 	  setColor(color) {
 	    if (this.isPrimary()) {
-	      this.jObject[0].style.borderColor = tinycolor(color).toRgbString();
-	      this.jObject[0].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
+	      this.jObject.each((index) => {
+	        this.jObject[index].style.borderColor = tinycolor(color).toRgbString();
+	        this.jObject[index].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
+	      });
 	    } else {
-	      this.jObject[0].style.borderBottomColor = tinycolor(color).setAlpha(0.2).toRgbString();
+	      this.jObject.each((index) => {
+	        this.jObject[index].style.borderBottomColor = tinycolor(color).setAlpha(0.2).toRgbString();
+	      });
 	    }
 	  }
 	
@@ -15594,10 +15602,6 @@
 	
 	class Circle{
 	  constructor(id, highlight){
-	    if (!Circle.instances){
-	      Circle.instances = [];
-	    }
-	
 	    Circle.instances.push(this);
 	    this.id = id;
 	    this.highlight = highlight;
@@ -15717,16 +15721,28 @@
 	    globalEvent.removeObject(this);
 	    const idx = Circle.instances.findIndex((e)=>e===this);
 	
-	    if (idx !== -1 && !batch){
+	    if (idx !== -1){
 	      Circle.instances.splice(idx, 1);
-	      Circle.instances.forEach((cir)=>{
+	      if (!batch) {
+	        Circle.instances.forEach((cir)=>{
+	          cir.reposition();
+	        });
+	      }
+	    }
+	  }
+	
+	  static repositionAll() {
+	    return new Promise((resolve, reject) => {
+	      Circle.instances.forEach((cir) => {
 	        cir.reposition();
 	      });
-	    }
+	      resolve();
+	    });
 	  }
 	}
 	
 	Circle.size = 10;
+	Circle.instances = [];
 	
 	module.exports = Circle;
 
