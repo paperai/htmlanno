@@ -1,5 +1,6 @@
 .htmlanno-highlight {
   background-color: yellow;
+  border: 1px solid orange;
 }
 
 .htmlanno-highlight:hover, .htmlanno-border{
@@ -8,7 +9,7 @@
 
 .htmlanno-highlight-selected{
   background-color: yellow;
-  border: 2px dotted black;
+  border: 2px dotted black !important;
   margin: -2px;
 }
 
