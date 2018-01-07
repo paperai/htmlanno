@@ -413,6 +413,7 @@ class Htmlanno{
     this.fileContainer.annotations.forEach((annotation) => {
       if (annotation.primary) {
         annotationContainer.removePrimaryAll();
+        Circle.repositionAll();
         annotation.primary = false;
       }
     });
@@ -497,6 +498,7 @@ class Htmlanno{
         resolve(annotationContainer.removeReference(annotationFileObj.name));
       }));
     });
+    promises.push(Circle.repositionAll());
     promises.push(new Promise((resolve, reject) => {
       // Because AnnotationContainer#removeReference() reconstructs inner set, #getAnnotations() is not return correctly collection.
       // For update annoList count, 'annotationDeleted' event need to emit after all process.
@@ -659,9 +661,11 @@ class Htmlanno{
 
   removeAll() {
     annotationContainer.removeAll();
-    // Because AnnotationContainer#removeAll() reconstructs inner set, #getAnnotations() is not return correctly collection.
-    // For update annoList count, 'annotationDeleted' event need to emit after all process.
-    WindowEvent.emit('annotationDeleted', {uuid: undefined});
+    Circle.repositionAll().then(() => {
+      // Because AnnotationContainer#removeAll() reconstructs inner set, #getAnnotations() is not return correctly collection.
+      // For update annoList count, 'annotationDeleted' event need to emit after all process.
+      WindowEvent.emit('annotationDeleted', {uuid: undefined});
+    });
   }
 
   /**
