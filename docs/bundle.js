@@ -284,23 +284,26 @@
 	  }
 	
 	  handleResize(){
-	    let viewWrapper = $('#viewerWrapper');
-	    // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
-	    let height = $(window).height() - viewWrapper[0].offsetTop - 10;
-	    viewWrapper.css('height', '');
-	    viewWrapper.css('max-height', `${height}px`);
-	    $('#htmlanno-svg-screen').css('height', `${$('#viewer').height()}px`);
-	
+	    const promises = [];
+	    promises.push(new Promise((resolve, reject) => {
+	      const viewWrapper = $('#viewerWrapper');
+	      // 10 is #viewrWrapper's margin(top: 5px, bottom: 5px)
+	      const height = $(window).height() - viewWrapper[0].offsetTop - 10;
+	      viewWrapper.css('height', '');
+	      viewWrapper.css('max-height', `${height}px`);
+	      $('#htmlanno-svg-screen').css('height', `${$('#viewer').height()}px`);
+	    }));
 	    if (Circle.instances){
-	      Circle.instances.forEach((cir)=>{
-	        cir.reposition();
-	      });
+	      promises.push(Circle.repositionAll());
 	    }
 	    annotationContainer.forEach((annotation) => {
-	      if (annotation instanceof RelationAnnotation) {
-	        annotation.reposition();
-	      }
+	      promises.push(new Promise((resolve, reject) => {
+	        if (annotation instanceof RelationAnnotation) {
+	          annotation.reposition();
+	        }
+	      }));
 	    });
+	    return Promise.all(promises).then();
 	  }
 	
 	  // HtmlAnno only, NEED.
@@ -438,11 +441,16 @@
 	   */
 	  displayPrimaryAnnotation(fileName) {
 	    const promises = this._hideUnselectedPrimaryAnnotations();
-	    Promise.all(promises).then((resolve) => {
-	      this.renderPrimaryAnnotation(
-	        this.fileContainer.getAnnotation(fileName)
-	      );
-	    });
+	    promises.push(this.handleResize());
+	    promises.push(
+	      new Promise((resolve, reject) => {
+	        this.renderPrimaryAnnotation(
+	          this.fileContainer.getAnnotation(fileName)
+	        );
+	        resolve();
+	      })
+	    );
+	    return Promise.all(promises).then();
 	  }
 	
 	  renderPrimaryAnnotation(annotationFileObj) {
@@ -480,10 +488,11 @@
 	    this.fileContainer.annotations.forEach((annotation) => {
 	      if (annotation.primary) {
 	        annotationContainer.removePrimaryAll();
-	        Circle.repositionAll();
+	        this.handleResize();
 	        annotation.primary = false;
 	      }
 	    });
+	    
 	    // Because AnnotationContainer#removePrimaryAll() reconstructs inner set, #getAnnotations() is not return correctly collection.
 	    // For update annoList count, 'annotationDeleted' event need to emit after all process.
 	    WindowEvent.emit('annotationDeleted', {uuid: undefined});
@@ -515,6 +524,7 @@
 	          }
 	        });
 	      });
+	      this.handleResize();
 	    })
 	    .catch((reject) => {
 	      console.log(reject);
@@ -15688,17 +15698,24 @@
 	
 	  /**
 	   * calculate offset value from parent node that is not Annotation.
-	   * In case of some annotations set to same position, an annotation (A) is child HTML element of other annotation (B). 
-	   * Annotation A's offset is {left: 0, top: 0}, because A's offset is position from B, and A position equals B.
-	   * This method seek the parent node that offset is not {left: 0, top:0}.
+	   * In case of some annotations set to same position, an annotation (A) is child HTML element of other annotation (B).
+	   * Annotation A's offset is {left: 0, top: 0} ({left: 1, top: 1} maybe), because A's offset is position from B, and A position equals B.
+	   * This method seek the parent node that is not Annotation.
+	   * Annotation has class of 'htmlanno-highlight' or 'htmlanno-ref-highlight'.
 	   */
 	  _calculateBasePosition() {
+	    // parent is <span class="htmlanno-ll-<uuid>">.
+	    // this would not have class of 'htmlanno-(ref-)highlight' yet. because it is constructed now.
 	    let parent = this.jObject[0].offsetParent;
 	    const pos = {top: parent.offsetTop, left: parent.offsetLeft};
-	    while(0 == pos.top && 0 == pos.left && null != parent.offsetParent) {
-	      parent = parent.offsetParent;
+	
+	    // parent.offsetParent may be <div id="viewerwrapper"> or other <span class="htmlanno-(ref-)highlight">.
+	    // this <span> has class of 'htmlanno-highlight' or 'htmlanno-ref-highlight'.
+	    parent = parent.offsetParent;
+	    while(parent.classList.contains('htmlanno-highlight') || parent.classList.contains('htmlanno-ref-highlight')) {
 	      pos.top = parent.offsetTop;
 	      pos.left = parent.offsetLeft;
+	      parent = parent.offsetParent;
 	    }
 	    return pos;  
 	  }
