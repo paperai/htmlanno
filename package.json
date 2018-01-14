@@ -24,6 +24,6 @@
     "karma-nodeunit": "^0.2.0",
     "karma-spec-reporter": "^0.0.31",
     "filereader": "^0.10.3",
-    "webpack": "^1.13.2"
+    "webpack": "^3.0.0"
   }
 }
