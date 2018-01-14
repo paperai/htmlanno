@@ -225,6 +225,7 @@ class Htmlanno{
       viewWrapper.css('height', '');
       viewWrapper.css('max-height', `${height}px`);
       $('#htmlanno-svg-screen').css('height', `${$('#viewer').height()}px`);
+      resolve();
     }));
     if (Circle.instances){
       promises.push(Circle.repositionAll());
@@ -348,6 +349,7 @@ class Htmlanno{
     });
   }
 
+  // TODO: 呼び出し元の処理まで含めて変更すればPromise化できそう
   _getAnnotations(selectorFunction) {
     const results = [];
     annotationContainer.forEach((annotation) => {
@@ -438,6 +440,7 @@ class Htmlanno{
    */
   displayReferenceAnnotation(fileNames) {
     const removePromise = this._hideReferenceAnnotation(this.getUiAnnotations(true));
+    // TODO: resolve使っていないので、then()以下の処理もPromise化したい
     removePromise.then((resolve) => {
       const selectedUiAnnotations = this.getUiAnnotations(false);
       selectedUiAnnotations.forEach((uiAnnotation) => {
