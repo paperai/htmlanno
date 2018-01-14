@@ -128,6 +128,19 @@ class AnnotationContainer{
     this.set.forEach(callback);
   }
 
+  /**
+   * htmlanno only
+   */
+  forEachPromise(callback) {
+    const promises = [];
+    this.set.forEach((annotation) => {
+      promises.push(new Promise((resolve, reject) => {
+        resolve(callback(annotation));
+      }));
+    });
+    return Promise.all(promises).then();
+  }
+
   // TODO: pdfanno only
   destroy(){
   }

@@ -352,6 +352,33 @@ test('getPrimaryAnnotations() should return the empty array when instance is not
   assert.deepEqual(result, []);
 });
 
+test('foreachPromise() should return Promise object that includes the value of each callback return.', (assert) => {
+  const reference1 = new Annotation('ref1');
+  const reference2 = new Annotation('ref1');
+  const reference3 = new Annotation('ref2');
+  const reference4 = new Annotation('ref2');
+  this.instance.add(reference1);
+  this.instance.add(reference2);
+  this.instance.add(reference3);
+  this.instance.add(reference4);
+
+  const done = assert.async();
+
+  const result_in_forEach = [];
+  result_callback_is_no_output = this.instance.forEachPromise((annotation) => {
+    result_in_forEach.push(annotation.uuid);
+  });
+  assert.deepEqual(result_in_forEach, [reference1.uuid, reference2.uuid, reference3.uuid, reference4.uuid]);
+
+  result_callback_is_output = this.instance.forEachPromise((annotation) => {
+    return annotation.uuid;
+  });
+  result_callback_is_output.then((resolves) => {
+    assert.deepEqual(resolves, [reference1.uuid, reference2.uuid, reference3.uuid, reference4.uuid]);
+    done();
+  });
+});
+
 // pdfannoとの互換性のため用意したダミーなので省略
 QUnit.skip('enableAll()', (assert) => {
 });
