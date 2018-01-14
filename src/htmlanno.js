@@ -272,11 +272,11 @@ class Htmlanno{
       !$(e.target).hasClass("htmlanno-circle") &&
       !$(e.target).hasClass("htmlanno-arrow")
     ) {
-      this.getSelectedAnnotations().forEach((annotation) => {
-        annotation.blur();
-      });
+      return this._blurAnnotations();
+    } else {
+      // maybe fire an event from annotation or relation.
+      return Promise.resolve();
     }
-    // else ... maybe fire an event from annotation or relation.
   }
 
   // Unselect the selected highlight(s).
@@ -285,25 +285,35 @@ class Htmlanno{
   // And after, if selected index exists yet, start it's label edit.
   // When call without index, unselect all highlights.
   unselectHighlight(target){
-    if (undefined == target){
-      this.getSelectedAnnotations().forEach((annotation) => {
-        if (annotation instanceof Highlight) {
-          annotation.blur();
-        }
+    if (undefined == target) {
+      return this._blurAnnotations((annotation) => {
+        return (annotation instanceof Highlight);
       });
     } else {
-      target.blur();
+      return (new Promise((resolve, reject) => {
+        target.blur();
+      })).then();
     }
-    return true;
   }
 
   unselectRelation(){
-    this.getSelectedAnnotations().forEach((annotation) => {
-      if (annotation instanceof RelationAnnotation) {
-        annotation.blur();
-      }
+    return this._blurAnnotations((annotation) => {
+      return (annotation instanceof RelationAnnotation);
     });
   }
+
+  _blurAnnotations(callbackForCheck) {
+    const promises = [];
+    annotationContainer.getSelectedAnnotations().forEach((annotation) => {
+      if (undefined == callbackForCheck || callbackForCheck(annotation)) {
+        promises.push(new Promise((resolve, reject) => {
+          annotation.blur();
+        }));
+      }
+    });
+    return Promise.all(promises).then();
+  }
+    
 
   handleAddSpan(label){
     let span = this.highlighter.highlight(label.text);
