@@ -292,17 +292,16 @@
 	      viewWrapper.css('height', '');
 	      viewWrapper.css('max-height', `${height}px`);
 	      $('#htmlanno-svg-screen').css('height', `${$('#viewer').height()}px`);
+	      resolve();
 	    }));
 	    if (Circle.instances){
 	      promises.push(Circle.repositionAll());
 	    }
-	    annotationContainer.forEach((annotation) => {
-	      promises.push(new Promise((resolve, reject) => {
-	        if (annotation instanceof RelationAnnotation) {
-	          annotation.reposition();
-	        }
-	      }));
-	    });
+	    promises.push(annotationContainer.forEachPromise((annotation) => {
+	      if (annotation instanceof RelationAnnotation) {
+	        annotation.reposition();
+	      }
+	    }));
 	    return Promise.all(promises).then();
 	  }
 	
@@ -340,11 +339,11 @@
 	      !$(e.target).hasClass("htmlanno-circle") &&
 	      !$(e.target).hasClass("htmlanno-arrow")
 	    ) {
-	      this.getSelectedAnnotations().forEach((annotation) => {
-	        annotation.blur();
-	      });
+	      return this._blurAnnotations();
+	    } else {
+	      // maybe fire an event from annotation or relation.
+	      return Promise.resolve();
 	    }
-	    // else ... maybe fire an event from annotation or relation.
 	  }
 	
 	  // Unselect the selected highlight(s).
@@ -353,25 +352,36 @@
 	  // And after, if selected index exists yet, start it's label edit.
 	  // When call without index, unselect all highlights.
 	  unselectHighlight(target){
-	    if (undefined == target){
-	      this.getSelectedAnnotations().forEach((annotation) => {
-	        if (annotation instanceof Highlight) {
-	          annotation.blur();
-	        }
+	    if (undefined == target) {
+	      return this._blurAnnotations((annotation) => {
+	        return (annotation instanceof Highlight);
 	      });
 	    } else {
-	      target.blur();
+	      console.log("called unselectHighligjht for " + target);
+	      return (new Promise((resolve, reject) => {
+	        target.blur();
+	      })).then();
 	    }
-	    return true;
 	  }
 	
 	  unselectRelation(){
-	    this.getSelectedAnnotations().forEach((annotation) => {
-	      if (annotation instanceof RelationAnnotation) {
-	        annotation.blur();
-	      }
+	    return this._blurAnnotations((annotation) => {
+	      return (annotation instanceof RelationAnnotation);
 	    });
 	  }
+	
+	  _blurAnnotations(callbackForCheck) {
+	    const promises = [];
+	    annotationContainer.getSelectedAnnotations().forEach((annotation) => {
+	      if (undefined == callbackForCheck || callbackForCheck(annotation)) {
+	        promises.push(new Promise((resolve, reject) => {
+	          annotation.blur();
+	        }));
+	      }
+	    });
+	    return Promise.all(promises).then();
+	  }
+	    
 	
 	  handleAddSpan(label){
 	    let span = this.highlighter.highlight(label.text);
@@ -417,6 +427,7 @@
 	    });
 	  }
 	
+	  // TODO: 呼び出し元の処理まで含めて変更すればPromise化できそう
 	  _getAnnotations(selectorFunction) {
 	    const results = [];
 	    annotationContainer.forEach((annotation) => {
@@ -462,6 +473,9 @@
 	    }
 	  }
 	
+	  /**
+	   * @return Array that includes Promise.
+	   */
 	  _hideUnselectedPrimaryAnnotations() {
 	    const promises = [];
 	    this.getUiAnnotations(true, 'Primary').forEach((ann) => {
@@ -504,6 +518,7 @@
 	   */
 	  displayReferenceAnnotation(fileNames) {
 	    const removePromise = this._hideReferenceAnnotation(this.getUiAnnotations(true));
+	    // TODO: resolve使っていないので、then()以下の処理もPromise化したい
 	    removePromise.then((resolve) => {
 	      const selectedUiAnnotations = this.getUiAnnotations(false);
 	      selectedUiAnnotations.forEach((uiAnnotation) => {
@@ -575,7 +590,6 @@
 	        resolve(annotationContainer.removeReference(annotationFileObj.name));
 	      }));
 	    });
-	    promises.push(Circle.repositionAll());
 	    promises.push(new Promise((resolve, reject) => {
 	      // Because AnnotationContainer#removeReference() reconstructs inner set, #getAnnotations() is not return correctly collection.
 	      // For update annoList count, 'annotationDeleted' event need to emit after all process.
@@ -4663,6 +4677,19 @@
 	   */
 	  forEach(callback){
 	    this.set.forEach(callback);
+	  }
+	
+	  /**
+	   * htmlanno only
+	   */
+	  forEachPromise(callback) {
+	    const promises = [];
+	    this.set.forEach((annotation) => {
+	      promises.push(new Promise((resolve, reject) => {
+	        resolve(callback(annotation));
+	      }));
+	    });
+	    return Promise.all(promises).then();
 	  }
 	
 	  // TODO: pdfanno only
