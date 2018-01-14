@@ -508,7 +508,6 @@ class Htmlanno{
         resolve(annotationContainer.removeReference(annotationFileObj.name));
       }));
     });
-    promises.push(Circle.repositionAll());
     promises.push(new Promise((resolve, reject) => {
       // Because AnnotationContainer#removeReference() reconstructs inner set, #getAnnotations() is not return correctly collection.
       // For update annoList count, 'annotationDeleted' event need to emit after all process.
