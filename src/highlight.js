@@ -132,13 +132,6 @@ class Highlight extends Annotation {
     ].join("\n");
   }
 
-  /**
-   * TODO: 同一ID、同一選択範囲等でチェックするか？
-   * equals(obj){
-   *   return super.equals(obj);
-   * }
-   */
-
   static isMydata(toml){
     return (undefined != toml && "span" == toml.type);
   }

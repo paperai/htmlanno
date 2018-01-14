@@ -93,13 +93,6 @@ class RelationAnnotation extends Annotation {
     ].join("\n");
   }
 
-  /**
-   * TODO: 同一ID、同一のstarting/entering等でチェックするか？
-   * equals(obj){
-   *   return super.equals(obj);
-   * }
-   */
-
   static isMydata(toml){
     return (
       undefined !== toml && "relation" === toml.type && 
