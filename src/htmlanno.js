@@ -139,7 +139,8 @@ class Htmlanno{
       getSelectedAnnotations: this.getSelectedAnnotations.bind(this),
       saveAnnotationText: this.endEditLabel.bind(this),
       createSpanAnnotation: this.handleAddSpan.bind(this),
-      createRelAnnotation: this.handleAddRelation.bind(this)
+      createRelAnnotation: this.handleAddRelation.bind(this),
+      colorChangeListener: this.handleColorChange.bind(this)
     });
 
     AnnoUI.downloadButton.setup({
@@ -312,43 +313,6 @@ class Htmlanno{
       }
     });
     return Promise.all(promises).then();
-  }
-    
-
-  handleAddSpan(label){
-    let span = this.highlighter.highlight(label.text);
-    if (undefined != span) {
-      WindowEvent.emit('annotationrendered');
-      span.select();
-    }
-  }
-
-  handleAddRelation(params) {
-    let selected = this.getSelectedAnnotations();
-    if (2 == selected.length) {
-      let start = undefined;
-      let end   = undefined;
-      if (selected[0].selectedTimestamp < selected[1].selectedTimestamp) {
-        start = selected[0];
-        end   = selected[1];
-      } else {
-        start = selected[1];
-        end   = selected[0];
-      }
-      const relation = new RelationAnnotation(
-        start.circle, end.circle, params.type
-      );
-      relation.setContent(params.text);
-      annotationContainer.add(relation);
-      this.unselectHighlight();
-      WindowEvent.emit('annotationrendered');
-      relation.select();
-    } else {
-      WindowEvent.emit(
-        'open-alert-dialog',
-        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
-      );
-    }
   }
 
   handleExportAnnotation(){
@@ -664,8 +628,52 @@ class Htmlanno{
     annotation.blink();
   }
 
+  // For labelInput
+  // TODO: ここのidはuuidになった。htmlannoではuuid + referenceId
   endEditLabel(id, label) {
     annotationContainer.findById(id).setContent(label);
+  }
+
+  // For labelInput
+  handleAddSpan(label){
+    let span = this.highlighter.highlight(label.text);
+    if (undefined != span) {
+      WindowEvent.emit('annotationrendered');
+      span.select();
+    }
+  }
+
+  // For labelInput
+  handleAddRelation(params) {
+    let selected = this.getSelectedAnnotations();
+    if (2 == selected.length) {
+      let start = undefined;
+      let end   = undefined;
+      if (selected[0].selectedTimestamp < selected[1].selectedTimestamp) {
+        start = selected[0];
+        end   = selected[1];
+      } else {
+        start = selected[1];
+        end   = selected[0];
+      }
+      const relation = new RelationAnnotation(
+        start.circle, end.circle, params.type
+      );
+      relation.setContent(params.text);
+      annotationContainer.add(relation);
+      this.unselectHighlight();
+      WindowEvent.emit('annotationrendered');
+      relation.select();
+    } else {
+      WindowEvent.emit(
+        'open-alert-dialog',
+        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
+      );
+    }
+  }
+
+  handleColorChange(query) {
+    return annotationContainer.setColor(query);
   }
 
   getSelectedAnnotations() {

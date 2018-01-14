@@ -29,14 +29,23 @@ class AnnotationContainer{
     return true;
   }
 
-  findById(id){
-    let obj = null;
-    this.set.forEach((elm)=>{
-      if (elm.getId() == id) {
-        obj = elm;
+  // id = annotation.uuid + annotation.referenceId
+  findById(id) {
+    for(const annotation of this.set) {
+      if (id == annotation.getId()) {
+        return annotation;
       }
-    });
-    return obj;
+    }
+    return null;
+  }
+
+  findByUuid(uuid) {
+    for(const annotation of this.set) {
+      if (uuid == annotation.uuid) {
+        return annotation;
+      }
+    }
+    return null;
   }
 
   /**
