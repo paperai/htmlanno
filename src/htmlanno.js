@@ -229,13 +229,11 @@ class Htmlanno{
     if (Circle.instances){
       promises.push(Circle.repositionAll());
     }
-    annotationContainer.forEach((annotation) => {
-      promises.push(new Promise((resolve, reject) => {
-        if (annotation instanceof RelationAnnotation) {
-          annotation.reposition();
-        }
-      }));
-    });
+    promises.push(annotationContainer.forEachPromise((annotation) => {
+      if (annotation instanceof RelationAnnotation) {
+        annotation.reposition();
+      }
+    }));
     return Promise.all(promises).then();
   }
 
@@ -395,6 +393,9 @@ class Htmlanno{
     }
   }
 
+  /**
+   * @return Array that includes Promise.
+   */
   _hideUnselectedPrimaryAnnotations() {
     const promises = [];
     this.getUiAnnotations(true, 'Primary').forEach((ann) => {
