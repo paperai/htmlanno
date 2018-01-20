@@ -241,7 +241,10 @@ class AnnotationContainer{
         resolve(true);
       }).then();
     }
+  }
 
+  get size() {
+    return this.set.size;
   }
  
   // TODO: pdfanno only
