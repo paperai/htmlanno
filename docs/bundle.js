@@ -15421,7 +15421,8 @@ class Htmlanno{
       getSelectedAnnotations: this.getSelectedAnnotations.bind(this),
       saveAnnotationText: this.endEditLabel.bind(this),
       createSpanAnnotation: this.handleAddSpan.bind(this),
-      createRelAnnotation: this.handleAddRelation.bind(this)
+      createRelAnnotation: this.handleAddRelation.bind(this),
+      colorChangeListener: this.handleColorChange.bind(this)
     });
 
     AnnoUI.downloadButton.setup({
@@ -15594,43 +15595,6 @@ class Htmlanno{
       }
     });
     return Promise.all(promises).then();
-  }
-    
-
-  handleAddSpan(label){
-    let span = this.highlighter.highlight(label.text);
-    if (undefined != span) {
-      WindowEvent.emit('annotationrendered');
-      span.select();
-    }
-  }
-
-  handleAddRelation(params) {
-    let selected = this.getSelectedAnnotations();
-    if (2 == selected.length) {
-      let start = undefined;
-      let end   = undefined;
-      if (selected[0].selectedTimestamp < selected[1].selectedTimestamp) {
-        start = selected[0];
-        end   = selected[1];
-      } else {
-        start = selected[1];
-        end   = selected[0];
-      }
-      const relation = new RelationAnnotation(
-        start.circle, end.circle, params.type
-      );
-      relation.setContent(params.text);
-      annotationContainer.add(relation);
-      this.unselectHighlight();
-      WindowEvent.emit('annotationrendered');
-      relation.select();
-    } else {
-      WindowEvent.emit(
-        'open-alert-dialog',
-        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
-      );
-    }
   }
 
   handleExportAnnotation(){
@@ -15946,8 +15910,54 @@ class Htmlanno{
     annotation.blink();
   }
 
+  // For labelInput
+  // TODO: ここのidはuuidになった。htmlannoではuuid + referenceId
   endEditLabel(id, label) {
     annotationContainer.findById(id).setContent(label);
+  }
+
+  // For labelInput
+  handleAddSpan(label) {
+    let span = this.highlighter.highlight(label.text);
+    if (undefined != span) {
+      WindowEvent.emit('annotationrendered');
+      span.setColor(label.color);
+      span.select();
+    }
+  }
+
+  // For labelInput
+  handleAddRelation(params) {
+    let selected = this.getSelectedAnnotations();
+    if (2 == selected.length) {
+      let start = undefined;
+      let end   = undefined;
+      if (selected[0].selectedTimestamp < selected[1].selectedTimestamp) {
+        start = selected[0];
+        end   = selected[1];
+      } else {
+        start = selected[1];
+        end   = selected[0];
+      }
+      const relation = new RelationAnnotation(
+        start.circle, end.circle, params.type
+      );
+      relation.setContent(params.text);
+      relation.setColor(params.color);
+      annotationContainer.add(relation);
+      this.unselectHighlight();
+      WindowEvent.emit('annotationrendered');
+      relation.select();
+    } else {
+      WindowEvent.emit(
+        'open-alert-dialog',
+        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
+      );
+    }
+  }
+
+  handleColorChange(query) {
+    return annotationContainer.setColor(query);
   }
 
   getSelectedAnnotations() {
@@ -16513,14 +16523,23 @@ class AnnotationContainer{
     return true;
   }
 
-  findById(id){
-    let obj = null;
-    this.set.forEach((elm)=>{
-      if (elm.getId() == id) {
-        obj = elm;
+  // id = annotation.uuid + annotation.referenceId
+  findById(id) {
+    for(const annotation of this.set) {
+      if (id == annotation.getId()) {
+        return annotation;
       }
-    });
-    return obj;
+    }
+    return null;
+  }
+
+  findByUuid(uuid) {
+    for(const annotation of this.set) {
+      if (uuid == annotation.uuid) {
+        return annotation;
+      }
+    }
+    return null;
   }
 
   /**
@@ -16671,6 +16690,54 @@ class AnnotationContainer{
     return list;
   }
 
+  // For labelInput: colorChangeListener -> notifyColorChanged
+  /**
+   * @param query { text, color, uuid, annoType }
+   *  text: label text
+   *  color: pickuped color(hex string)
+   *  uuid: annotation's uuid(when end edit label text only)
+   *  annoType: 'span', 'one-way', 'two-way', and 'link'
+   *
+   * when end edit label text; uuid and color
+   * when change color on color picker; text, color, and annoType
+   */
+  setColor(query) {
+    if (undefined != query.text) {
+      return this.forEachPromise((annotation) => {
+        if (query.text == annotation.text) {
+          switch(query.annoType) {
+            case 'span':
+              if (query.annoType == annotation.type) {
+                annotation.setColor(query.color);
+                return true;
+              }
+              break;
+
+            case 'one-way':
+            case 'two-way':
+            case 'link':
+              if ('relation' == annotation.type && query.annoType == annotation.direction ) {
+                annotation.setColor(query.color);
+                return true;
+              }
+              break;
+
+            default:
+              return false;
+          }
+        } else {
+          return false;
+        }
+      }).then();
+    } else if (undefined != query.uuid) {
+      return new Promise((resolve, reject) => {
+        this.findByUuid(query.uuid).setColor(query.color);
+        resolve(true);
+      }).then();
+    }
+
+  }
+ 
   // TODO: pdfanno only
   enableAll(){
   }
