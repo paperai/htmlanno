@@ -635,10 +635,11 @@ class Htmlanno{
   }
 
   // For labelInput
-  handleAddSpan(label){
+  handleAddSpan(label) {
     let span = this.highlighter.highlight(label.text);
     if (undefined != span) {
       WindowEvent.emit('annotationrendered');
+      span.setColor(label.color);
       span.select();
     }
   }
@@ -660,6 +661,7 @@ class Htmlanno{
         start.circle, end.circle, params.type
       );
       relation.setContent(params.text);
+      relation.setColor(params.color);
       annotationContainer.add(relation);
       this.unselectHighlight();
       WindowEvent.emit('annotationrendered');
