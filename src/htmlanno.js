@@ -622,25 +622,36 @@ class Htmlanno{
   }
 
   scrollToAnnotation(id) {
-    let scrollArea = $('#viewerWrapper');
-    let annotation = annotationContainer.findById(id);
+    const scrollArea = $('#viewerWrapper');
+    const annotation = annotationContainer.findById(id);
     scrollArea[0].scrollTop = annotation.scrollTop - scrollArea.offset().top;
     annotation.blink();
   }
 
   // For labelInput
-  // TODO: ここのidはuuidになった。htmlannoではuuid + referenceId
   endEditLabel(id, label) {
-    annotationContainer.findById(id).setContent(label);
+    annotationContainer.findByUuid(id).setContent(label);
   }
 
   // For labelInput
   handleAddSpan(label) {
-    let span = this.highlighter.highlight(label.text);
-    if (undefined != span) {
-      WindowEvent.emit('annotationrendered');
-      span.setColor(label.color);
-      span.select();
+    const selected = annotationContainer.filter((annotation) => {
+      return (annotation.selected && 'span' == annotation.type);
+    });
+    if (0 != selected.size) {
+      // Change label and color.
+      selected.forEach((span) => {
+        span.setColor(label.color);
+        span.setContent(label.text);
+      });
+    } else {
+      // Create a new span.
+      const span = this.highlighter.highlight(label.text);
+      if (undefined != span) {
+        WindowEvent.emit('annotationrendered');
+        span.setColor(label.color);
+        span.select();
+      }
     }
   }
 
