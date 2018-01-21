@@ -635,24 +635,17 @@ class Htmlanno{
 
   // For labelInput
   handleAddSpan(label) {
-    const selected = annotationContainer.filter((annotation) => {
-      return (annotation.selected && 'span' == annotation.type);
-    });
-    if (0 != selected.size) {
-      // Change label and color.
-      selected.forEach((span) => {
-        span.setColor(label.color);
-        span.setContent(label.text);
-      });
-    } else {
-      // Create a new span.
-      const span = this.highlighter.highlight(label.text);
-      if (undefined != span) {
-        WindowEvent.emit('annotationrendered');
-        span.setColor(label.color);
-        span.select();
+    Highlight.updateLabelIfExistsSelectedSpan(label, annotationContainer).then((spanUpdated) => {
+      if (!spanUpdated) {
+        // Create a new span.
+        const span = this.highlighter.highlight(label.text);
+        if (undefined != span) {
+          WindowEvent.emit('annotationrendered');
+          span.setColor(label.color);
+          span.select();
+        }
       }
-    }
+    });
   }
 
   // For labelInput
