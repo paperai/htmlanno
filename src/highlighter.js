@@ -150,39 +150,6 @@ class Highlighter{
   get(id, referenceId){
     return this.highlights.findById(Annotation.createId(id, referenceId));
   }
-
-  remove(referenceId){
-    if (undefined == referenceId) {
-      return new Promise((resolve) => {
-        this.highlights.forEach((highlight)=>{
-          highlight.remove(true);
-        });
-        resolve(undefined);
-      });
-    } else {
-      let promises = [];
-      this.highlights.forEach((annotation, i)=>{
-        if (annotation instanceof Highlight){
-          if (undefined != referenceId) {
-            if (referenceId == annotation.getReferenceId()) {
-              promises.push(this._remove(annotation, i));
-            }
-          } else {
-            promises.push(this._remove(annotation, i));
-          }
-        }
-      });
-      return Promise.all(promises);
-    }
-  }
-
-  _remove(annotation, index) {
-    return new Promise((resolve, reject) => {
-      this.highlights.remove(index);
-    }).catch((reject) => {
-      console.log(reject);
-    });
-  }
 }
 
 module.exports = Highlighter;

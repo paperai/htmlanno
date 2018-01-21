@@ -86,7 +86,7 @@ class RelationAnnotation extends Annotation {
   saveToml(){
     // There is used '_id'. the uuid is set by constructor inner process, the _id is set by TomlTool#saveToml().
     return [
-      'type = "relation"',
+      `type = "${RelationAnnotation.Type}"`,
       `dir = "${this._direction}"`,
       `ids = ["${this.startingCircle.highlight._id}", "${this.endingCircle.highlight._id}"]`,
       `label = "${this.content()}"`
@@ -95,7 +95,7 @@ class RelationAnnotation extends Annotation {
 
   static isMydata(toml){
     return (
-      undefined !== toml && "relation" === toml.type && 
+      undefined !== toml && RelationAnnotation.Type === toml.type && 
       ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
     );
   }
@@ -121,7 +121,7 @@ class RelationAnnotation extends Annotation {
   }
 
   get type() {
-    return 'relation';
+    return RelationAnnotation.Type;
   }
 
   get direction() {
@@ -130,6 +130,25 @@ class RelationAnnotation extends Annotation {
 
   get scrollTop() {
     return this.startingCircle.positionCenter().top;
+  }
+
+  static get Type() {
+    return 'relation';
+  }
+
+  static updateLabelIfExistsSelectedRelation(label, annotationContainer) {
+    return new Promise((resolve, reject) => {
+      let targetExists = false;
+      annotationContainer.forEachPromise((annotation) => {
+        if (annotation.selected && RelationAnnotation.Type == annotation.type && label.type == annotation.direction) {
+          // Change label and color.
+          annotation.setColor(label.color);
+          annotation.setContent(label.text);
+          targetExists = true;
+        }
+      });
+      resolve(targetExists);
+    });
   }
 }
 
