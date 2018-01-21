@@ -178,8 +178,6 @@ QUnit.skip('remove() should', (assert) => {
 test('getUiAnnotations(true, "Primary") should return Array of primary annotation-data that is not selected on Anno-UI.', (assert) => {
   result = this.instance.getUiAnnotations(true, 'Primary');
   assert.equal(result.length, 2);
-  assert.equal(result[0].color, undefined); // primaryはcolorを持たないので常にundefined
-  assert.equal(result[1].color, undefined);
   assert.notEqual(result[0].name, undefined);
   assert.notEqual(result[1].name, undefined);
   const names = [result[0].name, result[1].name]; // 順序は特に定義がないのでとにかく含まれていればOK
@@ -190,27 +188,18 @@ test('getUiAnnotations(true, "Primary") should return Array of primary annotatio
 test('getUiAnnotations(false, "Primary") should return Array of primary annotation-data that is selected on Anno-UI.', (assert) => {
   result = this.instance.getUiAnnotations(false, 'Primary');
   assert.equal(result.length, 1);
-  assert.equal(result[0].color, undefined);
   assert.equal(result[0].name, this.selectedPrimaryAnno_1.text().trim());
 });
 
 test('getUiAnnotations(true, "Reference") should return Array of reference annotation-data that is not selected on Anno-UI.', (assert) => {
   result = this.instance.getUiAnnotations(true, 'Reference');
   assert.equal(result.length, 1);
-  assert.equal(result[0].color, 'rgb(255, 255, 255)');
   assert.equal(result[0].name, this.noselectedReferenceAnno_1.text().trim());
 });
 
 test('getUiAnnotations(false, "Reference") should return Array of reference annotation-data that is selected on Anno-UI.', (assert) => {
   result = this.instance.getUiAnnotations(false, 'Reference');
   assert.equal(result.length, 3);
-  assert.notEqual(result[0].color, undefined);
-  assert.notEqual(result[1].color, undefined);
-  assert.notEqual(result[2].color, undefined);
-  const colors = [result[0].color, result[1].color, result[2].color];
-  assert.ok(colors.includes('rgb(255, 0, 0)'));
-  assert.ok(colors.includes('rgb(0, 255, 0)'));
-  assert.ok(colors.includes('rgb(0, 0, 255)'));
   assert.notEqual(result[0].name, undefined);
   assert.notEqual(result[1].name, undefined);
   assert.notEqual(result[2].name, undefined);

@@ -457,16 +457,20 @@ class Htmlanno{
    * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
    */
   _renderAnnotation(annotationFileObj, uiAnnotation) {
+    const colorMap = AnnoUI.labelInput.getColorMap();
     if (undefined == uiAnnotation) {
       TomlTool.loadToml(
         annotationFileObj,
-        this.highlighter, this.arrowConnector
+        this.highlighter, this.arrowConnector,
+        undefined, /* uiAnnotation.name */
+        colorMap
       );
     } else {
       TomlTool.loadToml(
         annotationFileObj,
         this.highlighter, this.arrowConnector,
-        uiAnnotation.name, uiAnnotation.color
+        uiAnnotation.name,
+        colorMap
       );
     }
     WindowEvent.emit('annotationrendered');
@@ -509,8 +513,7 @@ class Htmlanno{
       let $elm = $(element);
       if ($elm.find('.fa-check').hasClass('no-visible') === not_selected) {
         uiAnnotations.push({
-          name: $elm.find('.js-annoname').text(),
-          color: $elm.find('.sp-preview-inner').css('background-color')
+          name: $elm.find('.js-annoname').text()
         });
       }
     });
@@ -567,7 +570,9 @@ class Htmlanno{
           TomlTool.loadToml(
             results[1].annotation,
             this.highlighter,
-            this.arrowConnector
+            this.arrowConnector,
+            undefined, /* uiAnnotation.name */
+            AnnoUI.labelInput.getColorMap()
           );
           WindowEvent.emit('annotationrendered');
           this.handleResize();
