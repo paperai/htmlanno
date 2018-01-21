@@ -635,47 +635,48 @@ class Htmlanno{
 
   // For labelInput
   handleAddSpan(label) {
-    Highlight.updateLabelIfExistsSelectedSpan(label, annotationContainer).then((spanUpdated) => {
-      if (!spanUpdated) {
-        // Create a new span.
-        const span = this.highlighter.highlight(label.text);
-        if (undefined != span) {
-          WindowEvent.emit('annotationrendered');
-          span.setColor(label.color);
-          span.select();
+    Highlight.updateLabelIfExistsSelectedSpan(label, annotationContainer).then(
+      (spanUpdated) => {
+        if (!spanUpdated) {
+          // Create a new span.
+          const span = this.highlighter.highlight(label.text);
+          if (undefined != span) {
+            WindowEvent.emit('annotationrendered');
+            span.setColor(label.color);
+            span.select();
+          }
         }
       }
-    });
+    );
   }
 
   // For labelInput
-  handleAddRelation(params) {
-    let selected = this.getSelectedAnnotations();
-    if (2 == selected.length) {
-      let start = undefined;
-      let end   = undefined;
-      if (selected[0].selectedTimestamp < selected[1].selectedTimestamp) {
-        start = selected[0];
-        end   = selected[1];
-      } else {
-        start = selected[1];
-        end   = selected[0];
+  handleAddRelation(label) {
+    RelationAnnotation.updateLabelIfExistsSelectedRelation(label, annotationContainer).then(
+      (relationUpdated) => {
+        if (!relationUpdated) {
+          const selected = this.getSelectedAnnotations().sort(
+            (a, b) => { return b.selectedTimeStamp - a.selectedTimestamp }
+          );
+          if (2 == selected.length) {
+            const relation = new RelationAnnotation(
+              selected[0].circle, selected[1].circle, label.type
+            );
+            relation.setContent(label.text);
+            relation.setColor(label.color);
+            annotationContainer.add(relation);
+            this.unselectHighlight();
+            WindowEvent.emit('annotationrendered');
+            relation.select();
+          } else {
+            WindowEvent.emit(
+              'open-alert-dialog',
+              {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
+            );
+          }
+        }
       }
-      const relation = new RelationAnnotation(
-        start.circle, end.circle, params.type
-      );
-      relation.setContent(params.text);
-      relation.setColor(params.color);
-      annotationContainer.add(relation);
-      this.unselectHighlight();
-      WindowEvent.emit('annotationrendered');
-      relation.select();
-    } else {
-      WindowEvent.emit(
-        'open-alert-dialog',
-        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
-      );
-    }
+    );
   }
 
   handleColorChange(query) {
