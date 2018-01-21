@@ -4406,7 +4406,7 @@ class Highlight extends Annotation {
 
   saveToml(){
     return [
-      'type = "span"',
+      `type = "${Highlight.Type}"`,
       `position = [${this.startOffset}, ${this.endOffset}]`,
       'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
       `label = "${this.content()}"`
@@ -4414,7 +4414,7 @@ class Highlight extends Annotation {
   }
 
   static isMydata(toml){
-    return (undefined != toml && "span" == toml.type);
+    return (undefined != toml && Highlight.Type == toml.type);
   }
 
   setContent(text){
@@ -4431,7 +4431,7 @@ class Highlight extends Annotation {
   }
 
   get type() {
-    return 'span';
+    return Highlight.Type;
   }
 
   get scrollTop() {
@@ -4467,6 +4467,25 @@ class Highlight extends Annotation {
     }
     this.jObject[0].style.backgroundColor = undefined;
   } 
+
+  static get Type() {
+    return 'span';
+  }
+
+  static updateLabelIfExistsSelectedSpan(label, annotationContainer) {
+    return new Promise((resolve, reject) => {
+      let targetExists = false;
+      annotationContainer.forEachPromise((annotation) => {
+        if (annotation.selected && Highlight.Type == annotation.type) {
+          // Change label and color.
+          annotation.setColor(label.color);
+          annotation.setContent(label.text);
+          targetExists = true;
+        }
+      });
+      resolve(targetExists);
+    });
+  }
 }
 
 module.exports = Highlight;
@@ -4564,7 +4583,7 @@ class RelationAnnotation extends Annotation {
   saveToml(){
     // There is used '_id'. the uuid is set by constructor inner process, the _id is set by TomlTool#saveToml().
     return [
-      'type = "relation"',
+      `type = "${RelationAnnotation.Type}"`,
       `dir = "${this._direction}"`,
       `ids = ["${this.startingCircle.highlight._id}", "${this.endingCircle.highlight._id}"]`,
       `label = "${this.content()}"`
@@ -4573,7 +4592,7 @@ class RelationAnnotation extends Annotation {
 
   static isMydata(toml){
     return (
-      undefined !== toml && "relation" === toml.type && 
+      undefined !== toml && RelationAnnotation.Type === toml.type && 
       ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
     );
   }
@@ -4599,7 +4618,7 @@ class RelationAnnotation extends Annotation {
   }
 
   get type() {
-    return 'relation';
+    return RelationAnnotation.Type;
   }
 
   get direction() {
@@ -4608,6 +4627,25 @@ class RelationAnnotation extends Annotation {
 
   get scrollTop() {
     return this.startingCircle.positionCenter().top;
+  }
+
+  static get Type() {
+    return 'relation';
+  }
+
+  static updateLabelIfExistsSelectedRelation(label, annotationContainer) {
+    return new Promise((resolve, reject) => {
+      let targetExists = false;
+      annotationContainer.forEachPromise((annotation) => {
+        if (annotation.selected && RelationAnnotation.Type == annotation.type && label.type == annotation.direction) {
+          // Change label and color.
+          annotation.setColor(label.color);
+          annotation.setContent(label.text);
+          targetExists = true;
+        }
+      });
+      resolve(targetExists);
+    });
   }
 }
 
@@ -15739,16 +15777,20 @@ class Htmlanno{
    * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
    */
   _renderAnnotation(annotationFileObj, uiAnnotation) {
+    const colorMap = AnnoUI.labelInput.getColorMap();
     if (undefined == uiAnnotation) {
       TomlTool.loadToml(
         annotationFileObj,
-        this.highlighter, this.arrowConnector
+        this.highlighter, this.arrowConnector,
+        undefined, /* uiAnnotation.name */
+        colorMap
       );
     } else {
       TomlTool.loadToml(
         annotationFileObj,
         this.highlighter, this.arrowConnector,
-        uiAnnotation.name, uiAnnotation.color
+        uiAnnotation.name,
+        colorMap
       );
     }
     WindowEvent.emit('annotationrendered');
@@ -15791,8 +15833,7 @@ class Htmlanno{
       let $elm = $(element);
       if ($elm.find('.fa-check').hasClass('no-visible') === not_selected) {
         uiAnnotations.push({
-          name: $elm.find('.js-annoname').text(),
-          color: $elm.find('.sp-preview-inner').css('background-color')
+          name: $elm.find('.js-annoname').text()
         });
       }
     });
@@ -15849,7 +15890,9 @@ class Htmlanno{
           TomlTool.loadToml(
             results[1].annotation,
             this.highlighter,
-            this.arrowConnector
+            this.arrowConnector,
+            undefined, /* uiAnnotation.name */
+            AnnoUI.labelInput.getColorMap()
           );
           WindowEvent.emit('annotationrendered');
           this.handleResize();
@@ -15904,56 +15947,61 @@ class Htmlanno{
   }
 
   scrollToAnnotation(id) {
-    let scrollArea = $('#viewerWrapper');
-    let annotation = annotationContainer.findById(id);
+    const scrollArea = $('#viewerWrapper');
+    const annotation = annotationContainer.findById(id);
     scrollArea[0].scrollTop = annotation.scrollTop - scrollArea.offset().top;
     annotation.blink();
   }
 
   // For labelInput
-  // TODO: ここのidはuuidになった。htmlannoではuuid + referenceId
   endEditLabel(id, label) {
-    annotationContainer.findById(id).setContent(label);
+    annotationContainer.findByUuid(id).setContent(label);
   }
 
   // For labelInput
   handleAddSpan(label) {
-    let span = this.highlighter.highlight(label.text);
-    if (undefined != span) {
-      WindowEvent.emit('annotationrendered');
-      span.setColor(label.color);
-      span.select();
-    }
+    Highlight.updateLabelIfExistsSelectedSpan(label, annotationContainer).then(
+      (spanUpdated) => {
+        if (!spanUpdated) {
+          // Create a new span.
+          const span = this.highlighter.highlight(label.text);
+          if (undefined != span) {
+            WindowEvent.emit('annotationrendered');
+            span.setColor(label.color);
+            span.select();
+          }
+        }
+      }
+    );
   }
 
   // For labelInput
-  handleAddRelation(params) {
-    let selected = this.getSelectedAnnotations();
-    if (2 == selected.length) {
-      let start = undefined;
-      let end   = undefined;
-      if (selected[0].selectedTimestamp < selected[1].selectedTimestamp) {
-        start = selected[0];
-        end   = selected[1];
-      } else {
-        start = selected[1];
-        end   = selected[0];
+  handleAddRelation(label) {
+    RelationAnnotation.updateLabelIfExistsSelectedRelation(label, annotationContainer).then(
+      (relationUpdated) => {
+        if (!relationUpdated) {
+          const selected = this.getSelectedAnnotations().sort(
+            (a, b) => { return b.selectedTimeStamp - a.selectedTimestamp }
+          );
+          if (2 == selected.length) {
+            const relation = new RelationAnnotation(
+              selected[0].circle, selected[1].circle, label.type
+            );
+            relation.setContent(label.text);
+            relation.setColor(label.color);
+            annotationContainer.add(relation);
+            this.unselectHighlight();
+            WindowEvent.emit('annotationrendered');
+            relation.select();
+          } else {
+            WindowEvent.emit(
+              'open-alert-dialog',
+              {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
+            );
+          }
+        }
       }
-      const relation = new RelationAnnotation(
-        start.circle, end.circle, params.type
-      );
-      relation.setContent(params.text);
-      relation.setColor(params.color);
-      annotationContainer.add(relation);
-      this.unselectHighlight();
-      WindowEvent.emit('annotationrendered');
-      relation.select();
-    } else {
-      WindowEvent.emit(
-        'open-alert-dialog',
-        {message: 'Two annotated text spans are not selected.\nTo select multiple annotated spans, click the first annotated span, then Ctrl+Click (Windows) or Cmd+Click (OSX) the second span.'}
-      );
-    }
+    );
   }
 
   handleColorChange(query) {
@@ -16735,7 +16783,10 @@ class AnnotationContainer{
         resolve(true);
       }).then();
     }
+  }
 
+  get size() {
+    return this.set.size;
   }
  
   // TODO: pdfanno only
@@ -16773,7 +16824,7 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, color) => {
+exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, colorMap) => {
   for(key in tomlObj) {
     if ("version" == key) {
       continue;
@@ -16782,17 +16833,20 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
     // Span.
     if (Highlight.isMydata(tomlObj[key])) {
       annotation = highlighter.addToml(key, tomlObj[key], referenceId);
+      if (null != annotation) {
+        annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
+        annotation.setFileContent(annotationFileObj);
+      }
     }
     // Relation(one-way, two-way, or link)
     if (RelationAnnotation.isMydata(tomlObj[key])) {
       annotation = arrowConnector.addToml(key, tomlObj[key], referenceId);
-    }
-    if (null != annotation) {
-      annotation.setFileContent(annotationFileObj);
-      if (undefined != color) {
-        annotation.setColor(color);
+      if (null != annotation) {
+        annotation.setColor(_getColor(colorMap, annotation.direction, annotation.text));
+        annotation.setFileContent(annotationFileObj);
       }
-    } else {
+    }
+    if (null == annotation) {
       console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
       console.log(tomlObj[key]);
     }
@@ -16805,13 +16859,18 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
  * @param arrowConnector ... Relation annotation container.
  * @param referenceId (optional) ... Used to identify annotations.
  */
-exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, color)=>{
+exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, colorMap) => {
   const toml = 'string' == typeof(annotationFileObj.content) ?
     TomlParser.parse(annotationFileObj.content) :
     annotationFileObj.content;
 
-  exports.renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, color);
+  exports.renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap);
 };
+
+function _getColor(colorMap, type, labelText) {
+  return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
+}
+
 
 
 /***/ }),
@@ -21278,39 +21337,6 @@ class Highlighter{
 
   get(id, referenceId){
     return this.highlights.findById(Annotation.createId(id, referenceId));
-  }
-
-  remove(referenceId){
-    if (undefined == referenceId) {
-      return new Promise((resolve) => {
-        this.highlights.forEach((highlight)=>{
-          highlight.remove(true);
-        });
-        resolve(undefined);
-      });
-    } else {
-      let promises = [];
-      this.highlights.forEach((annotation, i)=>{
-        if (annotation instanceof Highlight){
-          if (undefined != referenceId) {
-            if (referenceId == annotation.getReferenceId()) {
-              promises.push(this._remove(annotation, i));
-            }
-          } else {
-            promises.push(this._remove(annotation, i));
-          }
-        }
-      });
-      return Promise.all(promises);
-    }
-  }
-
-  _remove(annotation, index) {
-    return new Promise((resolve, reject) => {
-      this.highlights.remove(index);
-    }).catch((reject) => {
-      console.log(reject);
-    });
   }
 }
 
