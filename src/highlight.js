@@ -125,7 +125,7 @@ class Highlight extends Annotation {
 
   saveToml(){
     return [
-      'type = "span"',
+      `type = "${Highlight.Type}"`,
       `position = [${this.startOffset}, ${this.endOffset}]`,
       'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
       `label = "${this.content()}"`
@@ -133,7 +133,7 @@ class Highlight extends Annotation {
   }
 
   static isMydata(toml){
-    return (undefined != toml && "span" == toml.type);
+    return (undefined != toml && Highlight.Type == toml.type);
   }
 
   setContent(text){
@@ -150,7 +150,7 @@ class Highlight extends Annotation {
   }
 
   get type() {
-    return 'span';
+    return Highlight.Type;
   }
 
   get scrollTop() {
@@ -186,6 +186,25 @@ class Highlight extends Annotation {
     }
     this.jObject[0].style.backgroundColor = undefined;
   } 
+
+  static get Type() {
+    return 'span';
+  }
+
+  static updateLabelIfExistsSelectedSpan(label, annotationContainer) {
+    return new Promise((resolve, reject) => {
+      let targetExists = false;
+      annotationContainer.forEachPromise((annotation) => {
+        if (annotation.selected && Highlight.Type == annotation.type) {
+          // Change label and color.
+          annotation.setColor(label.color);
+          annotation.setContent(label.text);
+          targetExists = true;
+        }
+      });
+      resolve(targetExists);
+    });
+  }
 }
 
 module.exports = Highlight;
