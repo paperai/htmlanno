@@ -42,15 +42,36 @@ class RenderRelation{
   }
 
   _createOnewayArrowHead(){
+    this._createArrowHead();
     return this._createLinkHead().attr(
-      'marker-end', 'url(#htmlanno-arrow-head)'
+      'marker-end', `url(#htmlanno-arrow-head-${this.id})`
     );
   }
 
   _createTwowayArrowHead(){
     return this._createOnewayArrowHead().attr(
-      'marker-start', 'url(#htmlanno-arrow-head)'
+      'marker-start', `url(#htmlanno-arrow-head-${this.id})`
     );
+  }
+
+  _createArrowHead() {
+    const arrowHead = document.createElement('marker');
+    arrowHead.id = `htmlanno-arrow-head-${this.id}`;
+    arrowHead.classList.add('htmlanno-arrow-head');
+    arrowHead.setAttribute('visibility', 'visible');
+    arrowHead.setAttribute('refX', 6);
+    arrowHead.setAttribute('refY', 3);
+    arrowHead.setAttribute('fill', 'red'); // TODO: fillの値を後から変更可能にする
+    arrowHead.setAttribute('markerWidth', 6);
+    arrowHead.setAttribute('markerHeight', 6);
+    arrowHead.setAttribute('orient', 'auto-start-reverse');
+    arrowHead.setAttribute('markerUnits', 'strokeWidth');
+
+    const polyline = document.createElement('polyline');
+    polyline.setAttribute('points', '0,0 6,3 0,6 0.2,3');
+    arrowHead.appendChild(polyline);
+
+    this._putArrowMarker(this.id, arrowHead);
   }
 
   curvePath(fromX, fromY, toX, toY){
@@ -143,6 +164,7 @@ class RenderRelation{
     this.jObjectOutline.appendTo(target);
     this.jObjectOutline.hide();
     this.jObject.appendTo(target);
+    // TODO: jQueryからDOM処理へ変更
     $("#htmlanno-svg-screen").html($("#htmlanno-svg-screen").html());
     globalEvent.emit("svgupdate", this);
   }
@@ -190,10 +212,12 @@ class RenderRelation{
 
   handleHoverIn(e){
     this.jObject.addClass("htmlanno-arrow-hover");
+    this.jObject[0].setAttribute('opacity', '1.0');
   }
 
   handleHoverOut(e){
     this.jObject.removeClass("htmlanno-arrow-hover");
+    this.jObject[0].setAttribute('opacity', '0.2');
   }
 
   setContent(value){
@@ -215,11 +239,63 @@ class RenderRelation{
   setColor(color) {
     this.jObject[0].style.stroke = color;
     this.jObject[0].setAttribute('opacity', '0.2');
+    const arrowHead = this._getArrowMarker(`htmlanno-arrow-head-${this.id}`);
+    if (undefined != arrowHead) {
+      arrowHead.setAttribute('fill', color);
+    }
   }
 
   removeColor() {
     this.jObject[0].style.stroke = undefined;
     this.jObject[0].removeAttribute('opacity');
+  }
+
+  /**
+   * @param id ID of defs tag.
+   * @param arrowHead htmlElement of <marker id="htmlanno-arrow-head-${id}">
+   *
+   * <svg>
+   *  <defs id="${id1}">
+   *    ${arrowHead1}
+   *  </defs>
+   *  <defs id="${id2}">
+   *    ${arrowHead2}
+   *  </defs>
+   *   :
+   * </svg>
+   */
+  _putArrowMarker(id, arrowHead) {
+    return new Promise((resolve, reject) => {
+      const newDefs = document.createElement('defs');
+      newDefs.id = id;
+      newDefs.appendChild(arrowHead);
+      const oldDefs = document.getElementById(id);
+      if (undefined != oldDefs) {
+        oldDefs.replaceWith(newDefs);
+      } else {
+        document.getElementById('htmlanno-svg-screen').appendChild(newDefs);
+      }
+      resolve();
+    }).then();
+  }
+
+  _getArrowMarker(id) {
+    return document.getElementById(id);
+  }
+
+  /**
+   * @param id ID of defs tag.
+   */
+  _removeArrowMarker(id) {
+    return new Promise((resolve, reject) => {
+      const target = document.getElementById(id);
+      if (undefined == target) {
+        resolve(false);
+      } else {
+        target.remove();
+        resolve(true);
+      }
+    }).then();
   }
 }
 

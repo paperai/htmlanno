@@ -107,6 +107,11 @@
   transition:0.2s;
 }
 
+.htmlanno-arrow-hover > .htmlanno-arrow-head {
+  fill: 'red';
+  transition:0.2s;
+}
+
 #htmlanno-arrow-head{
   fill:red;
 }
