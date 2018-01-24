@@ -212,10 +212,12 @@ class RenderRelation{
 
   handleHoverIn(e){
     this.jObject.addClass("htmlanno-arrow-hover");
+    this.jObject[0].setAttribute('opacity', '1.0');
   }
 
   handleHoverOut(e){
     this.jObject.removeClass("htmlanno-arrow-hover");
+    this.jObject[0].setAttribute('opacity', '0.2');
   }
 
   setContent(value){
@@ -237,6 +239,10 @@ class RenderRelation{
   setColor(color) {
     this.jObject[0].style.stroke = color;
     this.jObject[0].setAttribute('opacity', '0.2');
+    const arrowHead = this._getArrowMarker(`htmlanno-arrow-head-${this.id}`);
+    if (undefined != arrowHead) {
+      arrowHead.setAttribute('fill', color);
+    }
   }
 
   removeColor() {
