@@ -2,6 +2,10 @@ const $ = require("jquery");
 const globalEvent = window.globalEvent;
 const Circle = require('./circle.js');
 
+/**
+ * TODO: arrowHeadはラベルテキスト(=色設定)単位での共有が可能な筈だが、共有のために必要な管理コストと照らし合わせて、どちらが効率よいのか検討が必要。
+ * 共有する場合、ラベルテキストごとにUUIDを採番、このUUIDをarrowHeadのIDとして使用する。ラベルテキストとUUIDとの対応表が必要になり、arrowHeadへのアクセスの度に対応表の走査が発生する懸念がある。
+ */
 class RenderRelation{
   constructor(id, position, direction){
     this.id = id;
