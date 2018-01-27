@@ -78,6 +78,27 @@ class RenderRelation{
     this._putArrowMarker(this.id, arrowHead);
   }
 
+  _createLabelText() {
+    const textValue = this.content();
+    if (undefined == textValue || '' == textValue) {
+      return;
+    }
+    const textTag = document.createElement('text');
+    textTag.innerText = textValue;
+    const textPathId = `htmlanno-textPath-${this.domId()}`;
+    const textPath = document.createElement('textPath');
+    textPath.id = textPathId;
+    textPath.appendChild(textTag);
+    textPath.setAttribute('xlink:href', `#${this.domId()}`);
+    
+    const oldTextPath = document.getElementById(textPathId);
+    if (undefined != oldTextPath) {
+      document.getElementById('htmlanno-svg-screen').replaceChild(oldTextPath, textPath);
+    } else {
+      document.getElementById('htmlanno-svg-screen').appendChild(textPath);
+    }
+  }
+
   curvePath(fromX, fromY, toX, toY){
     const arcHeight = 30;
     const halfCircleSize = Circle.size / 2;
@@ -226,6 +247,7 @@ class RenderRelation{
 
   setContent(value){
     this.jObject[0].setAttribute('data-label', value);
+    this._createLabelText();
   }
 
   content(){
