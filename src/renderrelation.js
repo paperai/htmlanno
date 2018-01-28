@@ -25,6 +25,7 @@ class RenderRelation{
       default:
         console.log('ERROR! Undefined type: ' + type);
     }
+    this._createLabel();
 
     this.jObjectOutline = $(`
         <path
@@ -65,7 +66,7 @@ class RenderRelation{
     arrowHead.setAttribute('visibility', 'visible');
     arrowHead.setAttribute('refX', 6);
     arrowHead.setAttribute('refY', 3);
-    arrowHead.setAttribute('fill', 'red'); // TODO: fillの値を後から変更可能にする
+    arrowHead.setAttribute('fill', 'red');
     arrowHead.setAttribute('markerWidth', 6);
     arrowHead.setAttribute('markerHeight', 6);
     arrowHead.setAttribute('orient', 'auto-start-reverse');
@@ -78,24 +79,27 @@ class RenderRelation{
     this._putArrowMarker(this.id, arrowHead);
   }
 
-  _createLabelText() {
-    const textValue = this.content();
-    if (undefined == textValue || '' == textValue) {
-      return;
-    }
-    const textTag = document.createElement('text');
-    textTag.innerText = textValue;
-    const textPathId = `htmlanno-textPath-${this.domId()}`;
-    const textPath = document.createElement('textPath');
-    textPath.id = textPathId;
-    textPath.appendChild(textTag);
-    textPath.setAttribute('xlink:href', `#${this.domId()}`);
+  /**
+   * create a empty <text>-<textPath>
+   * @see setConent()
+   */
+  _createLabel() {
+    const svgRoot = document.getElementById('htmlanno-svg-screen');
+    // TODO: svgタグからNamespace URL取得
+    const textTag = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textTag.id = this.labelId();
+    textTag.classList.add('htmlanno-svg-label');
+    // TODO: svgタグからNamespace URL取得
+    const textPath = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
+    textPath.setAttribute('xlink:href', `#${this.domId()}`); // link to relation-line.
+    textPath.setAttribute('startOffset', '50%'); // Centering (see Style for .htmlanno-svg-label).
+    textTag.appendChild(textPath);
     
-    const oldTextPath = document.getElementById(textPathId);
-    if (undefined != oldTextPath) {
-      document.getElementById('htmlanno-svg-screen').replaceChild(oldTextPath, textPath);
+    const oldTextTag = document.getElementById(textTag.id);
+    if (undefined != oldTextTag) {
+      svgRoot.replaceChild(textTag, oldTextTag);
     } else {
-      document.getElementById('htmlanno-svg-screen').appendChild(textPath);
+      svgRoot.appendChild(textTag);
     }
   }
 
@@ -176,6 +180,10 @@ class RenderRelation{
     return "arrow-" + this.id;
   }
 
+  labelId() {
+    return `htmlanno-label-${this.id}`;
+  }
+
   retouch(){
     this.jObject = $(`#${this.domId()}`);
     this.jObjectOutline = $(`#${this.domId()}-outline`);
@@ -228,6 +236,7 @@ class RenderRelation{
 
   /**
    * @param batch ... Not use, this is for Highlight class.
+   * TODO: ここでarrowHeadとlabelも削除する
    */ 
   remove(batch = false){
     this.jObject.remove();
@@ -246,8 +255,9 @@ class RenderRelation{
   }
 
   setContent(value){
+    // TODO: data-lable不要？
     this.jObject[0].setAttribute('data-label', value);
-    this._createLabelText();
+    document.getElementById(this.labelId()).children[0].textContent = value;
   }
 
   content(){
@@ -269,6 +279,7 @@ class RenderRelation{
     if (undefined != arrowHead) {
       arrowHead.setAttribute('fill', color);
     }
+    document.getElementById(this.labelId()).children[0].setAttribute('fill', color);
   }
 
   removeColor() {

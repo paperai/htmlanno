@@ -116,6 +116,15 @@
   fill:red;
 }
 
+.htmlanno-svg-label {
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.htmlanno-svg-label textPath {
+  visibility: visible;
+}
+
 .htmlanno-label, #htmlanno-ruler{
   position:absolute;
   font-family : inherit;
