@@ -155,7 +155,7 @@ class Annotation {
    * @return AnnotationFileObj.name (nearlly equal <filename>.htmlanno)
    */
   get fileContentName() {
-    return this._fileContent.name;
+    return undefined == this._fileContent ? null : this._fileContent.name;
   }
 
   /**
