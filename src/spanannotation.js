@@ -9,11 +9,8 @@ class SpanAnnotation extends Annotation {
   constructor(startOffset, endOffset, content, referenceId){
     super(referenceId);
     // TODO: 最終的にはDOM関連部分をHighlightへ委譲
-    const domHighlight = new Highlight(startOffset, endOffset, this.getClassName());
+    this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName());
     this.setDomElements(domHighlight.domElements);
-
-    this.startOffset = startOffset;
-    this.endOffset = endOffset;
 
     this.setContent(content);
   }
@@ -131,7 +128,7 @@ class SpanAnnotation extends Annotation {
   saveToml(){
     return [
       `type = "${SpanAnnotation.Type}"`,
-      `position = [${this.startOffset}, ${this.endOffset}]`,
+      `position = [${domHighlight.startOffset}, ${domHighlight.endOffset}]`,
       'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
       `label = "${this.content()}"`
     ].join("\n");
