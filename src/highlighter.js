@@ -4,7 +4,7 @@ require("rangy/lib/rangy-classapplier.js");
 require("rangy/lib/rangy-highlighter.js");
 require("rangy/lib/rangy-serializer.js");
 
-const Highlight = require("./highlight.js");
+const SpanAnnotation = require("./spanannotation.js");
 const Annotation = require("./annotation.js");
 const WindowEvent = require('./windowevent.js');
 
@@ -16,31 +16,6 @@ class Highlighter{
   // 定数扱い
   get BASE_NODE(){
     return document.getElementById("viewer");
-  }
-
-  nodeFromTextOffset(offset){
-    return this.nodeFromTextOffset_(this.BASE_NODE, offset);
-  }
-
-  nodeFromTextOffset_(node, offset){
-    for (let i = 0; i < node.childNodes.length ; i++){
-      const child = node.childNodes[i];
-
-      if (child.nodeName == "#text"){
-        if (offset <= child.textContent.length){
-          return {offset:offset, node:child};
-        }
-        offset -= child.textContent.length;
-      } else{
-        const ret = this.nodeFromTextOffset_(child, offset);
-        if (ret.node){
-          return ret;
-        }
-        offset = ret.offset;
-      }
-    }
-
-    return {offset:offset, node:null};
   }
 
   textOffsetFromNode(node){
@@ -60,24 +35,6 @@ class Highlighter{
     }
   }
 
-  selectRange(startBodyOffset, endBodyOffset){
-    if (startBodyOffset > endBodyOffset){
-      const tmp = startBodyOffset;
-      startBodyOffset = endBodyOffset;
-      endBodyOffset = tmp;
-    }
-
-    const start = this.nodeFromTextOffset(startBodyOffset);
-    const end = this.nodeFromTextOffset(endBodyOffset);
-    const selection = rangy.getSelection();
-    const range = rangy.createRange();
-    range.setStart(start.node, start.offset);
-    range.setEnd(end.node, end.offset);
-    selection.setSingleRange(range);
-
-    return selection;
-  }
-
   // これはRangyが必要なケースでのファクトリメソッドとする
   // マウス操作によるハイライト追加を想定
   highlight(label){
@@ -94,51 +51,28 @@ class Highlighter{
     const startOffset = this.textOffsetFromNode(selection.anchorNode)+selection.anchorOffset;
     const endOffset = this.textOffsetFromNode(selection.focusNode)+selection.focusOffset;
 
-    return this._create(startOffset, endOffset, label, selection);
+    return this._create(startOffset, endOffset, label);
   }
 
-  _create(startOffset, endOffset, text, selection, referenceId){
-    const highlight = new Highlight(startOffset, endOffset, text, referenceId);
-    const temporaryElements = [];
-    const highlighter = rangy.createHighlighter();
-    highlighter.addClassApplier(rangy.createClassApplier(
-      highlight.getClassName(),
-      {
-        ignoreWhiteSpace: true,
-        onElementCreate: (element)=>{temporaryElements.push(element)},
-        useExistingElements: false
-      }
-    ));
-
-    highlighter.highlightSelection(
-      highlight.getClassName(),
-      {exclusive: false}
-    );
-    if (temporaryElements.length > 0){
-      highlight.setDomElements(temporaryElements);
-      // TODO: #44 label-color.
-      highlight.setColor({r: 255, g: 165, b: 0});
-      this.highlights.add(highlight);
-    }
-    selection.removeAllRanges();
+  _create(startOffset, endOffset, text, referenceId){
+    const highlight = new SpanAnnotation(startOffset, endOffset, text, referenceId);
+    highlight.setColor({r: 255, g: 165, b: 0});
+    this.highlights.add(highlight);
 
     return highlight;
   }
 
   addToml(id, toml, referenceId){
     try {
-      const selection = this.selectRange(toml.position[0], toml.position[1]);
-      if (!selection.isCollapsed){
-        const span = this._create(
-          toml.position[0], toml.position[1], toml.label,
-          selection, referenceId
-        );
-        if (null != span) {
-          span._id = id; // This is used to associate with RelationAnnotation.
-          span.blur();
-        }
-        return span;
+      // TODO if (!selection.isCollapsed)
+      const span = this._create(
+        toml.position[0], toml.position[1], toml.label, referenceId
+      );
+      if (null != span) {
+        span._id = id; // This is used to associate with RelationAnnotation.
+        span.blur();
       }
+      return span;
     } catch(ex) {
       console.log(`id: ${id}, referenceId: ${referenceId}, toml is the following;`);
       console.log(toml);

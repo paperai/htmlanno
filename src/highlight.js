@@ -3,10 +3,15 @@ const Circle = require("./circle.js");
 const Diamond = require('./diamond.js');
 const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
 const Annotation = require("./annotation.js");
+const Highlight = require('./highlight.js');
 
-class Highlight extends Annotation {
+class SpanAnnotation extends Annotation {
   constructor(startOffset, endOffset, content, referenceId){
     super(referenceId);
+    // TODO: 最終的にはDOM関連部分をHighlightへ委譲
+    const domHighlight = new Highlight(startOffset, endOffset, this.getClassName());
+    this.setDomElements(domHighlight.domElements);
+
     this.startOffset = startOffset;
     this.endOffset = endOffset;
 
@@ -54,7 +59,7 @@ class Highlight extends Annotation {
   }
 
   getClassName(){
-    return `htmlanno-hl-${Highlight.createId(this.uuid, this.referenceId)}`;
+    return `htmlanno-hl-${SpanAnnotation.createId(this.uuid, this.referenceId)}`;
   }
 
   getBoundingClientRect(){
@@ -125,7 +130,7 @@ class Highlight extends Annotation {
 
   saveToml(){
     return [
-      `type = "${Highlight.Type}"`,
+      `type = "${SpanAnnotation.Type}"`,
       `position = [${this.startOffset}, ${this.endOffset}]`,
       'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
       `label = "${this.content()}"`
@@ -133,7 +138,7 @@ class Highlight extends Annotation {
   }
 
   static isMydata(toml){
-    return (undefined != toml && Highlight.Type == toml.type);
+    return (undefined != toml && SpanAnnotation.Type == toml.type);
   }
 
   setContent(text){
@@ -150,7 +155,7 @@ class Highlight extends Annotation {
   }
 
   get type() {
-    return Highlight.Type;
+    return SpanAnnotation.Type;
   }
 
   get scrollTop() {
@@ -195,7 +200,7 @@ class Highlight extends Annotation {
     return new Promise((resolve, reject) => {
       let targetExists = false;
       annotationContainer.forEachPromise((annotation) => {
-        if (annotation.selected && Highlight.Type == annotation.type) {
+        if (annotation.selected && SpanAnnotation.Type == annotation.type) {
           // Change label and color.
           annotation.setColor(label.color);
           annotation.setContent(label.text);
@@ -207,4 +212,4 @@ class Highlight extends Annotation {
   }
 }
 
-module.exports = Highlight;
+module.exports = SpanAnnotation;
