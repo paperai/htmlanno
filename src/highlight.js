@@ -5,25 +5,36 @@ require("rangy/lib/rangy-serializer.js");
 
 class Highlight {
   constructor(startOffset, endOffset, htmlClassName) {
-    this.startOffset = startOffset;
-    this.endOffset   = endOffset;
+    this._startOffset = startOffset;
+    this._endOffset   = endOffset;
     this.htmlClassName =
       undefined == htmlClassName ? 'htmlanno-search-result' : htmlClassName;
 
-    this._createDom(this.startOffset, this.endOffset);
+    this._createDom(this._startOffset, this._endOffset);
   }
 
   get className() {
     return this.htmlClassName;
   }
 
-  // 定数扱い
-  get BASE_NODE(){
+  get BASE_NODE() {
     return document.getElementById("viewer");
   }
 
-  _createDom(startOffset, endOffset) {
-    const selection = this._selectRange(startOffset, endOffset);
+  get startOffset() {
+    return this.startOffset;
+  }
+
+  get endOffset() {
+    return this.endOffset;
+  }
+
+  get scrollOffset() {
+    return this.domElements[0].offsetTop;
+  }
+
+  _createDom(_startOffset, _endOffset) {
+    const selection = this._selectRange(_startOffset, _endOffset);
     const temporaryElements = [];
     const highlighter = rangy.createHighlighter();
     highlighter.addClassApplier(rangy.createClassApplier(
