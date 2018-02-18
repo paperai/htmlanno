@@ -7,8 +7,7 @@ class Highlight {
   constructor(startOffset, endOffset, htmlClassName) {
     this._startOffset = startOffset;
     this._endOffset   = endOffset;
-    this.htmlClassName =
-      undefined == htmlClassName ? 'htmlanno-search-result' : htmlClassName;
+    this.htmlClassName = htmlClassName;
 
     this._createDom(this._startOffset, this._endOffset);
   }
@@ -31,6 +30,18 @@ class Highlight {
 
   get scrollOffset() {
     return this.domElements[0].offsetTop;
+  }
+
+  addClass(name){
+    this.domElements.forEach((e)=>{
+      $(e).addClass(name);
+    });
+  }
+
+  removeClass(name) {
+    this.domElements.forEach((e)=>{
+      $(e).removeClass(name);
+    });
   }
 
   _createDom(_startOffset, _endOffset) {

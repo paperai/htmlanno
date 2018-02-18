@@ -10,7 +10,7 @@ class SpanAnnotation extends Annotation {
     super(referenceId);
     // TODO: 最終的にはDOM関連部分をHighlightへ委譲
     this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName());
-    this.setDomElements(domHighlight.domElements);
+    this.setDomElements(this.domHighlight.domElements);
 
     this.setContent(content);
   }
@@ -82,17 +82,11 @@ class SpanAnnotation extends Annotation {
   }
 
   addClass(name){
-    this.elements.forEach((e)=>{
-      $(e).addClass(name);
-    });
+    this.domHighlight.addClass(name);
   }
 
   removeClass(name){
-    if (undefined != this.elements) {
-      this.elements.forEach((e)=>{
-        $(e).removeClass(name);
-      });
-    }
+    this.domHighlight.removeClass(name);
   }
 
   select(){
