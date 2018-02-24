@@ -97,12 +97,7 @@
         <!-- Annotation Tools -->
         <div class="row">
           <div id="tools" class="col-md-3 col-sm-3 col-xs-3">
-            <div class="row">
-              <div class="col-md-12">
-                <input type="text" id="inputLabel" class="form-control inputLabel" list="labels" disabled="disabled" />
-              </div>
-            </div>
-            <div class="row u-mt-20">
+            <div class="row u-mt-20" style="padding: 0 15px;">
               <ul class="nav nav-tabs" role="tablist">
                 <li>
                   <a href="#annotation_tab" aria-controls="annotation_tab" role="tab" data-toggle="tab" class="js-label-tab">
@@ -117,7 +112,10 @@
               </ul>
               <div class="tab-content">
                 <div id="annotation_tab" class="tab-pane active">
-                  <ul class="nav nav-tabs">
+                  <div class="u-mt-20">
+                    <input type="text" id="inputLabel" class="form-control inputLabel" list="labels" disabled="disabled" />
+                  </div>
+                  <ul class="nav nav-tabs u-mt-10">
                     <li>
                       <a href="#add_span" aria-controls="add_span" role="tab" data-toggle="tab" class="js-label-tab" data-type="span">
                         <i class="fa fa-pencil fa-2x"></i>
