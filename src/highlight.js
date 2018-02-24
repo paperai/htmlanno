@@ -20,6 +20,10 @@ class Highlight {
     return document.getElementById("viewer");
   }
 
+  get SCROLL_BASE_NODE_ID() {
+    return 'viewerWrapper';
+  }
+
   get startOffset() {
     return this.startOffset;
   }
@@ -29,7 +33,7 @@ class Highlight {
   }
 
   get scrollOffset() {
-    return this.domElements[0].offsetTop;
+    return this._searchNodeScrollRoot(this.domElements[0]).offsetTop;
   }
 
   addClass(name){
@@ -107,6 +111,13 @@ class Highlight {
     }
 
     return {offset:offset, node:null};
+  }
+
+  _searchNodeScrollRoot(element) {
+    while(element.offsetParent.id != this.SCROLL_BASE_NODE_ID && element.offsetParent != null) {
+      element = element.offsetParent;
+    }
+    return element;
   }
 }
 
