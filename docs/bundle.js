@@ -12083,7 +12083,7 @@ exports.create = (htmlanno) => {
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
  * URI.js - Mutating URLs
  *
- * Version: 1.19.0
+ * Version: 1.19.1
  *
  * Author: Rodney Rehm
  * Web: http://medialize.github.io/URI.js/
@@ -12166,7 +12166,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
     return /^[0-9]+$/.test(value);
   }
 
-  URI.version = '1.19.0';
+  URI.version = '1.19.1';
 
   var p = URI.prototype;
   var hasOwn = Object.prototype.hasOwnProperty;
@@ -13326,9 +13326,13 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
     } else if (_URI || _object) {
       var src = _URI ? href._parts : href;
       for (key in src) {
+        if (key === 'query') { continue; }
         if (hasOwn.call(this._parts, key)) {
           this._parts[key] = src[key];
         }
+      }
+      if (src.query) {
+        this.query(src.query, false);
       }
     } else {
       throw new TypeError('invalid input');
@@ -14966,7 +14970,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
  * URI.js - Mutating URLs
  * IPv6 Support
  *
- * Version: 1.19.0
+ * Version: 1.19.1
  *
  * Author: Rodney Rehm
  * Web: http://medialize.github.io/URI.js/
@@ -15161,7 +15165,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
  * URI.js - Mutating URLs
  * Second Level Domain (SLD) Support
  *
- * Version: 1.19.0
+ * Version: 1.19.1
  *
  * Author: Rodney Rehm
  * Web: http://medialize.github.io/URI.js/
@@ -15434,6 +15438,10 @@ class Highlight {
     return document.getElementById("viewer");
   }
 
+  get SCROLL_BASE_NODE_ID() {
+    return 'viewerWrapper';
+  }
+
   get startOffset() {
     return this.startOffset;
   }
@@ -15443,7 +15451,7 @@ class Highlight {
   }
 
   get scrollOffset() {
-    return this.domElements[0].offsetTop;
+    return this._searchNodeScrollRoot(this.domElements[0]).offsetTop;
   }
 
   addClass(name){
@@ -15521,6 +15529,13 @@ class Highlight {
     }
 
     return {offset:offset, node:null};
+  }
+
+  _searchNodeScrollRoot(element) {
+    while(element.offsetParent.id != this.SCROLL_BASE_NODE_ID && element.offsetParent != null) {
+      element = element.offsetParent;
+    }
+    return element;
   }
 }
 
