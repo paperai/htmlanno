@@ -104,68 +104,128 @@
             </div>
             <div class="row u-mt-20">
               <ul class="nav nav-tabs" role="tablist">
-                <li role="presentation" class="active">
-                  <a href="#add_span" aria-controls="add_span" role="tab" data-toggle="tab" class="js-label-tab" data-type="span">
-                    <i class="fa fa-pencil fa-2x"></i>
+                <li>
+                  <a href="#annotation_tab" aria-controls="annotation_tab" role="tab" data-toggle="tab" class="js-label-tab">
+                    Annotation
                   </a>
                 </li>
-                <li role="presentation">
-                  <a href="#add_oneway" aria-controls="add_oneway" role="tab" data-toggle="tab" class="js-label-tab" data-type="one-way">
-                    <i class="fa fa-long-arrow-right fa-2x"></i>
-                  </a>
-                </li>
-                <li role="presentation">
-                  <a href="#add_twoway" aria-controls="add_twoway" role="tab" data-toggle="tab" class="js-label-tab" data-type="two-way">
-                    <i class="fa fa-arrows-h fa-2x"></i>
-                  </a>
-                </li>
-                <li role="presentation">
-                  <a href="#add_link" aria-controls="add_link" role="tab" data-toggle="tab" class="js-label-tab" data-type="link">
-                    <i class="fa fa-minus fa-2x"></i>
+                <li>
+                  <a href="#search_tab" aria-controls="search_tab" role="tab" data-toggle="tab" class="js-label-tab">
+                    Search
                   </a>
                 </li>
               </ul>
-              <div class="tab-content js-label-tab-content">
-                <ul role="tabpanel" class="label-list tab-pane active" id="add_span" data-type="span">
-                  <!-- サンプル -->
-                  <li>
-                    <div class="label-list__btn js-label-tras">
-                      <i class="fa fa-trash-o fa-2x"></i>
+              <div class="tab-content">
+                <div id="annotation_tab" class="tab-pane active">
+                  <ul class="nav nav-tabs">
+                    <li>
+                      <a href="#add_span" aria-controls="add_span" role="tab" data-toggle="tab" class="js-label-tab" data-type="span">
+                        <i class="fa fa-pencil fa-2x"></i>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="#add_oneway" aria-controls="add_oneway" role="tab" data-toggle="tab" class="js-label-tab" data-type="one-way">
+                        <i class="fa fa-long-arrow-right fa-2x"></i>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="#add_twoway" aria-controls="add_twoway" role="tab" data-toggle="tab" class="js-label-tab" data-type="two-way">
+                        <i class="fa fa-arrows-h fa-2x"></i>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="#add_link" aria-controls="add_link" role="tab" data-toggle="tab" class="js-label-tab" data-type="link">
+                        <i class="fa fa-minus fa-2x"></i>
+                      </a>
+                    </li>
+                  </ul>
+                  <div class="tab-content js-label-tab-content">
+                    <div id="add_span" data-type="span">
+                      <ul class="nav nav-tabs">
+                        <li>
+                          <div class="label-list__btn js-label-tras">
+                            <i class="fa fa-trash-o fa-2x"></i>
+                          </div>
+                          <div class="label-list__text js-label">A</div>
+                        </li>
+                        <li>
+                          <div class="label-list__btn js-add-label-button">
+                            <i class="fa fa-plus fa-2x"></i>
+                          </div>
+                          <input type="text" class="label-list__input" />
+                        </li>
+                      </ul>
                     </div>
-                    <div class="label-list__text js-label">A</div>
-                  </li>
-                  <!-- サンプル -->
-                  <li>
-                    <div class="label-list__btn js-add-label-button">
-                      <i class="fa fa-plus fa-2x"></i>
+                    <div id="add_oneway" data-type="one-way">
+                      <ul class="nav nav-tabs">
+                        <li>
+                          <div class="label-list__btn js-add-label-button">
+                            <i class="fa fa-plus fa-2x"></i>
+                          </div>
+                          <input type="text" class="label-list__input" />
+                        </li>
+                      </ul>
                     </div>
-                    <input type="text" class="label-list__input" />
-                  </li>
-                </ul>
-                <ul role="tabpanel" class="label-list tab-pane" id="add_oneway" data-type="one-way">
-                  <li>
-                    <div class="label-list__btn js-add-label-button">
-                      <i class="fa fa-plus fa-2x"></i>
+                    <div id="add_twoway" data-type="two-way">
+                      <ul class="nav nav-tabs">
+                        <li>
+                          <div class="label-list__btn js-add-label-button">
+                            <i class="fa fa-plus fa-2x"></i>
+                          </div>
+                          <input type="text" class="label-list__input" />
+                        </li>
+                      </ul>
                     </div>
-                    <input type="text" class="label-list__input" />
-                  </li>
-                </ul>
-                <ul role="tabpanel" class="label-list tab-pane" id="add_twoway" data-type="two-way">
-                  <li>
-                    <div class="label-list__btn js-add-label-button">
-                      <i class="fa fa-plus fa-2x"></i>
+                    <div id="add_link" data-type="link">
+                      <ul class="nav nav-tabs">
+                        <li>
+                          <div class="label-list__btn js-add-label-button">
+                            <i class="fa fa-plus fa-2x"></i>
+                          </div>
+                          <input type="text" class="label-list__input" />
+                        </li>
+                      </ul>
                     </div>
-                    <input type="text" class="label-list__input" />
-                  </li>
-                </ul>
-                <ul role="tabpanel" class="label-list tab-pane" id="add_link" data-type="link">
-                  <li>
-                    <div class="label-list__btn js-add-label-button">
-                      <i class="fa fa-plus fa-2x"></i>
+                  </div>
+                </div>
+                <div id="search_tab" class="tab-pane">
+                  <h3 class="h4 u-mt-20">Text Search</h3>
+                  <div class="search-control u-mt-20">
+                    <div class="search-input-container">
+                      <input type="text" id="searchWord" class="form-control search-control__input" placeholder="Text to match" disabled>
+                      <p class="search-hit hidden">
+                        <span class="search-current-position">0</span>/<span class="search-hit-count">0</span>
+                      </p>
                     </div>
-                    <input type="text" class="label-list__input" />
-                  </li>
-                </ul>
+                    <button class="btn btn-default search-control__btn js-search-prev">▲</button>
+                    <button class="btn btn-default search-control__btn js-search-next">▼</button>
+                    <button class="btn search-control__btn js-search-clear">×</button>
+                  </div>
+                  <div class="checkbox">
+                    <label><input type="checkbox" value="on" class="js-search-case-sensitive">Case sensitive</label>
+                  </div>
+                  <div class="checkbox">
+                    <label><input type="checkbox" value="on" class="js-search-regexp">Regular expression</label>
+                  </div>
+                  <hr>
+                  <!-- Dictionary Matching -->
+                  <h3 class="h4 u-mt-20">Dictionary Matching</h3>
+                  <div>
+                    <label class="btn btn-primary btn-file js-dict-match-file" disabled>
+                      Browse <input type="file" style="display: none;">
+                    </label>
+                    <span class="js-dict-match-file-name">Select a file.</span>
+                  </div>
+                  <div class="u-mt-10">
+                    <span><span class="js-dict-match-cur-pos">000</span>/<span class="js-dict-match-hit-counts">000</span> hits</span>
+                    <button class="btn btn-default search-control__btn js-dict-match-prev">▲</button>
+                    <button class="btn btn-default search-control__btn js-dict-match-next">▼</button>
+                    <button class="btn search-control__btn js-dict-match-clear">×</button>
+                  </div>
+                  <div class="checkbox">
+                    <label><input type="checkbox" value="on" class="js-dict-match-case-sensitive">Case sensitive</label>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="u-mt-20">

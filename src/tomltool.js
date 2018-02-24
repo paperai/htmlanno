@@ -1,5 +1,5 @@
 const TomlParser = require("toml");
-const Highlight = require("./highlight.js");
+const SpanAnnotation = require("./spanannotation.js");
 const RelationAnnotation = require("./relationannotation.js");
 const Annotation = require("./annotation.js");
 
@@ -25,7 +25,7 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
     }
     let annotation = undefined;
     // Span.
-    if (Highlight.isMydata(tomlObj[key])) {
+    if (SpanAnnotation.isMydata(tomlObj[key])) {
       annotation = highlighter.addToml(key, tomlObj[key], referenceId);
       if (null != annotation) {
         annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
@@ -49,7 +49,7 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
 
 /**
  * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
- * @param highlighter ... Highlight annotation containr.
+ * @param highlighter ... SpanAnnotation annotation container.
  * @param arrowConnector ... Relation annotation container.
  * @param referenceId (optional) ... Used to identify annotations.
  */

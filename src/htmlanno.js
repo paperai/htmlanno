@@ -14,7 +14,7 @@ const Highlighter = require("./highlighter.js");
 const Circle = require("./circle.js");
 const ArrowConnector = require("./arrowconnector.js");
 const FileContainer = require("./filecontainer.js");
-const Highlight = require("./highlight.js");
+const SpanAnnotation = require("./spanannotation.js");
 const RelationAnnotation = require("./relationannotation.js");
 const Bioes = require("./bioes.js");
 const LoadBioesPromise = require('./loadbioespromise.js');
@@ -22,6 +22,7 @@ const LoadHtmlPromise = require('./loadhtmlpromise.js');
 const LoadTextPromise = require('./loadtextpromise.js');
 const HideBioesAnnotation = require('./hidebioesannotation.js');
 const WindowEvent = require('./windowevent.js');
+const Searcher = require('./search.js');
 
 class Htmlanno{
   constructor(){
@@ -259,7 +260,7 @@ class Htmlanno{
         }
       // esc
       } else if (e.keyCode === 27) {
-        if (lastSelected instanceof Highlight) {
+        if (lastSelected instanceof SpanAnnotation) {
           this.unselectHighlight(lastSelected);
         } else if (lastSelected instanceof RelationAnnotation) {
           this.unselectRelation();
@@ -288,7 +289,7 @@ class Htmlanno{
   unselectHighlight(target){
     if (undefined == target) {
       return this._blurAnnotations((annotation) => {
-        return (annotation instanceof Highlight);
+        return (annotation instanceof SpanAnnotation);
       });
     } else {
       return (new Promise((resolve, reject) => {
@@ -553,6 +554,7 @@ class Htmlanno{
           content.source = undefined;
           document.getElementById('viewer').innerHTML = content.content;
           this.handleResize();
+          new Searcher();
         }).catch((reject) => {
           this.showReadError();
         });
@@ -576,6 +578,7 @@ class Htmlanno{
           );
           WindowEvent.emit('annotationrendered');
           this.handleResize();
+          new Searcher();
         }).catch((reject) => {
           this.showReadError();
         });
@@ -587,6 +590,7 @@ class Htmlanno{
           content.source = undefined;
           document.getElementById('viewer').innerHTML = content.content;
           this.handleResize();
+          new Searcher();
         }).catch((reject) => {
           this.showReadError();
         });
@@ -640,7 +644,7 @@ class Htmlanno{
 
   // For labelInput
   handleAddSpan(label) {
-    Highlight.updateLabelIfExistsSelectedSpan(label, annotationContainer).then(
+    SpanAnnotation.updateLabelIfExistsSelectedSpan(label, annotationContainer).then(
       (spanUpdated) => {
         if (!spanUpdated) {
           // Create a new span.
@@ -734,6 +738,7 @@ class Htmlanno{
           this._currentContentFileName = undefined;
           this.enableDropdownAnnotationPrimary(true);
           document.getElementById('viewer').innerHTML = content;
+          new Searcher();
         }
         globalEvent.emit('resizewindow');
       }).bind(this)

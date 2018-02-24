@@ -1,209 +1,123 @@
-const $ = require("jquery");
-const Circle = require("./circle.js");
-const Diamond = require('./diamond.js');
-const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
-const Annotation = require("./annotation.js");
+const rangy = require("rangy");
+require("rangy/lib/rangy-classapplier.js");
+require("rangy/lib/rangy-highlighter.js");
+require("rangy/lib/rangy-serializer.js");
 
-class Highlight extends Annotation {
-  constructor(startOffset, endOffset, content, referenceId){
-    super(referenceId);
-    this.startOffset = startOffset;
-    this.endOffset = endOffset;
+class Highlight {
+  constructor(startOffset, endOffset, htmlClassName) {
+    this._startOffset = startOffset;
+    this._endOffset   = endOffset;
+    this.htmlClassName = htmlClassName;
 
-    this.setContent(content);
+    this._createDom(this._startOffset, this._endOffset);
   }
 
-  setDomElements(elements) {
-    this.elements = elements;
-    this.topElement = this.elements[0];
-
-    this.addCircle();
-    this.setClass();
-    this.jObject = $(`.${this.getClassName()}`);
-
-    this.jObject.hover(
-        this.handleHoverIn.bind(this),
-        this.handleHoverOut.bind(this)
-    );
-    // Move _content to jObject's data-label
-    this.setContent(this._content);
+  get className() {
+    return this.htmlClassName;
   }
 
-  handleHoverIn(e){
-    this.elements.forEach((e)=>{
-      $(e).addClass("htmlanno-border");
-    });
-    this.dispatchWindowEvent('annotationHoverIn', this);
+  get BASE_NODE() {
+    return document.getElementById("viewer");
   }
 
-  handleHoverOut(e){
-    this.elements.forEach((e)=>{
-      $(e).removeClass("htmlanno-border");
-    });
-    this.dispatchWindowEvent('annotationHoverOut', this);
+  get SCROLL_BASE_NODE_ID() {
+    return 'viewerWrapper';
   }
 
-  addCircle(){
-    this.topElement.setAttribute("style", "position:relative;");
-    if (this.isPrimary()) {
-      this.circle = new Circle(this.getId(), this);
-    } else {
-      this.circle = new Diamond(this.getId(), this);
-    }
-    this.circle.appendTo(this.topElement);
+  get startOffset() {
+    return this.startOffset;
   }
 
-  getClassName(){
-    return `htmlanno-hl-${Highlight.createId(this.uuid, this.referenceId)}`;
+  get endOffset() {
+    return this.endOffset;
   }
 
-  getBoundingClientRect(){
-    const rect = {top:999999, bottom:0, left:999999, right:0};
-    this.elements.forEach((e)=>{
-      const r = e.getBoundingClientRect();
-      rect.top = Math.min(rect.top, r.top);
-      rect.bottom = Math.max(rect.bottom, r.bottom);
-      rect.left = Math.min(rect.left, r.left);
-      rect.right = Math.max(rect.right, r.right);
-    });
-    return rect;
-  }
-
-  setClass(){
-    const classNames = [this.getClassName()];
-    if (this.isPrimary()) {
-      classNames.push('htmlanno-highlight');
-    } else {
-      classNames.push('htmlanno-ref-highlight');
-    }
-    this.addClass(classNames.join(' '));
+  get scrollOffset() {
+    return this._searchNodeScrollRoot(this.domElements[0]).offsetTop;
   }
 
   addClass(name){
-    this.elements.forEach((e)=>{
+    this.domElements.forEach((e)=>{
       $(e).addClass(name);
     });
   }
 
-  removeClass(name){
-    if (undefined != this.elements) {
-      this.elements.forEach((e)=>{
-        $(e).removeClass(name);
-      });
-    }
+  removeClass(name) {
+    this.domElements.forEach((e)=>{
+      $(e).removeClass(name);
+    });
   }
 
-  select(){
-    if (this.selected) {
-      this.blur();
-    } else {
-      if (this.isEditable()) {
-        this.selected = true;
-        this.addClass("htmlanno-highlight-selected");
-        this.dispatchWindowEvent('annotationSelected', this);
+  _createDom(_startOffset, _endOffset) {
+    const selection = this._selectRange(_startOffset, _endOffset);
+    const temporaryElements = [];
+    const highlighter = rangy.createHighlighter();
+    highlighter.addClassApplier(rangy.createClassApplier(
+      this.className,
+      {
+        ignoreWhiteSpace: true,
+        onElementCreate: (element)=>{temporaryElements.push(element)},
+        useExistingElements: false
+      }
+    ));
+
+    highlighter.highlightSelection(
+      this.className,
+      {exclusive: false}
+    );
+    if (temporaryElements.length > 0){
+      this.domElements = temporaryElements;
+    }
+    selection.removeAllRanges();
+  }
+
+  _selectRange(startBodyOffset, endBodyOffset) {
+    if (startBodyOffset > endBodyOffset){
+      const tmp = startBodyOffset;
+      startBodyOffset = endBodyOffset;
+      endBodyOffset = tmp;
+    }
+
+    const start = this._nodeFromTextOffset(startBodyOffset);
+    const end = this._nodeFromTextOffset(endBodyOffset);
+    const selection = rangy.getSelection();
+    const range = rangy.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+    selection.setSingleRange(range);
+
+    return selection;
+  }
+
+  _nodeFromTextOffset(offset, node){
+    if (undefined == node) {
+      node = this.BASE_NODE;
+    }
+    for (let i = 0; i < node.childNodes.length ; i++){
+      const child = node.childNodes[i];
+
+      if (child.nodeName == "#text"){
+        if (offset <= child.textContent.length){
+          return {offset:offset, node:child};
+        }
+        offset -= child.textContent.length;
+      } else{
+        const ret = this._nodeFromTextOffset(offset, child);
+        if (ret.node){
+          return ret;
+        }
+        offset = ret.offset;
       }
     }
+
+    return {offset:offset, node:null};
   }
 
-  blur(){
-    this.removeClass("htmlanno-highlight-selected");
-    super.blur();
-  }
-
-  remove(batch = false){
-    this.blur();
-    if (undefined != this.circle) {
-      this.circle.remove(batch);
+  _searchNodeScrollRoot(element) {
+    while(element.offsetParent.id != this.SCROLL_BASE_NODE_ID && element.offsetParent != null) {
+      element = element.offsetParent;
     }
-    // ここのみjOjectを使用するとうまく動作しない(自己破壊になるため?)
-    $(`.${this.getClassName()}`).each((i, elm) => {
-      $(elm).replaceWith(elm.childNodes);
-    });
-    this.jObject = null;
-    this.dispatchWindowEvent('annotationDeleted', {uuid: this.uuid});
-  }
-
-  saveToml(){
-    return [
-      `type = "${Highlight.Type}"`,
-      `position = [${this.startOffset}, ${this.endOffset}]`,
-      'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
-      `label = "${this.content()}"`
-    ].join("\n");
-  }
-
-  static isMydata(toml){
-    return (undefined != toml && Highlight.Type == toml.type);
-  }
-
-  setContent(text){
-    if (undefined == this.jObject) {
-      this._content = text;
-    } else {
-      this.jObject[0].setAttribute('data-label', text);
-      this._content = undefined;
-    }
-  }
-
-  content(){
-    return undefined == this.jObject ? this._content : this.jObject[0].getAttribute('data-label');
-  }
-
-  get type() {
-    return Highlight.Type;
-  }
-
-  get scrollTop() {
-    return this.circle.positionCenter().top;
-  }
-
-  blink() {
-    if (undefined == this.jObject) {
-      return;
-    }
-    this.circle.jObject.addClass('htmlanno-circle-hover');
-    setTimeout(() => {
-      this.circle.jObject.removeClass('htmlanno-circle-hover');
-    }, 1000);
-  }
-
-  setColor(color) {
-    if (this.isPrimary()) {
-      this.jObject.each((index) => {
-        this.jObject[index].style.borderColor = tinycolor(color).toRgbString();
-        this.jObject[index].style.backgroundColor = tinycolor(color).setAlpha(0.2).toRgbString();
-      });
-    } else {
-      this.jObject.each((index) => {
-        this.jObject[index].style.borderBottomColor = tinycolor(color).setAlpha(0.2).toRgbString();
-      });
-    }
-  }
-
-  removeColor() {
-    if (undefined == this.jObject) {
-      return;
-    }
-    this.jObject[0].style.backgroundColor = undefined;
-  } 
-
-  static get Type() {
-    return 'span';
-  }
-
-  static updateLabelIfExistsSelectedSpan(label, annotationContainer) {
-    return new Promise((resolve, reject) => {
-      let targetExists = false;
-      annotationContainer.forEachPromise((annotation) => {
-        if (annotation.selected && Highlight.Type == annotation.type) {
-          // Change label and color.
-          annotation.setColor(label.color);
-          annotation.setContent(label.text);
-          targetExists = true;
-        }
-      });
-      resolve(targetExists);
-    });
+    return element;
   }
 }
 
