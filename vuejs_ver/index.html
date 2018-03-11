@@ -2,11 +2,18 @@
 <html lanjg="en">
   <head>
     <meta charset="utf-8" />
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.13/dist/vue.js"></script>
   </head>
   <body>
-    <div id="viewerWrapper">
-      <html_viewer></html_viewer>
+    <div id="content">
+      <div id="operation">
+        <button type="button" class="btn btn-danger" v-on:click="load_html">Load start</button>
+      </div>
+      <div id="viewerWrapper">
+        <html_viewer
+          :annotation_uri="annotation_uri"
+        >
+        </html_viewer>
+      </div>
     </div>
     <script src="./bundle.js"></script>
   </body>
