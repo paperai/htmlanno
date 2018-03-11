@@ -8,15 +8,34 @@ window.$ = $
 
 $(() => {
   Vue.component('html_viewer', {
-    template: '<div id="viewer"><div v-for="(content, index) in contents">[<span style="display: inline-block; width: 4em; text-align: right;">{{content.offset}}</span>]<div style="display: inline-block" v-html="content.content.outerHTML" :id="index"></div></div></div>',
+    template: '<div id="viewer" v-html="content"></div>',
+    props: {
+      annotation_uri: {
+        type: String,
+        required: true
+      }
+    },
     data: () => {
       return {
-        // contents := [<content>, <content>,...]
-        // content  := {startOffset: <offset>, content: <html>}
-        // offset   := the offset from start of all text content that ignored HTML tag.
-        // html     := HTML codes with content. e.g. `<p>This is a HTML.</p>`
-        contents: [],
+        content: '',
+        // content_index := [<index>, <index>,...]
+        // index         := {startOffset: <offset>, id: <ID for content part>}
+        // offset        := the offset from start of all text content that ignored HTML tag.
+        content_index: [],
       };
+    },
+    watch: {
+      annotation_uri: function() {
+        this.loadUri(this.annotation_uri).then((resolve, reject) => {
+          this.parseBioes(resolve).then((resolve, reject) => {
+            this.setContent(resolve.content);
+            // setAnnotation() needs the real HTML tree.
+            this.$nextTick(function() {
+              this.setAnnotation(resolve.annotations).then()
+            });
+          })
+        })
+      },
     },
     methods: {
       loadUri: (uri) => {
@@ -40,58 +59,67 @@ $(() => {
         let last_offset = 0;
         this.contents = [];
         for(let index = 0;index < virtualBody.childNodes.length; index ++) {
+          const id_for_content_part = `htmlanno-content-${index + 1}`
+          virtualBody.childNodes[index].id = id_for_content_part
           this.contents.push({
             offset: last_offset,
-            content: virtualBody.childNodes[index]
-          });
+            id: id_for_content_part
+          })
           last_offset += virtualBody.childNodes[index].textContent.length;
         }
+        this.content = virtualBody.innerHTML
       },
       _findPositionIncluded: (position, contents) => {
         for(let index = 0; index < contents.length; index ++) {
-          if (contents[index].offset >= position) {
-            return (index - 1);
+          if (contents[index].offset > position) {
+            return (index - 1)
           }
         }
-        return -1;
+        return -1
       },
       setAnnotation: function(annotations) {
+        const promises = [];
+       
         for(let index in annotations) {
-          const startIndex = this._findPositionIncluded(annotations[index].position[0], this.contents);
-          const endIndex = this._findPositionIncluded(annotations[index].position[1], this.contents);
+          promises.push(new Promise((resolve, reject) => {
+            const start_index = this._findPositionIncluded(annotations[index].position[0], this.contents);
+            const end_index = this._findPositionIncluded(annotations[index].position[1], this.contents);
 
-          if (startIndex !== -1 && endIndex !== -1) {
-            if (startIndex === endIndex) {
+            if (start_index !== -1 && end_index !== -1) {
+              const selector = [];
+              for(let selector_index = start_index; selector_index <= end_index; selector_index ++) {
+                selector.push(`#htmlanno-content-${selector_index + 1}`)
+              }
+              const target = $(selector.join(','))
+              target.wrapAll('<div id="temporary">')
+              const real_target = document.getElementById('temporary')
               const highlight = new Highlight(
-                annotations[index].position[0] - this.contents[startIndex].offset,
-                annotations[index].position[1] - this.contents[endIndex].offset,
+                annotations[index].position[0] - this.contents[start_index].offset,
+                annotations[index].position[1] - this.contents[start_index].offset,
                 'test',
-                $('#' + startIndex)[0]
-              );
+                real_target
+              )
+              target.unwrap()
+              resolve(highlight)
             }
-            // TODO: else block; 関係するパーツを全て連結した状態のパーツと、この連結パーツ内のオフセットを計算して処理すればいい筈。
-          }
+          }));
         }
+        return Promise.all(promises);
       },
     },
-    // cannot used '=> {}', because need 'this' as Vue instance.
-    mounted: function() {
-      this.loadUri('./sample.BIOES').then((resolve, reject) => {
-        this.parseBioes(resolve).then((resolve, reject) => {
-          this.setContent(resolve.content);
-          // setAnnotation() needs the real HTML tree.
-          this.$nextTick(function() {
-            this.setAnnotation(resolve.annotations);
-          });
-        })
-      })
-    }
   });
 
   const vueObj = new Vue({
-    el: '#viewerWrapper',
+    el: '#content',
     data: () => {
-      return {};
+      return {
+        annotation_uri: ''
+      }
     },
-  });
+    methods: {
+      load_html: function() {
+        this.annotation_uri = './sample.BIOES'
+      }
+    },
+  })
 });
