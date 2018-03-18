@@ -72,25 +72,64 @@ class Highlight {
    */
   _createDom(_startOffset, _endOffset) {
     const range = this._selectRange(_startOffset, _endOffset);
-    const parts = [];
-    parts.push(range.start.node.textContent.substr(0, range.start.offset));
-    parts.push('<span class="' + this.className + '">');
     if (range.start.node === range.end.node) {
-      parts.push(range.start.node.textContent.substr(range.start.offset, (range.end.offset - range.start.offset)));
-    } else {
-      parts.push(range.start.node.textContent.substr(range.start.offset));
-      parts.push('</span>');
-      parts.push('<span class="' + this.className + '">');
-      parts.push(range.end.node.textContent.substr(0, range.end.offset));
-    }
-    parts.push('</span>');
-    parts.push(range.end.node.textContent.substr(range.end.offset));
-    if (range.start.node === range.end.node && range.start.node.parentNode.childNodes.length === 1) {
       // current content is a single text content, update parent.innerHTML.
-      range.start.node.parentNode.innerHTML = parts.join('');
+      const highlight_node = this._createHighlightNode(
+        range.start.node.textContent.substr(range.start.offset, (range.end.offset - range.start.offset))
+      );
+      const highlight_after = document.createTextNode(range.end.node.textContent.substr(range.end.offset));
+      range.start.node.textContent = range.start.node.textContent.substr(0, range.start.offset);
+      this._insertAfter(range.start.node.parentNode, highlight_node, range.start.node);
+      this._insertAfter(range.start.node.parentNode, highlight_after, highlight_node);
     } else {
       // current content is a part of HTML elements, update parent.childNodes list.
+      const highlight_start = this._createHighlightNode(range.start.node.textContent.substr(range.start.offset));
+      range.start.node.textContent = range.start.node.textContent.substr(0, range.start.offset);
+      this._insertAfter(range.start.node.parentNode, highlight_start, range.start.node);
+      let current_node = range.start.node.nextSibling;
+      while(current_node !== null && current_node !== range.end.node) {
+        this._highlightTextContent(current_node);
+      }
+      const highlight_end = this._createHighlightNode(range.end.node.substr(0, range.end.offset));
+      range.end.node.textContent = range.end.node.textContent.substr(range.end.offset);
+      range.end.parentNode.insertBefore(highlight_end, range.end.node);
     }
+    this.domElements = [];
+    const elements = document.getElementsByClassName(this.className);
+    for(let index = 0;index < elements.length; index ++) {
+      this.domElements.push(elements[index]);
+    }
+  }
+
+  _highlightTextContent(root_node) {
+    const empty_checker = /^\s*$/;
+    const children = root_node.childNodes;
+    for(let index = 0;index < children.length; index ++) {
+      if (this._isTextNode(children[index])) {
+        if (empty_checker.test(children[index])) {
+          continue;
+        } else {
+          root_node.replaceChild(this._createHighlightNode(children[index].textContent), children[index]);
+        }
+      } else {
+        this._highlightTextContent(children[index]);
+      }
+    }
+  }
+
+  _isTextNode(node) {
+    return node !== undefined && node !== null && node.nodeName === '#text';
+  }
+
+  _createHighlightNode(text_content) {
+    const node = document.createElement('span');
+    node.classList.add(this.className);
+    node.textContent = text_content;
+    return node;
+  }
+
+  _insertAfter(parent_node, new_node, reference_node) {
+    return parent_node.insertBefore(new_node, reference_node.nextSibling);
   }
 
   _selectRange(startBodyOffset, endBodyOffset) {
