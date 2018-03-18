@@ -2,13 +2,13 @@ import Vue from 'vue'
 import $  from 'jquery'
 import axios from 'axios'
 import Bioes from './bioes'
-import Highlight from './highlight'
+import SpanAnnotation from './spanannotation'
 
 window.$ = $
 
 $(() => {
   Vue.component('html_viewer', {
-    template: '<div id="viewer" v-html="content"></div>',
+    template: '#html_viewer_template',
     props: {
       annotation_uri: {
         type: String,
@@ -17,11 +17,11 @@ $(() => {
     },
     data: () => {
       return {
-        content: '',
-        // content_index := [<index>, <index>,...]
-        // index         := {startOffset: <offset>, id: <ID for content part>}
-        // offset        := the offset from start of all text content that ignored HTML tag.
-        content_index: [],
+        content_length: 0,
+        // contents := [<content>, <content>,...]
+        // content  := {startOffset: <offset>, id: <ID for content part>, content: <content part>}
+        // offset   := the offset from start of all text content that ignored HTML tag.
+        contents: [],
       };
     },
     watch: {
@@ -59,33 +59,38 @@ $(() => {
         let last_offset = 0;
         this.contents = [];
         for(let index = 0;index < virtualBody.childNodes.length; index ++) {
-          const id_for_content_part = `htmlanno-content-${index + 1}`
-          virtualBody.childNodes[index].id = id_for_content_part
           this.contents.push({
             offset: last_offset,
-            id: id_for_content_part
+            id: `htmlanno-content-${index + 1}`,
+            content: virtualBody.childNodes[index].outerHTML
           })
           last_offset += virtualBody.childNodes[index].textContent.length;
         }
-        this.content = virtualBody.innerHTML
+        this.content_length = last_offset;
       },
       _findPositionIncluded: (position, contents) => {
-        for(let index = 0; index < contents.length; index ++) {
+        let index;
+        for(index = 0; index < contents.length; index ++) {
           if (contents[index].offset > position) {
             return (index - 1)
           }
         }
-        return -1
+        // TODO: おそらくはここの判定にバグがあり、最終行のアノテーションレンダリングが実行されていません
+        return contents[index -1].offset > position && this.content_length <= position ? (index - 1) : -1;
       },
       setAnnotation: function(annotations) {
         const promises = [];
        
+        // TODO: このforループ内はHighlighter#addToml辺りに相当します。
+        // TODO: 主処理に配置しておく必要はなく、あまりよい構成ではないので整理・分離すべきです
         for(let index in annotations) {
           promises.push(new Promise((resolve, reject) => {
             const start_index = this._findPositionIncluded(annotations[index].position[0], this.contents);
             const end_index = this._findPositionIncluded(annotations[index].position[1], this.contents);
 
             if (start_index !== -1 && end_index !== -1) {
+              // TODO: real_targetを得るための一連の処理を this.contents[n].content だけで実現できれば、更新が高速化できそう
+              // TODO: ただし、プロファイリング結果としてはwrapAll() / unwrap()よりもCircleの構築が高コスト？
               const selector = [];
               for(let selector_index = start_index; selector_index <= end_index; selector_index ++) {
                 selector.push(`#htmlanno-content-${selector_index + 1}`)
@@ -93,10 +98,11 @@ $(() => {
               const target = $(selector.join(','))
               target.wrapAll('<div id="temporary">')
               const real_target = document.getElementById('temporary')
-              const highlight = new Highlight(
+              const highlight = new SpanAnnotation(
                 annotations[index].position[0] - this.contents[start_index].offset,
                 annotations[index].position[1] - this.contents[start_index].offset,
-                'test',
+                annotations[index].label,
+                undefined,
                 real_target
               )
               target.unwrap()
