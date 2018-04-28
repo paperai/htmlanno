@@ -1,0 +1,337 @@
+.htmlanno-highlight {
+  background-color: yellow;
+  border: 1px solid orange;
+}
+
+.htmlanno-highlight:hover, .htmlanno-border{
+  box-shadow: 0 0 0 1px #ccc inset;
+}
+
+.htmlanno-highlight-selected{
+  background-color: yellow;
+  border: 2px dotted black !important;
+  margin: -2px;
+}
+
+.htmlanno-highlight-selected:hover{
+  border: 2px dotted black;
+  margin: -2px;
+}
+
+#htmlanno-svg-screen{
+  position:absolute;
+  top:0;
+  left:0;
+  bottom:0;
+  right:0;
+}
+
+/* Circle (for Primary Annoation) */
+.htmlanno-circle{
+  position:absolute;
+  margin: 0;
+  white-space:nowrap;
+  width:10px;
+  height:10px;
+  background-color:blue;
+  border-radius: 50%;
+  transition:0.2s;
+}
+
+.htmlanno-circle-marker{
+  position:absolute;
+  margin:0px;
+  padding:0px;
+  white-space:nowrap;
+  width:0px;
+  height:0px;
+}
+
+.htmlanno-circle:hover, .htmlanno-circle-hover {
+  box-shadow: rgba(113,135,164,.6) 1px 1px 1px 1px;
+  transition:0.2s;
+  transform: scale(2);
+}
+
+/* Diamond (For Reference Annotation) */
+.htmlanno-diamond {
+  position:absolute;
+  margin: 0;
+  white-space:nowrap;
+  width:10px;
+  height:10px;
+  background-color:blue;
+  border-radius: 0%;
+  transform: rotate(45deg) scale(0.7);
+  transition:0.2s;
+}
+
+.htmlanno-diamond-marker {
+  position:absolute;
+  margin:0px;
+  padding:0px;
+  white-space:nowrap;
+  width:0px;
+  height:0px;
+}
+
+.htmlanno-diamond:hover, .htmlanno-diamond-hover {
+  box-shadow: rgba(113,135,164,.6) 1px 1px 1px 1px;
+  transition:0.2s;
+  transform: scale(1.4) rotate(45deg);
+}
+
+.htmlanno-ref-highlight {
+  border-bottom: solid 2px green;
+}
+
+.htmlanno-arrow{
+  fill:none;
+  stroke:red;
+  visibility:visible;
+  stroke-width:2px;
+  pointer-events:stroke;
+}
+
+.htmlanno-arrow-outline{
+  fill:none;
+  stroke:black;
+  visibility:visible;
+  stroke-width:5px;
+  stroke-dasharray: 3;
+  pointer-events:stroke;
+}
+
+.htmlanno-arrow-hover{
+  stroke-width:3px;
+  transition:0.2s;
+}
+
+.htmlanno-arrow-hover > .htmlanno-arrow-head {
+  fill: 'red';
+  transition:0.2s;
+}
+
+#htmlanno-arrow-head{
+  fill:red;
+}
+
+.htmlanno-label, #htmlanno-ruler{
+  position:absolute;
+  font-family : inherit;
+  font-size   : 100%;
+  text-align: center;
+}
+
+.htmlanno-label{
+  width:100%;
+  transition:0.1s;
+  border:1px solid red;
+  border-radius:3px;
+}
+
+.htmlanno-label-hover{
+  transition:0.1s;
+  border:3px solid red;
+  border-radius:3px;
+}
+
+.htmlanno-label-selected{
+  transition:0.1s;
+  border:3px dotted black;
+  border-radius:3px;
+}
+
+#operation {
+  margin-top: 1em;
+}
+
+#operation button {
+  margin-left: 0.5em;
+  padding: 5px;
+}
+
+#viewerWrapper {
+  position: relative;
+  overflow-y: scroll;
+  min-height: 300px;
+  margin: 5px 0;
+}
+
+#viewer {
+  width: 100%;
+}
+
+/* Anno-ui */
+/**
+ * Label list.
+ */
+.label-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.label-list li {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    border-bottom: 1px solid #eee;
+}
+.label-list li:last-child {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-bottom: 0 solid rgba(0,0,0,0);
+}
+.label-list__btn {
+    width: 40px;
+    height: 40px;
+    line-height: 50px;
+    font-size: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 1.5 ease-in-out;
+    border-radius: 3px;
+    background-color: white;
+    margin-right: 20px;
+    flex: 0 0 30px;
+}
+.label-list__btn:hover,
+.label-list__text:hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.label-list__text {
+    flex-grow: 1;
+    cursor: pointer;
+    padding: 2px;
+    font-size: 20px;
+}
+.label-list__input {
+    flex-grow: 1;
+    padding: 2px 5px;
+}
+
+#adjust_css li, #adjust_css_reset {
+  margin-top: 5px;
+}
+
+/* Override bootstrap. */
+#viewer {
+  background-color: white;
+  /* This font-size set by JavaScript (default 14px) */
+}
+
+#viewer h1, #viewer h2, #viewer h3, #viewer h4, #viewer h5, #viewer h6 {
+  color: black;
+  display: block;
+  font-weight: bold;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+#viewer h1 {
+  font-size: 2em;
+  margin-top: 0.67em;
+  margin-bottom: 0.67em;
+}
+
+#viewer h2 {
+  font-size: 1.5em;
+  margin-top: 0.83em;
+  margin-bottom: 0.83em;
+}
+
+#viewer h3 {
+  font-size: 1.17em;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+#viewer h4 {
+  margin-top: 1.33em;
+  margin-bottom: 1.33em;
+}
+
+#viewer h5 {
+  font-size: .83em;
+  margin-top: 1.67em;
+  margin-bottom: 1.67em;
+}
+
+#viewer h6 {
+  font-size: .67em;
+  margin-top: 2.33em;
+  margin-bottom: 2.33em;
+}
+
+#viewer p {
+  display: block;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+#viewer a:link {
+  text-decoration: underline;
+  cursor: auto;
+}
+
+#viewer a:visited {
+  text-decoration: underline;
+  cursor: auto;
+}
+
+#viewer ul, #viewer ol {
+  display: block;
+  margin-top: 1em;
+  margin-bottom: 1 em;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 40px;
+}
+
+#viewer ul li {
+  list-style-type: disc;
+}
+
+#viewer li ul li {
+  list-style-type: circle; 
+}
+
+#viewer li li ul li {
+  list-style-type: square; 
+}
+
+#viewer ol li {
+  list-style-type: decimal;
+}
+
+#viewer dl {
+  display: block;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+#viewer dl dt {
+  display: block;
+}
+
+#viewer dl dd {
+  display: block;
+  margin-left: 40px;
+}
+
+#viewer .row {
+  margin-right: 0px;
+  margin-left: 0px;
+}
+
+.htmlanno-search-result {
+  background-color: rgba(0, 255, 0, 0.3);
+}
+
+.htmlanno-search-result-current {
+  background-color: rgba(255, 0, 0, 0.3);
+}
