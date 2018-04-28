@@ -5,7 +5,7 @@ For natural language processing and machine learning, it is suitable for develop
 
 [Online Demo (v0.0.1)](https://paperai.github.io/htmlanno/0.0.1)
 
-[Online Demo (latest)](https://paperai.github.io/htmlanno/latest)
+[Online Demo (experimental)](https://paperai.github.io/htmlanno/latest)
 
 ## Annotation Tools
 | Icon | Description |
