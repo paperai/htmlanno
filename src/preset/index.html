@@ -9,6 +9,7 @@
       <div id="operation">
         <button type="button" class="btn btn-danger" v-on:click="load_bioes">Load BIOES start</button>
         <button type="button" class="btn btn-danger" v-on:click="load_html">Load HTML start</button>
+        <input type="file" v-on:change="annotation_selected" />
       </div>
       <div style="margin: 1em;">
         <p>Load BIOES startボタンをクリックすることで、サーバ上のsample.BIOESを読み込み、コンテンツおよびアノテーションのレンダリングを行います。1,2分程度でレンダリング完了する筈です。</p>
@@ -23,18 +24,19 @@
           :annotation_uri="annotation_uri"
         >
         </bioes-html-viewer>
+        <html-viewer
+          v-if="view_html"
+          :annotation_uri="annotation_uri"
+          :content_uri="content_uri"
+        >
+        </html-viewer>
       </div>
     </div>
     <script src="./bundle.js"></script>
     <script type="text/x-template" id="html_viewer_template">
-      <div id="viewer">
-        <div
-          v-for="content in contents"
-          :key="content.id"
-          :id="content.id"
-          v-html="content.content"
-        >
-        </div>
+      <div id="viewer"
+        v-html="content"
+      >
       </div>
     </script>
   </body>
