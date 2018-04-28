@@ -6,10 +6,10 @@ const Annotation = require("./annotation.js");
 const Highlight = require('./highlight.js');
 
 class SpanAnnotation extends Annotation {
-  constructor(startOffset, endOffset, content, referenceId){
+  constructor(startOffset, endOffset, content, referenceId, base_node){
     super(referenceId);
     // TODO: 最終的にはDOM関連部分をHighlightへ委譲
-    this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName());
+    this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName(), base_node);
     this.setDomElements(this.domHighlight.domElements);
 
     this.setContent(content);
