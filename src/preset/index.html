@@ -7,20 +7,22 @@
   <body>
     <div id="content">
       <div id="operation">
-        <button type="button" class="btn btn-danger" v-on:click="load_html">Load start</button>
+        <button type="button" class="btn btn-danger" v-on:click="load_bioes">Load BIOES start</button>
+        <button type="button" class="btn btn-danger" v-on:click="load_html">Load HTML start</button>
       </div>
       <div style="margin: 1em;">
-        <p>Load startボタンをクリックすることで、サーバ上のsample.BIOESを読み込み、コンテンツおよびアノテーションのレンダリングを行います。1,2分程度でレンダリング完了する筈です。</p>
+        <p>Load BIOES startボタンをクリックすることで、サーバ上のsample.BIOESを読み込み、コンテンツおよびアノテーションのレンダリングを行います。1,2分程度でレンダリング完了する筈です。</p>
         <p>現状、Internet・VPS上のApache2から読み込む方法でのみテストしていますので、localhostからの読み込みでは不具合が発生する可能性があります。</p>
         <p>spanアノテーションについては操作用の丸も表示されていますが、動作はしません。</p>
         <p>最終行だけアノテーションがレンダリングされないバグがあるのですが、おそらくレンダリング位置計算ループを1行分計算間違いしている程度の軽微な問題なので、当面放置しています。</p>
         <p>スタイルシートについてもHtmlanno版を読み込んでいますが、HTML構造が異なる(かなり簡略化しています)ため、スクロールしないスクロールバーが表示されたままになっていたりしますがご容赦ください。</p>
       </div>
       <div id="viewerWrapper">
-        <html_viewer
+        <bioes-html-viewer
+          v-if="view_bioes"
           :annotation_uri="annotation_uri"
         >
-        </html_viewer>
+        </bioes-html-viewer>
       </div>
     </div>
     <script src="./bundle.js"></script>
