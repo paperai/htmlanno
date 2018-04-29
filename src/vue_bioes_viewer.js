@@ -14,7 +14,7 @@ window.$ = $
  */
 export default () => {
   Vue.component('bioes-html-viewer', {
-    template: '#html_viewer_template',
+    template: '#bioes_viewer_template',
     props: {
       annotation_uri: {
         type: String,
