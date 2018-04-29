@@ -9,6 +9,16 @@ import htmlViewer from './vue_html_viewer'
 window.$ = $
 
 $(() => {
+  function readFileAsDataUrl (file_obj, callback) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      callback(reader.result)
+    }
+    reader.onerror = () => { alert("Load failed."); };  // TODO: UI実装後に適時変更
+    reader.onabort = () => { alert("Load aborted."); }; // TODO: UI実装後に適宜変更
+    reader.readAsDataURL(file_obj)
+  }
+
   bioesHtmlViewer()
   htmlViewer()
   const vueObj = new Vue({
@@ -26,11 +36,11 @@ $(() => {
         /**
          * URI of Annotation content (e.g. TOML). if using BIOES viewer, this is BIOES content URI.
          */
-        annotation_uri: undefined,
+        annotation_uri: '',
         /**
          * URI of Annotated content (e.g. HTML). if using BIOES viewer, this isnot used.
          */
-        content_uri: ''
+        content_uri: '',
       }
     },
     methods: {
@@ -48,10 +58,24 @@ $(() => {
           this.content_uri = './sample/sample.xhtml'
         });
       },
-      annotation_selected: function (event) {
+      htmlContentSelected: function(event) {
+        const files = event.target.files
+        if (files.length !== 0) {
+          readFileAsDataUrl(files[0], (url) => {
+            this.view_bioes = false;
+            this.view_html  = true;
+            Vue.nextTick(() => {
+              this.content_uri = url
+            });
+          })
+        }
+      },
+      annotationSelected: function (event) {
         const files = event.target.files
         if (files.lenfth !== 0) {
-          this.annotation_uri = files[0]
+          readFileAsDataUrl(files[0], (url) => {
+            this.annotation_uri = url
+          })
         }
       },
     },

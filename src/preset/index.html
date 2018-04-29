@@ -7,9 +7,9 @@
   <body>
     <div id="content">
       <div id="operation">
-        <button type="button" class="btn btn-danger" v-on:click="load_bioes">Load BIOES start</button>
-        <button type="button" class="btn btn-danger" v-on:click="load_html">Load HTML start</button>
-        <input type="file" v-on:change="annotation_selected" />
+        <button type="button" class="btn" v-on:click="load_bioes">Load BIOES start</button>
+        HTML file: <input type="file" v-on:change="htmlContentSelected" />
+        Annotation file: <input type="file" v-on:change="annotationSelected" />
       </div>
       <div style="margin: 1em;">
         <p>Load BIOES startボタンをクリックすることで、サーバ上のsample.BIOESを読み込み、コンテンツおよびアノテーションのレンダリングを行います。1,2分程度でレンダリング完了する筈です。</p>
@@ -37,6 +37,17 @@
       <div id="viewer"
         v-html="content"
       >
+      </div>
+    </script>
+    <script type="text/x-template" id="bioes_viewer_template">
+      <div id="viewer">
+        <div
+          v-for="content in contents"
+          :key="content.id"
+          :id="content.id"
+          v-html="content.content"
+        >
+        </div>
       </div>
     </script>
   </body>
