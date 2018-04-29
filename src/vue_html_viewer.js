@@ -16,9 +16,9 @@ export default () => {
   Vue.component('html-viewer', {
     template: '#html_viewer_template',
     props: {
-      // File object or String(URI)
       annotation_uri: {
-        required: false
+        type: String,
+        required: true
       },
       content_uri: {
         type: String,
@@ -49,42 +49,33 @@ export default () => {
       // TODO: この処理はBIOES、HTML共通
       loadUri: (uri) => {
         return new Promise((resolve, reject) => {
-          if (typeof(uri) === 'string') {
-            axios.get(uri).then((http_response) => {
-              resolve(http_response.data)
-            })
-          } else {
-            // File object
-            const reader = new FileReader()
-            reader.onload = () => {
-              resolve(reader.result)
-            }
-            reader.onerror = () => { alert("Load failed."); };  // TODO: UI実装後に適時変更
-            reader.onabort = () => { alert("Load aborted."); }; // TODO: UI実装後に適宜変更
-            reader.readAsText(uri) 
-          }
+          axios.get(uri).then((http_response) => {
+            resolve(http_response.data)
+          })
         })
       },
       setContent: function(html_src) {
         const parser = new DOMParser()
         // Htmlanno uses the XHTML, but DOMParser accepted only 'text/html'.
-        const contentBody = parser.parseFromString(html_src, 'text/html').body
+        const content_body = parser.parseFromString(html_src, 'text/html').body
 
         this.contents = []
-        this.content_length = this._calculate_offset_and_register(contentBody, 0)
-        this.content = contentBody.innerHTML
+        this.content_length = this._calculate_offset_and_register(content_body, undefined, 0)
+        this.content = content_body.innerHTML
       },
-      _calculate_offset_and_register: function (htmlnode, parent_offset) {
+      _calculate_offset_and_register: function (html_node, parent_index, parent_offset) {
         let last_offset = parent_offset
-        for(let index = 0; index < htmlnode.childNodes.length; index ++) {
-          const current_node = htmlnode.childNodes[index]
-          if (!current_node.nodeName.startsWith('#')) {
-            current_node.setAttribute('data-htmlanno-id', this.contents.length + 1)
-            this.contents.push({
-              offset: last_offset,
-              id: `htmlanno-content-${index + 1}`,
-            });
+        for(let index = 0; index < html_node.childNodes.length; index ++) {
+          const current_node = html_node.childNodes[index]
+          if (current_node.nodeName === '#text') {
             last_offset += current_node.textContent.length
+          } else {
+            const current_index = this.contents.length
+            const id = this.contents.length + 1
+            current_node.setAttribute('data-htmlanno-id', id)
+            this.contents.push({ parent_index: parent_index, offset: last_offset, id: id })
+            last_offset += current_node.textContent.length
+            // last_offset = this._calculate_offset_and_register(current_node, current_index, last_offset)
           }
         }
         return last_offset;
@@ -93,6 +84,9 @@ export default () => {
         let index;
         for(index = 0; index < contents.length; index ++) {
           if (contents[index].offset > position) {
+            // 1. 行き過ぎたので戻る
+            // 2. contents[index]に親はいるか？ (親がいるなら、親の範囲に目的地がある筈)
+            // 3. 親がいないなら1つ前の兄弟を見る (1つ前の兄弟の範囲に目的地がある筈) 
             return (index - 1)
           }
         }
