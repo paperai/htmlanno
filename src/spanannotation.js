@@ -122,7 +122,7 @@ class SpanAnnotation extends Annotation {
   saveToml(){
     return [
       `type = "${SpanAnnotation.Type}"`,
-      `position = [${domHighlight.startOffset}, ${domHighlight.endOffset}]`,
+      `position = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
       'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
       `label = "${this.content()}"`
     ].join("\n");
