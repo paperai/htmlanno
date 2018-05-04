@@ -55,9 +55,12 @@ export default () => {
         })
       },
       setContent: function(html_src) {
+        const sgmlFunc  = new RegExp(/<\?.+\?>/g)
+        const comment   = new RegExp(/<!--.+-->/g)
         const parser = new DOMParser()
         // Htmlanno uses the XHTML, but DOMParser accepted only 'text/html'.
         const content_body = parser.parseFromString(html_src, 'text/html').body
+        content_body.innerHTML = content_body.innerHTML.replace(sgmlFunc, '').replace(comment, '')
 
         this.contents = []
         this.content_length = this._calculate_offset_and_register(content_body, undefined, 0)
@@ -74,24 +77,41 @@ export default () => {
             const id = this.contents.length + 1
             current_node.setAttribute('data-htmlanno-id', id)
             this.contents.push({ parent_index: parent_index, offset: last_offset, id: id })
-            last_offset += current_node.textContent.length
-            // last_offset = this._calculate_offset_and_register(current_node, current_index, last_offset)
+            // last_offset += current_node.textContent.length
+            last_offset = this._calculate_offset_and_register(current_node, current_index, last_offset)
           }
+          // else; #comment, etc. ignore.
         }
         return last_offset;
       },
-      _findPositionIncluded: (position, contents) => {
+      _findPositionIncluded: function (position, contents) {
         let index;
         for(index = 0; index < contents.length; index ++) {
           if (contents[index].offset > position) {
             // 1. 行き過ぎたので戻る
             // 2. contents[index]に親はいるか？ (親がいるなら、親の範囲に目的地がある筈)
-            // 3. 親がいないなら1つ前の兄弟を見る (1つ前の兄弟の範囲に目的地がある筈) 
-            return (index - 1)
+            if (contents[index - 1].parent_index !== undefined) {
+              return this._checkParentContentLength(position, contents, contents[index - 1].parent_index);
+            } else {
+              // 3. 親がいないなら1つ前の兄弟を見る (1つ前の兄弟の範囲に目的地がある筈) 
+              return (index - 1)
+            }
           }
         }
         // TODO: おそらくはここの判定にバグがあり、最終行のアノテーションレンダリングが実行されていません
         return contents[index -1].offset > position && this.content_length <= position ? (index - 1) : -1;
+      },
+      _checkParentContentLength: function (target_position, contents, parent_index) {
+        if (parent_index === undefined) {
+            return undefined;
+        }
+
+        const parent_node = document.querySelector(`[data-htmlanno-id="${parent_index + 1}"`);
+        if (target_position > contents[parent_index].offset + parent_node.textContent.length) {
+            return this._checkParentContentLength(target_position, contents, contents[parent_index].parent_index);
+        } else {
+            return parent_index;
+        }
       },
       setAnnotation: function(annotations) {
         const promises = [];
