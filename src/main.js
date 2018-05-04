@@ -3,129 +3,81 @@ import $  from 'jquery'
 import axios from 'axios'
 import Bioes from './bioes'
 import SpanAnnotation from './spanannotation'
+import bioesHtmlViewer from './vue_bioes_viewer'
+import htmlViewer from './vue_html_viewer'
 
 window.$ = $
 
 $(() => {
-  Vue.component('html_viewer', {
-    template: '#html_viewer_template',
-    props: {
-      annotation_uri: {
-        type: String,
-        required: true
-      }
-    },
-    data: () => {
-      return {
-        content_length: 0,
-        // contents := [<content>, <content>,...]
-        // content  := {startOffset: <offset>, id: <ID for content part>, content: <content part>}
-        // offset   := the offset from start of all text content that ignored HTML tag.
-        contents: [],
-      };
-    },
-    watch: {
-      annotation_uri: function() {
-        this.loadUri(this.annotation_uri).then((resolve, reject) => {
-          this.parseBioes(resolve).then((resolve, reject) => {
-            this.setContent(resolve.content);
-            // setAnnotation() needs the real HTML tree.
-            this.$nextTick(function() {
-              this.setAnnotation(resolve.annotations).then()
-            });
-          })
-        })
-      },
-    },
-    methods: {
-      loadUri: (uri) => {
-        return new Promise((resolve, reject) => {
-          axios.get(uri).then((http_response) => {
-            resolve(http_response.data)
-          })
-        })
-      },
-      parseBioes: (bioes) => {
-        return new Promise((resolve, reject) => {
-          const parser = new Bioes()
-          parser.parse(bioes)
-          resolve(parser)
-        })
-      },
-      setContent: function(html_src) {
-        const virtualBody = document.createElement('div');
-        virtualBody.innerHTML = html_src;
+  function readFileAsDataUrl (file_obj, callback) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      callback(reader.result)
+    }
+    reader.onerror = () => { alert("Load failed."); };  // TODO: UI実装後に適時変更
+    reader.onabort = () => { alert("Load aborted."); }; // TODO: UI実装後に適宜変更
+    reader.readAsDataURL(file_obj)
+  }
 
-        let last_offset = 0;
-        this.contents = [];
-        for(let index = 0;index < virtualBody.childNodes.length; index ++) {
-          this.contents.push({
-            offset: last_offset,
-            id: `htmlanno-content-${index + 1}`,
-            content: virtualBody.childNodes[index].outerHTML
-          })
-          last_offset += virtualBody.childNodes[index].textContent.length;
-        }
-        this.content_length = last_offset;
-      },
-      _findPositionIncluded: (position, contents) => {
-        let index;
-        for(index = 0; index < contents.length; index ++) {
-          if (contents[index].offset > position) {
-            return (index - 1)
-          }
-        }
-        // TODO: おそらくはここの判定にバグがあり、最終行のアノテーションレンダリングが実行されていません
-        return contents[index -1].offset > position && this.content_length <= position ? (index - 1) : -1;
-      },
-      setAnnotation: function(annotations) {
-        const promises = [];
-       
-        // TODO: このforループ内はHighlighter#addToml辺りに相当します。
-        // TODO: 主処理に配置しておく必要はなく、あまりよい構成ではないので整理・分離すべきです
-        for(let index in annotations) {
-          promises.push(new Promise((resolve, reject) => {
-            const start_index = this._findPositionIncluded(annotations[index].position[0], this.contents);
-            const end_index = this._findPositionIncluded(annotations[index].position[1], this.contents);
-
-            if (start_index !== -1 && end_index !== -1) {
-              // TODO: real_targetを得るための一連の処理を this.contents[n].content だけで実現できれば、更新が高速化できそう
-              // TODO: ただし、プロファイリング結果としてはwrapAll() / unwrap()よりもCircleの構築が高コスト？
-              const selector = [];
-              for(let selector_index = start_index; selector_index <= end_index; selector_index ++) {
-                selector.push(`#htmlanno-content-${selector_index + 1}`)
-              }
-              const target = $(selector.join(','))
-              target.wrapAll('<div id="temporary">')
-              const real_target = document.getElementById('temporary')
-              const highlight = new SpanAnnotation(
-                annotations[index].position[0] - this.contents[start_index].offset,
-                annotations[index].position[1] - this.contents[start_index].offset,
-                annotations[index].label,
-                undefined,
-                real_target
-              )
-              target.unwrap()
-              resolve(highlight)
-            }
-          }));
-        }
-        return Promise.all(promises);
-      },
-    },
-  });
-
+  bioesHtmlViewer()
+  htmlViewer()
   const vueObj = new Vue({
     el: '#content',
     data: () => {
       return {
-        annotation_uri: ''
+        /**
+         * in the true case, BIOES viewer is used.
+         */
+        view_bioes: false,
+        /**
+         * in the true case, (X)HTML viewer is used.
+         */
+        view_html: false,
+        /**
+         * URI of Annotation content (e.g. TOML). if using BIOES viewer, this is BIOES content URI.
+         */
+        annotation_uri: '',
+        /**
+         * URI of Annotated content (e.g. HTML). if using BIOES viewer, this isnot used.
+         */
+        content_uri: '',
       }
     },
     methods: {
-      load_html: function() {
-        this.annotation_uri = './sample/sample.BIOES'
-      }
+      load_bioes: function () {
+        this.view_bioes = true;
+        this.view_html  = false;
+        Vue.nextTick(() => {
+          this.annotation_uri = './sample/sample.BIOES'
+        })
+      },
+      load_html: function () {
+        this.view_bioes = false;
+        this.view_html  = true;
+        Vue.nextTick(() => {
+          this.content_uri = './sample/sample.xhtml'
+        });
+      },
+      htmlContentSelected: function(event) {
+        const files = event.target.files
+        if (files.length !== 0) {
+          readFileAsDataUrl(files[0], (url) => {
+            this.view_bioes = false;
+            this.view_html  = true;
+            Vue.nextTick(() => {
+              this.content_uri = url
+            });
+          })
+        }
+      },
+      annotationSelected: function (event) {
+        const files = event.target.files
+        if (files.lenfth !== 0) {
+          readFileAsDataUrl(files[0], (url) => {
+            this.annotation_uri = url
+          })
+        }
+      },
     },
   })
 });
