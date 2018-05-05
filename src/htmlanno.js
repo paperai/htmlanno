@@ -23,6 +23,7 @@ const LoadTextPromise = require('./loadtextpromise.js');
 const HideBioesAnnotation = require('./hidebioesannotation.js');
 const WindowEvent = require('./windowevent.js');
 const Searcher = require('./search.js');
+const HtmlViewer = require('./htmlViewer.js')
 
 class Htmlanno{
   constructor(){
@@ -550,9 +551,13 @@ class Htmlanno{
       case 'html':
         return LoadHtmlPromise.run(content, this).then((results) => {
           this.removeAll();
-          content.content = results[1];
-          content.source = undefined;
-          document.getElementById('viewer').innerHTML = content.content;
+          if (typeof(results[1]) === 'string') {
+            content.content = new HtmlViewer()
+            content.content.render(results[1])
+            content.source = undefined;
+          } else {
+            content.content.render()
+          }
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
