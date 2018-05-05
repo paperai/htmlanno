@@ -62,22 +62,73 @@ class Highlighter{
     return highlight;
   }
 
-  addToml(id, toml, referenceId){
+  addToml(id, toml, referenceId, viewer){
     try {
-      // TODO if (!selection.isCollapsed)
-      const span = this._create(
-        toml.position[0], toml.position[1], toml.label, referenceId
-      );
-      if (null != span) {
-        span._id = id; // This is used to associate with RelationAnnotation.
-        span.blur();
+      const start_index = this._findPositionIncluded(toml.position[0], viewer.contents);
+      const end_index = this._findPositionIncluded(toml.position[1], viewer.contents);
+      if (start_index !== -1 && end_index !== -1) {
+        const selector = [];
+        for(let selector_index = start_index; selector_index <= end_index; selector_index ++) {
+          selector.push(`[data-htmlanno-id="${selector_index + 1}"`);
+        }
+        const target = $(selector.join(','));
+        target.wrapAll('<div id="temporary">')
+        const real_target = document.getElementById('temporary');
+
+        // TODO if (!selection.isCollapsed)
+        const span = new SpanAnnotation(
+          toml.position[0] - viewer.contents[start_index].offset,
+          toml.position[1] - viewer.contents[start_index].offset,
+          toml.label,
+          referenceId,
+          real_target
+        );
+        span.setColor({r: 255, g: 165, b: 0});
+        this.highlights.add(span);
+
+        target.unwrap();
+      
+        if (null != span) {
+          span._id = id; // This is used to associate with RelationAnnotation.
+          span.blur();
+        }
+        return span;
       }
-      return span;
+      console.log("error!");
     } catch(ex) {
       console.log(`id: ${id}, referenceId: ${referenceId}, toml is the following;`);
       console.log(toml);
       console.log(ex);
       return null;
+    }
+  }
+
+  _findPositionIncluded(position, contents) {
+    let index;
+    for(index = 0; index < contents.length; index ++) {
+      if (contents[index].offset > position) {
+        // 1. 行き過ぎたので戻る
+        // 2. contents[index]に親はいるか？ (親がいるなら、親の範囲に目的地がある筈)
+        if (contents[index - 1].parent_index !== undefined) {
+          return this._checkParentContentLength(position, contents, contents[index - 1].parent_index);
+        } else {
+           // 3. 親がいないなら1つ前の兄弟を見る (1つ前の兄弟の範囲に目的地がある筈) 
+           return (index - 1)
+        }
+      }
+    }
+  }
+
+  _checkParentContentLength(target_position, contents, parent_index) {
+    if (parent_index === undefined) {
+      return undefined;
+    }
+
+    const parent_node = document.querySelector(`[data-htmlanno-id="${parent_index + 1}"`);
+    if (target_position > contents[parent_index].offset + parent_node.textContent.length) {
+      return this._checkParentContentLength(target_position, contents, contents[parent_index].parent_index);
+    } else {
+      return parent_index;
     }
   }
 

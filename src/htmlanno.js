@@ -41,6 +41,8 @@ class Htmlanno{
 
     // The contents and annotations from files.
     this.fileContainer = new FileContainer();
+    // HtmlViewer object, etc.
+    this.viewer = undefined;
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
@@ -465,14 +467,16 @@ class Htmlanno{
         annotationFileObj,
         this.highlighter, this.arrowConnector,
         undefined, /* uiAnnotation.name */
-        colorMap
+        colorMap,
+        this.viewer
       );
     } else {
       TomlTool.loadToml(
         annotationFileObj,
         this.highlighter, this.arrowConnector,
         uiAnnotation.name,
-        colorMap
+        colorMap,
+        this.viewer
       );
     }
     WindowEvent.emit('annotationrendered');
@@ -556,8 +560,9 @@ class Htmlanno{
             content.content.render(results[1])
             content.source = undefined;
           } else {
-            content.content.render()
+            content.content.render();
           }
+          this.viewer = content.content;
           this.handleResize();
           new Searcher();
         }).catch((reject) => {

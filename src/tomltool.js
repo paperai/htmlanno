@@ -18,7 +18,7 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, colorMap) => {
+const renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, colorMap, viewer) => {
   for(key in tomlObj) {
     if ("version" == key) {
       continue;
@@ -26,7 +26,7 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
     let annotation = undefined;
     // Span.
     if (SpanAnnotation.isMydata(tomlObj[key])) {
-      annotation = highlighter.addToml(key, tomlObj[key], referenceId);
+      annotation = highlighter.addToml(key, tomlObj[key], referenceId, viewer);
       if (null != annotation) {
         annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
         annotation.setFileContent(annotationFileObj);
@@ -52,13 +52,15 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
  * @param highlighter ... SpanAnnotation annotation container.
  * @param arrowConnector ... Relation annotation container.
  * @param referenceId (optional) ... Used to identify annotations.
+ * @param colorMap
+ * @param viewer HtmlViewer obj, etc.
  */
-exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, colorMap) => {
+exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, colorMap, viewer) => {
   const toml = 'string' == typeof(annotationFileObj.content) ?
     TomlParser.parse(annotationFileObj.content) :
     annotationFileObj.content;
 
-  exports.renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap);
+  renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap, viewer);
 };
 
 function _getColor(colorMap, type, labelText) {
