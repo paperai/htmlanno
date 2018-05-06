@@ -62,17 +62,39 @@ class Highlighter{
     return highlight;
   }
 
-  addToml(id, toml, referenceId){
+  addToml(id, toml, referenceId, viewer){
     try {
-      // TODO if (!selection.isCollapsed)
-      const span = this._create(
-        toml.position[0], toml.position[1], toml.label, referenceId
-      );
-      if (null != span) {
-        span._id = id; // This is used to associate with RelationAnnotation.
-        span.blur();
+      const start_index = viewer.findContentIndexThatIncludes(toml.position[0]);
+      const end_index = viewer.findContentIndexThatIncludes(toml.position[1]);
+      if (start_index !== -1 && end_index !== -1) {
+        const selector = [];
+        for(let selector_index = start_index; selector_index <= end_index; selector_index ++) {
+          selector.push(`[data-htmlanno-id="${selector_index + 1}"]`);
+        }
+        const target = $(selector.join(','));
+        target.wrapAll('<div id="temporary">')
+        const real_target = document.getElementById('temporary');
+
+        // TODO if (!selection.isCollapsed)
+        const span = new SpanAnnotation(
+          toml.position[0] - viewer.getContentsOffset(start_index),
+          toml.position[1] - viewer.getContentsOffset(start_index),
+          toml.label,
+          referenceId,
+          real_target
+        );
+        span.setColor({r: 255, g: 165, b: 0});
+        this.highlights.add(span);
+
+        target.unwrap();
+      
+        if (null != span) {
+          span._id = id; // This is used to associate with RelationAnnotation.
+          span.blur();
+        }
+        return span;
       }
-      return span;
+      console.log("error!");
     } catch(ex) {
       console.log(`id: ${id}, referenceId: ${referenceId}, toml is the following;`);
       console.log(toml);

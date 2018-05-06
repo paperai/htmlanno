@@ -18,7 +18,27 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, colorMap) => {
+/**
+ * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
+ * @param viewer HtmlViewer obj, etc.
+ * @param highlighter ... SpanAnnotation annotation container.
+ * @param arrowConnector ... Relation annotation container.
+ * @param colorMap
+ * @param referenceId (optional) ... Used to identify annotations.
+ */
+exports.loadToml = (annotationFileObj, viewer, highlighter, arrowConnector, colorMap, referenceId) => {
+  const toml = 'string' == typeof(annotationFileObj.content) ?
+    TomlParser.parse(annotationFileObj.content) :
+    annotationFileObj.content;
+
+  renderAnnotation(annotationFileObj, toml, viewer, highlighter, arrowConnector, colorMap, referenceId);
+};
+
+function _getColor(colorMap, type, labelText) {
+  return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
+}
+
+function renderAnnotation(annotationFileObj, tomlObj, viewer, highlighter, arrowConnector, colorMap, referenceId) {
   for(key in tomlObj) {
     if ("version" == key) {
       continue;
@@ -26,7 +46,7 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
     let annotation = undefined;
     // Span.
     if (SpanAnnotation.isMydata(tomlObj[key])) {
-      annotation = highlighter.addToml(key, tomlObj[key], referenceId);
+      annotation = highlighter.addToml(key, tomlObj[key], referenceId, viewer);
       if (null != annotation) {
         annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
         annotation.setFileContent(annotationFileObj);
@@ -45,23 +65,4 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
       console.log(tomlObj[key]);
     }
   }
-};
-
-/**
- * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
- * @param highlighter ... SpanAnnotation annotation container.
- * @param arrowConnector ... Relation annotation container.
- * @param referenceId (optional) ... Used to identify annotations.
- */
-exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, colorMap) => {
-  const toml = 'string' == typeof(annotationFileObj.content) ?
-    TomlParser.parse(annotationFileObj.content) :
-    annotationFileObj.content;
-
-  exports.renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap);
-};
-
-function _getColor(colorMap, type, labelText) {
-  return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
 }
-

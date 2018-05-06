@@ -23,6 +23,7 @@ const LoadTextPromise = require('./loadtextpromise.js');
 const HideBioesAnnotation = require('./hidebioesannotation.js');
 const WindowEvent = require('./windowevent.js');
 const Searcher = require('./search.js');
+const HtmlViewer = require('./htmlViewer.js')
 
 class Htmlanno{
   constructor(){
@@ -40,6 +41,8 @@ class Htmlanno{
 
     // The contents and annotations from files.
     this.fileContainer = new FileContainer();
+    // HtmlViewer object, etc.
+    this.viewer = undefined;
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
@@ -462,16 +465,19 @@ class Htmlanno{
     if (undefined == uiAnnotation) {
       TomlTool.loadToml(
         annotationFileObj,
-        this.highlighter, this.arrowConnector,
-        undefined, /* uiAnnotation.name */
+        this.viewer,
+        this.highlighter,
+        this.arrowConnector,
         colorMap
       );
     } else {
       TomlTool.loadToml(
         annotationFileObj,
-        this.highlighter, this.arrowConnector,
-        uiAnnotation.name,
-        colorMap
+        this.viewer,
+        this.highlighter,
+        this.arrowConnector,
+        colorMap,
+        uiAnnotation.name
       );
     }
     WindowEvent.emit('annotationrendered');
@@ -550,9 +556,14 @@ class Htmlanno{
       case 'html':
         return LoadHtmlPromise.run(content, this).then((results) => {
           this.removeAll();
-          content.content = results[1];
-          content.source = undefined;
-          document.getElementById('viewer').innerHTML = content.content;
+          if (results[1] instanceof HtmlViewer) {
+            content.content.render();
+          } else {
+            content.content = new HtmlViewer();
+            content.content.render(results[1]);
+            content.source = undefined;
+          }
+          this.viewer = content.content;
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
@@ -562,18 +573,25 @@ class Htmlanno{
       case 'bioes':
         return LoadBioesPromise.run(content, this).then((results) => {
           this.removeAll();
-          content.content = results[1].content;
-          content.source = undefined;
-          document.getElementById('viewer').innerHTML = content.content;
+          if (results[1].content instanceof HtmlViewer) {
+            content.content.render();
+          } else {
+            content.content = new HtmlViewer();
+            const bodyObj = document.createElement('body');
+            bodyObj.innerHTML = results[1].content;
+            content.content.render(bodyObj);
+            content.source = undefined;
+          }
+          this.viewer = content.content;
           this.enableDropdownAnnotationPrimary(false);
           // BIOESの場合Content fileとPrimary annotationがセットなので、
           // これがRefereneで使用されていることは起こりえない。
           results[1].annotation.primary = true;
           TomlTool.loadToml(
             results[1].annotation,
+            this.viewer,
             this.highlighter,
             this.arrowConnector,
-            undefined, /* uiAnnotation.name */
             AnnoUI.labelInput.getColorMap()
           );
           WindowEvent.emit('annotationrendered');

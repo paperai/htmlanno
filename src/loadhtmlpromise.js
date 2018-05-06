@@ -48,18 +48,12 @@ function htmlLoader(file, callback) {
 }
 
 function parseHtml(html) {
-  let sgmlFunc  = new RegExp(/<\?.+\?>/g);
-  let comment   = new RegExp(/<!--.+-->/g);
-  let htmlTag = new RegExp(/<html\s?.*>/i);
+  const sgmlFunc  = new RegExp(/<\?.+\?>/g);
+  const comment   = new RegExp(/<!--.+-->/g);
 
-  if (null != html.match(htmlTag)) {
-    let bodyStart = html.match(/<body\s?.*>/im);
-    let bodyEnd   = html.search(/<\/body>/im);
-    if (null != bodyStart && -1 != bodyEnd){
-      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
-    }
-    return html.replace(sgmlFunc, '').replace(comment, '');
-  } else {
-    return undefined;
-  }
+  const parser = new DOMParser();
+  // Htmlanno uses the XHTML, but DOMParser accepted only 'text/html'.
+  const content_body = parser.parseFromString(html, 'text/html').body
+  content_body.innerHTML = content_body.innerHTML.replace(sgmlFunc, '').replace(comment, '');
+  return content_body;
 }
