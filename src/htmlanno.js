@@ -559,8 +559,8 @@ class Htmlanno{
           if (results[1] instanceof HtmlViewer) {
             content.content.render();
           } else {
-            content.content = new HtmlViewer()
-            content.content.render(results[1])
+            content.content = new HtmlViewer();
+            content.content.render(results[1]);
             content.source = undefined;
           }
           this.viewer = content.content;
@@ -573,9 +573,16 @@ class Htmlanno{
       case 'bioes':
         return LoadBioesPromise.run(content, this).then((results) => {
           this.removeAll();
-          content.content = results[1].content;
-          content.source = undefined;
-          document.getElementById('viewer').innerHTML = content.content;
+          if (results[1].content instanceof HtmlViewer) {
+            content.content.render();
+          } else {
+            content.content = new HtmlViewer();
+            const bodyObj = document.createElement('body');
+            bodyObj.innerHTML = results[1].content;
+            content.content.render(bodyObj);
+            content.source = undefined;
+          }
+          this.viewer = content.content;
           this.enableDropdownAnnotationPrimary(false);
           // BIOESの場合Content fileとPrimary annotationがセットなので、
           // これがRefereneで使用されていることは起こりえない。
