@@ -24,8 +24,7 @@ class HtmlViewer {
      * @return index value of this.contents or -1 (not found)
      */
     findContentIndexThatIncludes(position) {
-        let index;
-        for(index = 0; index < this.contents.length; index ++) {
+        for(let index = 0; index < this.contents.length; index ++) {
             if (this.contents[index].offset > position) {
                 const siblingsContent = this.contents[index - 1];
                 // 1. I gone too far, need back.
@@ -45,8 +44,7 @@ class HtmlViewer {
                 }
             }
         }
-        // TODO: おそらくはここの判定にバグがあり、最終行のアノテーションレンダリングが実行されていません
-        return siblingsContent.offset > position && siblingsContent.content_length <= position ? (index - 1) : -1;
+        return this._checkContentLength(position, this.contents.length - 1);
     }
 
     getContentsOffset(index) {
