@@ -18,7 +18,27 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-const renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, colorMap, viewer) => {
+/**
+ * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
+ * @param viewer HtmlViewer obj, etc.
+ * @param highlighter ... SpanAnnotation annotation container.
+ * @param arrowConnector ... Relation annotation container.
+ * @param colorMap
+ * @param referenceId (optional) ... Used to identify annotations.
+ */
+exports.loadToml = (annotationFileObj, viewer, highlighter, arrowConnector, colorMap, referenceId) => {
+  const toml = 'string' == typeof(annotationFileObj.content) ?
+    TomlParser.parse(annotationFileObj.content) :
+    annotationFileObj.content;
+
+  renderAnnotation(annotationFileObj, toml, viewer, highlighter, arrowConnector, colorMap, referenceId);
+};
+
+function _getColor(colorMap, type, labelText) {
+  return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
+}
+
+function renderAnnotation(annotationFileObj, tomlObj, viewer, highlighter, arrowConnector, colorMap, referenceId) {
   for(key in tomlObj) {
     if ("version" == key) {
       continue;
@@ -45,25 +65,4 @@ const renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnecto
       console.log(tomlObj[key]);
     }
   }
-};
-
-/**
- * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
- * @param highlighter ... SpanAnnotation annotation container.
- * @param arrowConnector ... Relation annotation container.
- * @param referenceId (optional) ... Used to identify annotations.
- * @param colorMap
- * @param viewer HtmlViewer obj, etc.
- */
-exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, colorMap, viewer) => {
-  const toml = 'string' == typeof(annotationFileObj.content) ?
-    TomlParser.parse(annotationFileObj.content) :
-    annotationFileObj.content;
-
-  renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap, viewer);
-};
-
-function _getColor(colorMap, type, labelText) {
-  return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
 }
-

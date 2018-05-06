@@ -465,18 +465,19 @@ class Htmlanno{
     if (undefined == uiAnnotation) {
       TomlTool.loadToml(
         annotationFileObj,
-        this.highlighter, this.arrowConnector,
-        undefined, /* uiAnnotation.name */
-        colorMap,
-        this.viewer
+        this.viewer,
+        this.highlighter,
+        this.arrowConnector,
+        colorMap
       );
     } else {
       TomlTool.loadToml(
         annotationFileObj,
-        this.highlighter, this.arrowConnector,
-        uiAnnotation.name,
+        this.viewer,
+        this.highlighter,
+        this.arrowConnector,
         colorMap,
-        this.viewer
+        uiAnnotation.name
       );
     }
     WindowEvent.emit('annotationrendered');
@@ -555,12 +556,12 @@ class Htmlanno{
       case 'html':
         return LoadHtmlPromise.run(content, this).then((results) => {
           this.removeAll();
-          if (typeof(results[1]) === 'string') {
+          if (results[1] instanceof HtmlViewer) {
+            content.content.render();
+          } else {
             content.content = new HtmlViewer()
             content.content.render(results[1])
             content.source = undefined;
-          } else {
-            content.content.render();
           }
           this.viewer = content.content;
           this.handleResize();
@@ -581,9 +582,9 @@ class Htmlanno{
           results[1].annotation.primary = true;
           TomlTool.loadToml(
             results[1].annotation,
+            this.viewer,
             this.highlighter,
             this.arrowConnector,
-            undefined, /* uiAnnotation.name */
             AnnoUI.labelInput.getColorMap()
           );
           WindowEvent.emit('annotationrendered');
