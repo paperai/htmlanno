@@ -36,6 +36,8 @@
   background-color:blue;
   border-radius: 50%;
   transition:0.2s;
+  top: -1.5em;
+  left: 0px;
 }
 
 .htmlanno-circle-marker{
