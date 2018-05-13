@@ -1,7 +1,25 @@
+const Annotation = require('./annotation')
+
 class HtmlViewer {
     constructor() {
+        /**
+         * infomation about each HTMLElement offset from head of text contents.
+         * [n] = {
+         *   parent_index: in case of [n] is included by other HTMLElement(is not the base node), this is n for other HTMLElement, other case be undefined
+         *   offset: position from head of text contents
+         *   id: id attribute value as HTML tag
+         * }
+         */
         this.contents = []
-        this.body_node = undefined
+        /**
+         * original content that read from file
+         * TODO: Document (Fragment) or innerHTML string ? current is Document (from DOMParser)
+         */
+        this.content_source = undefined
+        /**
+         * DocumentFragment for annotation rendering buffer
+         */
+        this.view_buffer = undefined
     }
 
     /**
@@ -10,12 +28,35 @@ class HtmlViewer {
      */
     render(doc) {
         if (doc !== undefined) {
-            this.body_node = doc;
+            this.content_source = doc
             this.contents = []
-            this.content_length = this._calculateOffsetAndRegister(this.body_node, undefined, 0)
+            this.content_length = this._calculateOffsetAndRegister(this.content_source, undefined, 0)
         }
-        const view = document.getElementById('viewer');
-        view.innerHTML = this.body_node.innerHTML;
+        this.$containerViewer().innerHTML = this.content_source.innerHTML
+    }
+
+    /**
+     * get DocumentFragment with content source.
+     * in case it is not created returns new created, and other case, returns buffer
+     * @return DocumentFragment
+     */
+    renderingBuffer () {
+        if (this.view_buffer === undefined) {
+            this.view_buffer = document.createDocumentFragment()
+            const view = document.createElement('div')
+            view.id = 'viewer'
+            view.innerHTML = this.content_source.innerHTML
+            this.view_buffer.appendChild(view)
+        }
+        return this.view_buffer
+    }
+
+    /**
+     * replace the viewer on window.document by buffer, and destroy buffer.
+     */
+    reflectBuffer () {
+        this.$containerViewer().replaceWith(this.renderingBuffer());
+        this.view_buffer = undefined
     }
 
     /**
@@ -49,6 +90,42 @@ class HtmlViewer {
 
     getContentsOffset(index) {
         return this.contents[index].offset;
+    }
+
+    static _setupHtml () {
+        const html = `
+    <div id="htmlanno-annotation">
+    <link rel="stylesheet" href="index.css">
+    <svg id="htmlanno-svg-screen"
+      visibility="hidden"
+      baseProfile="full"
+      pointer-events="visible"
+      width="100%"
+      height="100%" style="z-index: 100;">
+      <defs>
+        <marker id="htmlanno-arrow-head"
+          class="htmlanno-arrow-head"
+          visibility="visible"
+          refX="6"
+          refY="3"
+          fill="red"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+          markerUnits="strokeWidth">
+          <polyline points="0,0 6,3 0,6 0.2,3" />
+        </marker>
+      </defs>
+    </svg>
+    <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;"></span>
+    </div>
+    `
+
+        $(html).appendTo('#viewerWrapper');
+    }
+
+    $containerViewer () {
+        return document.getElementById('viewer');
     }
 
     /**
