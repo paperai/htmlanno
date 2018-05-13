@@ -35,7 +35,7 @@ class Htmlanno{
      * @see #loadDefaultData
      */
     this.useDefaultData = true;
-    this.setupHtml();
+    HtmlViewer._setupHtml();
     this.highlighter = new Highlighter(annotationContainer);
     this.arrowConnector = new ArrowConnector(annotationContainer);
 
@@ -51,6 +51,7 @@ class Htmlanno{
       this.arrowConnector.removeAnnotation(data);
       this.unselectRelation();
     });
+    this.setupAnnoUI();
     this.wrapGlobalEvents();
 
     const query = URI(document.URL).query(true);
@@ -76,40 +77,7 @@ class Htmlanno{
     return "htmlanno-save-"+document.location.href;
   }
 
-  setupHtml(){
-    const html = `
-      <div id="htmlanno-annotation">
-      <link rel="stylesheet" href="index.css">
-      <svg id="htmlanno-svg-screen"
-      visibility="hidden"
-      baseProfile="full"
-      pointer-events="visible"
-      width="100%"
-      height="100%" style="z-index: 100;">
-      <defs>
-      <marker id="htmlanno-arrow-head"
-      class="htmlanno-arrow-head"
-      visibility="visible"
-      refX="6"
-      refY="3"
-      fill="red"
-      markerWidth="6"
-      markerHeight="6"
-      orient="auto-start-reverse"
-      markerUnits="strokeWidth">
-      <polyline
-      points="0,0 6,3 0,6 0.2,3" />
-      </marker>
-      </defs>
-      </svg>
-      <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;"></span>
-      </div>
-      `;
-
-    $(html).appendTo("#viewerWrapper");
-  }
-
-  wrapGlobalEvents(){
+  setupAnnoUI () {
     AnnoUI.util.setupResizableColumns();
     AnnoUI.event.setup();
 
@@ -167,7 +135,9 @@ class Htmlanno{
       getAnnotations: annotationContainer.getPrimaryAnnotations.bind(annotationContainer),
       scrollToAnnotation: this.scrollToAnnotation.bind(this)
     });
+  }
 
+  wrapGlobalEvents(){
     $(document).on("keydown", this.handleKeydown.bind(this));
     $("#viewer").on("mouseup", this.handleMouseUp.bind(this));
 
@@ -480,6 +450,7 @@ class Htmlanno{
         uiAnnotation.name
       );
     }
+    annotationContainer.setEventListenerForEachAnnotation();
     WindowEvent.emit('annotationrendered');
   }
 
@@ -567,6 +538,7 @@ class Htmlanno{
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
+          console.log(reject);
           this.showReadError();
         });
 
@@ -594,10 +566,12 @@ class Htmlanno{
             this.arrowConnector,
             AnnoUI.labelInput.getColorMap()
           );
+          annotationContainer.setEventListenerForEachAnnotation();
           WindowEvent.emit('annotationrendered');
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
+          console.log(reject);
           this.showReadError();
         });
 
@@ -610,6 +584,7 @@ class Htmlanno{
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
+          console.log(reject);
           this.showReadError();
         });
 
@@ -668,6 +643,7 @@ class Htmlanno{
           // Create a new span.
           const span = this.highlighter.highlight(label.text);
           if (undefined != span) {
+            span.setEventHandler();
             WindowEvent.emit('annotationrendered');
             span.setColor(label.color);
             span.select();
