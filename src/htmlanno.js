@@ -431,25 +431,15 @@ class Htmlanno{
    * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
    */
   _renderAnnotation(annotationFileObj, uiAnnotation) {
-    const colorMap = AnnoUI.labelInput.getColorMap();
-    if (undefined == uiAnnotation) {
-      TomlTool.loadToml(
-        annotationFileObj,
-        this.viewer,
-        this.highlighter,
-        this.arrowConnector,
-        colorMap
-      );
-    } else {
-      TomlTool.loadToml(
-        annotationFileObj,
-        this.viewer,
-        this.highlighter,
-        this.arrowConnector,
-        colorMap,
-        uiAnnotation.name
-      );
-    }
+    const ui_annotation_name = uiAnnotation === undefined ? undefined : uiAnnotation.name;
+    TomlTool.loadToml(
+      annotationFileObj,
+      this.viewer,
+      this.highlighter,
+      this.arrowConnector,
+      AnnoUI.labelInput.getColorMap(),
+      ui_annotation_name
+    );
     annotationContainer.setEventListenerForEachAnnotation();
     WindowEvent.emit('annotationrendered');
   }
