@@ -71,9 +71,9 @@ class Highlighter{
         for(let selector_index = start_index; selector_index <= end_index; selector_index ++) {
           selector.push(`[data-htmlanno-id="${selector_index + 1}"]`);
         }
-        const target = $(selector.join(','));
+        const target = $(selector.join(','), viewer.renderingBuffer());
         target.wrapAll('<div id="temporary">')
-        const real_target = document.getElementById('temporary');
+        const real_target = viewer.renderingBuffer().getElementById('temporary');
 
         // TODO if (!selection.isCollapsed)
         const span = new SpanAnnotation(

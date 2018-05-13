@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 20);
+/******/ 	return __webpack_require__(__webpack_require__.s = 19);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -238,6 +238,9 @@ class Annotation {
    */
   isEditable() {
     return !this.isReference();
+  }
+
+  setEventHandler () {
   }
 
   // TODO: Anno-UI events 辺りで提供してほしい
@@ -4126,13 +4129,16 @@ class Circle{
     Circle.instances.push(this);
     this.id = id;
     this.highlight = highlight;
+    this.basePosition = undefined;
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="${this.className()}"></div>`);
+ }
 
+ setEventHandler () {
+    // TODO: jObject再作成が必要
     this.jObject.on("click", (e)=>{
       this.highlight.select();
     });
-
     this.jObject.hover(
       this.handleHoverIn.bind(this),
       this.handleHoverOut.bind(this)
@@ -4158,6 +4164,9 @@ class Circle{
   }
 
   originalPosition(){
+    if (this.basePosition === undefined) {
+      this.basePosition = this._calculateBasePosition();
+    }
     return this.basePosition;
   }
 
@@ -4201,10 +4210,6 @@ class Circle{
 
   appendTo(target){
     this.jObject.appendTo(target);
-    this.basePosition = this._calculateBasePosition();
-    const pos = this.divPosition();
-    this.jObject.css("left", `${pos.left}px`);
-    this.jObject.css("top", `${pos.top}px`);
   }
 
   /**
@@ -4238,9 +4243,10 @@ class Circle{
 
   reposition(){
     const pos = this.divPosition();
-    this.jObject.css("left", `${pos.left}px`);
-    this.jObject.css("top", `${pos.top}px`);
-    this.jObject.css("transition", "0.2s");
+    this.jObject.css({
+      left: `${pos.left}px`,
+      top: `${pos.top}px`
+    });
   }
 
   remove(batch = false){
@@ -4260,12 +4266,14 @@ class Circle{
   }
 
   static repositionAll() {
-    return new Promise((resolve, reject) => {
-      Circle.instances.forEach((cir) => {
-        cir.reposition();
-      });
-      resolve();
-    });
+    return Promise.all(
+      Circle.instances.map((cir) => {
+        return new Promise((resolve, reject) => {
+          cir.reposition();
+          resolve();
+        });
+      })
+    );
   }
 }
 
@@ -11290,35 +11298,42 @@ function dispatchWindowEvent (eventName, data) {
 
 const $ = __webpack_require__(0);
 const Circle = __webpack_require__(3);
-const Diamond = __webpack_require__(31);
+const Diamond = __webpack_require__(30);
 const globalEvent = window.globalEvent; // TODO: 移行終わったら削除
 const Annotation = __webpack_require__(1);
 const Highlight = __webpack_require__(13);
 
 class SpanAnnotation extends Annotation {
+  // TODO: base_nodeはレンダリング高速化用途で一時的に必要なだけなので、渡し方を再検討
   constructor(startOffset, endOffset, content, referenceId, base_node){
     super(referenceId);
     // TODO: 最終的にはDOM関連部分をHighlightへ委譲
     this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName(), base_node);
-    this.setDomElements(this.domHighlight.domElements);
+    this.setDomElements(this.domHighlight.domElements, base_node);
 
     this.setContent(content);
   }
 
-  setDomElements(elements) {
+  setDomElements(elements, base_node) {
     this.elements = elements;
     this.topElement = this.elements[0];
 
     this.addCircle();
     this.setClass();
-    this.jObject = $(`.${this.getClassName()}`);
+    // TODO: setEventHandler, remove, setContent, content, setColor, removeColor のみ使用
+    this.jObject = $(`.${this.getClassName()}`, base_node);
+  }
 
-    this.jObject.hover(
-        this.handleHoverIn.bind(this),
-        this.handleHoverOut.bind(this)
-    );
-    // Move _content to jObject's data-label
-    this.setContent(this._content);
+  /**
+   * set the handler for HTML event.
+   * This method must be called after instance is set to real Document object
+   * memo; this method uses jQuery object because be executed for each DOM element
+   */
+  setEventHandler () {
+    this.jObject.off('mouseenter').on('mouseenter', this.handleHoverIn.bind(this));
+    this.jObject.off('mouseleave').on('mouseleave', this.handleHoverOut.bind(this));
+
+    this.circle.setEventHandler();
   }
 
   handleHoverIn(e){
@@ -11501,7 +11516,7 @@ module.exports = SpanAnnotation;
 /***/ (function(module, exports, __webpack_require__) {
 
 const $ = __webpack_require__(0);
-const RenderRelation = __webpack_require__(32);
+const RenderRelation = __webpack_require__(31);
 const globalEvent = window.globalEvent;
 const Annotation = __webpack_require__(1);
 
@@ -11664,8 +11679,8 @@ module.exports = RelationAnnotation;
 
 const URI = __webpack_require__(9);
 
-const Bioes = __webpack_require__(18);
-const LoadHtmlPromise = __webpack_require__(19);
+const Bioes = __webpack_require__(17);
+const LoadHtmlPromise = __webpack_require__(18);
 
 class FileContainer {
   constructor() {
@@ -14968,7 +14983,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
 }(this));
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(22)(module), __webpack_require__(23)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(21)(module), __webpack_require__(22)))
 
 /***/ }),
 /* 11 */
@@ -15427,7 +15442,6 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
 const rangy = __webpack_require__(2);
 __webpack_require__(14);
 __webpack_require__(15);
-__webpack_require__(16);
 
 class Highlight {
   constructor(startOffset, endOffset, htmlClassName, base_node) {
@@ -15476,26 +15490,21 @@ class Highlight {
   }
 
   _createDom(_startOffset, _endOffset) {
-    const selection = this._selectRange(_startOffset, _endOffset);
+    const range = this._selectRange(_startOffset, _endOffset);
     const temporaryElements = [];
-    const highlighter = rangy.createHighlighter();
-    highlighter.addClassApplier(rangy.createClassApplier(
+    const classApplier = rangy.createClassApplier(
       this.className,
       {
         ignoreWhiteSpace: true,
         onElementCreate: (element)=>{temporaryElements.push(element)},
         useExistingElements: false
       }
-    ));
-
-    highlighter.highlightSelection(
-      this.className,
-      {exclusive: false}
     );
+    classApplier.applyToRange(range);
+
     if (temporaryElements.length > 0){
       this.domElements = temporaryElements;
     }
-    selection.removeAllRanges();
   }
 
   _selectRange(startBodyOffset, endBodyOffset) {
@@ -15507,13 +15516,11 @@ class Highlight {
 
     const start = this._nodeFromTextOffset(startBodyOffset);
     const end = this._nodeFromTextOffset(endBodyOffset);
-    const selection = rangy.getSelection();
-    const range = rangy.createRange();
+    const range = rangy.createRangyRange(this.BASE_NODE);
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
-    selection.setSingleRange(range);
 
-    return selection;
+    return range;
   }
 
   _nodeFromTextOffset(offset, node){
@@ -16668,635 +16675,6 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
- * Highlighter module for Rangy, a cross-browser JavaScript range and selection library
- * https://github.com/timdown/rangy
- *
- * Depends on Rangy core, ClassApplier and optionally TextRange modules.
- *
- * Copyright 2015, Tim Down
- * Licensed under the MIT license.
- * Version: 1.3.0
- * Build date: 10 May 2015
- */
-(function(factory, root) {
-    if (true) {
-        // AMD. Register as an anonymous module with a dependency on Rangy.
-        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(2)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
-				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
-				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-    } else if (typeof module != "undefined" && typeof exports == "object") {
-        // Node/CommonJS style
-        module.exports = factory( require("rangy") );
-    } else {
-        // No AMD or CommonJS support so we use the rangy property of root (probably the global variable)
-        factory(root.rangy);
-    }
-})(function(rangy) {
-    rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
-        var dom = api.dom;
-        var contains = dom.arrayContains;
-        var getBody = dom.getBody;
-        var createOptions = api.util.createOptions;
-        var forEach = api.util.forEach;
-        var nextHighlightId = 1;
-
-        // Puts highlights in order, last in document first.
-        function compareHighlights(h1, h2) {
-            return h1.characterRange.start - h2.characterRange.start;
-        }
-
-        function getContainerElement(doc, id) {
-            return id ? doc.getElementById(id) : getBody(doc);
-        }
-
-        /*----------------------------------------------------------------------------------------------------------------*/
-
-        var highlighterTypes = {};
-
-        function HighlighterType(type, converterCreator) {
-            this.type = type;
-            this.converterCreator = converterCreator;
-        }
-
-        HighlighterType.prototype.create = function() {
-            var converter = this.converterCreator();
-            converter.type = this.type;
-            return converter;
-        };
-
-        function registerHighlighterType(type, converterCreator) {
-            highlighterTypes[type] = new HighlighterType(type, converterCreator);
-        }
-
-        function getConverter(type) {
-            var highlighterType = highlighterTypes[type];
-            if (highlighterType instanceof HighlighterType) {
-                return highlighterType.create();
-            } else {
-                throw new Error("Highlighter type '" + type + "' is not valid");
-            }
-        }
-
-        api.registerHighlighterType = registerHighlighterType;
-
-        /*----------------------------------------------------------------------------------------------------------------*/
-
-        function CharacterRange(start, end) {
-            this.start = start;
-            this.end = end;
-        }
-
-        CharacterRange.prototype = {
-            intersects: function(charRange) {
-                return this.start < charRange.end && this.end > charRange.start;
-            },
-
-            isContiguousWith: function(charRange) {
-                return this.start == charRange.end || this.end == charRange.start;
-            },
-
-            union: function(charRange) {
-                return new CharacterRange(Math.min(this.start, charRange.start), Math.max(this.end, charRange.end));
-            },
-
-            intersection: function(charRange) {
-                return new CharacterRange(Math.max(this.start, charRange.start), Math.min(this.end, charRange.end));
-            },
-
-            getComplements: function(charRange) {
-                var ranges = [];
-                if (this.start >= charRange.start) {
-                    if (this.end <= charRange.end) {
-                        return [];
-                    }
-                    ranges.push(new CharacterRange(charRange.end, this.end));
-                } else {
-                    ranges.push(new CharacterRange(this.start, Math.min(this.end, charRange.start)));
-                    if (this.end > charRange.end) {
-                        ranges.push(new CharacterRange(charRange.end, this.end));
-                    }
-                }
-                return ranges;
-            },
-
-            toString: function() {
-                return "[CharacterRange(" + this.start + ", " + this.end + ")]";
-            }
-        };
-
-        CharacterRange.fromCharacterRange = function(charRange) {
-            return new CharacterRange(charRange.start, charRange.end);
-        };
-
-        /*----------------------------------------------------------------------------------------------------------------*/
-
-        var textContentConverter = {
-            rangeToCharacterRange: function(range, containerNode) {
-                var bookmark = range.getBookmark(containerNode);
-                return new CharacterRange(bookmark.start, bookmark.end);
-            },
-
-            characterRangeToRange: function(doc, characterRange, containerNode) {
-                var range = api.createRange(doc);
-                range.moveToBookmark({
-                    start: characterRange.start,
-                    end: characterRange.end,
-                    containerNode: containerNode
-                });
-
-                return range;
-            },
-
-            serializeSelection: function(selection, containerNode) {
-                var ranges = selection.getAllRanges(), rangeCount = ranges.length;
-                var rangeInfos = [];
-
-                var backward = rangeCount == 1 && selection.isBackward();
-
-                for (var i = 0, len = ranges.length; i < len; ++i) {
-                    rangeInfos[i] = {
-                        characterRange: this.rangeToCharacterRange(ranges[i], containerNode),
-                        backward: backward
-                    };
-                }
-
-                return rangeInfos;
-            },
-
-            restoreSelection: function(selection, savedSelection, containerNode) {
-                selection.removeAllRanges();
-                var doc = selection.win.document;
-                for (var i = 0, len = savedSelection.length, range, rangeInfo, characterRange; i < len; ++i) {
-                    rangeInfo = savedSelection[i];
-                    characterRange = rangeInfo.characterRange;
-                    range = this.characterRangeToRange(doc, rangeInfo.characterRange, containerNode);
-                    selection.addRange(range, rangeInfo.backward);
-                }
-            }
-        };
-
-        registerHighlighterType("textContent", function() {
-            return textContentConverter;
-        });
-
-        /*----------------------------------------------------------------------------------------------------------------*/
-
-        // Lazily load the TextRange-based converter so that the dependency is only checked when required.
-        registerHighlighterType("TextRange", (function() {
-            var converter;
-
-            return function() {
-                if (!converter) {
-                    // Test that textRangeModule exists and is supported
-                    var textRangeModule = api.modules.TextRange;
-                    if (!textRangeModule) {
-                        throw new Error("TextRange module is missing.");
-                    } else if (!textRangeModule.supported) {
-                        throw new Error("TextRange module is present but not supported.");
-                    }
-
-                    converter = {
-                        rangeToCharacterRange: function(range, containerNode) {
-                            return CharacterRange.fromCharacterRange( range.toCharacterRange(containerNode) );
-                        },
-
-                        characterRangeToRange: function(doc, characterRange, containerNode) {
-                            var range = api.createRange(doc);
-                            range.selectCharacters(containerNode, characterRange.start, characterRange.end);
-                            return range;
-                        },
-
-                        serializeSelection: function(selection, containerNode) {
-                            return selection.saveCharacterRanges(containerNode);
-                        },
-
-                        restoreSelection: function(selection, savedSelection, containerNode) {
-                            selection.restoreCharacterRanges(containerNode, savedSelection);
-                        }
-                    };
-                }
-
-                return converter;
-            };
-        })());
-
-        /*----------------------------------------------------------------------------------------------------------------*/
-
-        function Highlight(doc, characterRange, classApplier, converter, id, containerElementId) {
-            if (id) {
-                this.id = id;
-                nextHighlightId = Math.max(nextHighlightId, id + 1);
-            } else {
-                this.id = nextHighlightId++;
-            }
-            this.characterRange = characterRange;
-            this.doc = doc;
-            this.classApplier = classApplier;
-            this.converter = converter;
-            this.containerElementId = containerElementId || null;
-            this.applied = false;
-        }
-
-        Highlight.prototype = {
-            getContainerElement: function() {
-                return getContainerElement(this.doc, this.containerElementId);
-            },
-
-            getRange: function() {
-                return this.converter.characterRangeToRange(this.doc, this.characterRange, this.getContainerElement());
-            },
-
-            fromRange: function(range) {
-                this.characterRange = this.converter.rangeToCharacterRange(range, this.getContainerElement());
-            },
-
-            getText: function() {
-                return this.getRange().toString();
-            },
-
-            containsElement: function(el) {
-                return this.getRange().containsNodeContents(el.firstChild);
-            },
-
-            unapply: function() {
-                this.classApplier.undoToRange(this.getRange());
-                this.applied = false;
-            },
-
-            apply: function() {
-                this.classApplier.applyToRange(this.getRange());
-                this.applied = true;
-            },
-
-            getHighlightElements: function() {
-                return this.classApplier.getElementsWithClassIntersectingRange(this.getRange());
-            },
-
-            toString: function() {
-                return "[Highlight(ID: " + this.id + ", class: " + this.classApplier.className + ", character range: " +
-                    this.characterRange.start + " - " + this.characterRange.end + ")]";
-            }
-        };
-
-        /*----------------------------------------------------------------------------------------------------------------*/
-
-        function Highlighter(doc, type) {
-            type = type || "textContent";
-            this.doc = doc || document;
-            this.classAppliers = {};
-            this.highlights = [];
-            this.converter = getConverter(type);
-        }
-
-        Highlighter.prototype = {
-            addClassApplier: function(classApplier) {
-                this.classAppliers[classApplier.className] = classApplier;
-            },
-
-            getHighlightForElement: function(el) {
-                var highlights = this.highlights;
-                for (var i = 0, len = highlights.length; i < len; ++i) {
-                    if (highlights[i].containsElement(el)) {
-                        return highlights[i];
-                    }
-                }
-                return null;
-            },
-
-            removeHighlights: function(highlights) {
-                for (var i = 0, len = this.highlights.length, highlight; i < len; ++i) {
-                    highlight = this.highlights[i];
-                    if (contains(highlights, highlight)) {
-                        highlight.unapply();
-                        this.highlights.splice(i--, 1);
-                    }
-                }
-            },
-
-            removeAllHighlights: function() {
-                this.removeHighlights(this.highlights);
-            },
-
-            getIntersectingHighlights: function(ranges) {
-                // Test each range against each of the highlighted ranges to see whether they overlap
-                var intersectingHighlights = [], highlights = this.highlights;
-                forEach(ranges, function(range) {
-                    //var selCharRange = converter.rangeToCharacterRange(range);
-                    forEach(highlights, function(highlight) {
-                        if (range.intersectsRange( highlight.getRange() ) && !contains(intersectingHighlights, highlight)) {
-                            intersectingHighlights.push(highlight);
-                        }
-                    });
-                });
-
-                return intersectingHighlights;
-            },
-
-            highlightCharacterRanges: function(className, charRanges, options) {
-                var i, len, j;
-                var highlights = this.highlights;
-                var converter = this.converter;
-                var doc = this.doc;
-                var highlightsToRemove = [];
-                var classApplier = className ? this.classAppliers[className] : null;
-
-                options = createOptions(options, {
-                    containerElementId: null,
-                    exclusive: true
-                });
-
-                var containerElementId = options.containerElementId;
-                var exclusive = options.exclusive;
-
-                var containerElement, containerElementRange, containerElementCharRange;
-                if (containerElementId) {
-                    containerElement = this.doc.getElementById(containerElementId);
-                    if (containerElement) {
-                        containerElementRange = api.createRange(this.doc);
-                        containerElementRange.selectNodeContents(containerElement);
-                        containerElementCharRange = new CharacterRange(0, containerElementRange.toString().length);
-                    }
-                }
-
-                var charRange, highlightCharRange, removeHighlight, isSameClassApplier, highlightsToKeep, splitHighlight;
-
-                for (i = 0, len = charRanges.length; i < len; ++i) {
-                    charRange = charRanges[i];
-                    highlightsToKeep = [];
-
-                    // Restrict character range to container element, if it exists
-                    if (containerElementCharRange) {
-                        charRange = charRange.intersection(containerElementCharRange);
-                    }
-
-                    // Ignore empty ranges
-                    if (charRange.start == charRange.end) {
-                        continue;
-                    }
-
-                    // Check for intersection with existing highlights. For each intersection, create a new highlight
-                    // which is the union of the highlight range and the selected range
-                    for (j = 0; j < highlights.length; ++j) {
-                        removeHighlight = false;
-
-                        if (containerElementId == highlights[j].containerElementId) {
-                            highlightCharRange = highlights[j].characterRange;
-                            isSameClassApplier = (classApplier == highlights[j].classApplier);
-                            splitHighlight = !isSameClassApplier && exclusive;
-
-                            // Replace the existing highlight if it needs to be:
-                            //  1. merged (isSameClassApplier)
-                            //  2. partially or entirely erased (className === null)
-                            //  3. partially or entirely replaced (isSameClassApplier == false && exclusive == true)
-                            if (    (highlightCharRange.intersects(charRange) || highlightCharRange.isContiguousWith(charRange)) &&
-                                    (isSameClassApplier || splitHighlight) ) {
-
-                                // Remove existing highlights, keeping the unselected parts
-                                if (splitHighlight) {
-                                    forEach(highlightCharRange.getComplements(charRange), function(rangeToAdd) {
-                                        highlightsToKeep.push( new Highlight(doc, rangeToAdd, highlights[j].classApplier, converter, null, containerElementId) );
-                                    });
-                                }
-
-                                removeHighlight = true;
-                                if (isSameClassApplier) {
-                                    charRange = highlightCharRange.union(charRange);
-                                }
-                            }
-                        }
-
-                        if (removeHighlight) {
-                            highlightsToRemove.push(highlights[j]);
-                            highlights[j] = new Highlight(doc, highlightCharRange.union(charRange), classApplier, converter, null, containerElementId);
-                        } else {
-                            highlightsToKeep.push(highlights[j]);
-                        }
-                    }
-
-                    // Add new range
-                    if (classApplier) {
-                        highlightsToKeep.push(new Highlight(doc, charRange, classApplier, converter, null, containerElementId));
-                    }
-                    this.highlights = highlights = highlightsToKeep;
-                }
-
-                // Remove the old highlights
-                forEach(highlightsToRemove, function(highlightToRemove) {
-                    highlightToRemove.unapply();
-                });
-
-                // Apply new highlights
-                var newHighlights = [];
-                forEach(highlights, function(highlight) {
-                    if (!highlight.applied) {
-                        highlight.apply();
-                        newHighlights.push(highlight);
-                    }
-                });
-
-                return newHighlights;
-            },
-
-            highlightRanges: function(className, ranges, options) {
-                var selCharRanges = [];
-                var converter = this.converter;
-
-                options = createOptions(options, {
-                    containerElement: null,
-                    exclusive: true
-                });
-
-                var containerElement = options.containerElement;
-                var containerElementId = containerElement ? containerElement.id : null;
-                var containerElementRange;
-                if (containerElement) {
-                    containerElementRange = api.createRange(containerElement);
-                    containerElementRange.selectNodeContents(containerElement);
-                }
-
-                forEach(ranges, function(range) {
-                    var scopedRange = containerElement ? containerElementRange.intersection(range) : range;
-                    selCharRanges.push( converter.rangeToCharacterRange(scopedRange, containerElement || getBody(range.getDocument())) );
-                });
-
-                return this.highlightCharacterRanges(className, selCharRanges, {
-                    containerElementId: containerElementId,
-                    exclusive: options.exclusive
-                });
-            },
-
-            highlightSelection: function(className, options) {
-                var converter = this.converter;
-                var classApplier = className ? this.classAppliers[className] : false;
-
-                options = createOptions(options, {
-                    containerElementId: null,
-                    selection: api.getSelection(this.doc),
-                    exclusive: true
-                });
-
-                var containerElementId = options.containerElementId;
-                var exclusive = options.exclusive;
-                var selection = options.selection;
-                var doc = selection.win.document;
-                var containerElement = getContainerElement(doc, containerElementId);
-
-                if (!classApplier && className !== false) {
-                    throw new Error("No class applier found for class '" + className + "'");
-                }
-
-                // Store the existing selection as character ranges
-                var serializedSelection = converter.serializeSelection(selection, containerElement);
-
-                // Create an array of selected character ranges
-                var selCharRanges = [];
-                forEach(serializedSelection, function(rangeInfo) {
-                    selCharRanges.push( CharacterRange.fromCharacterRange(rangeInfo.characterRange) );
-                });
-
-                var newHighlights = this.highlightCharacterRanges(className, selCharRanges, {
-                    containerElementId: containerElementId,
-                    exclusive: exclusive
-                });
-
-                // Restore selection
-                converter.restoreSelection(selection, serializedSelection, containerElement);
-
-                return newHighlights;
-            },
-
-            unhighlightSelection: function(selection) {
-                selection = selection || api.getSelection(this.doc);
-                var intersectingHighlights = this.getIntersectingHighlights( selection.getAllRanges() );
-                this.removeHighlights(intersectingHighlights);
-                selection.removeAllRanges();
-                return intersectingHighlights;
-            },
-
-            getHighlightsInSelection: function(selection) {
-                selection = selection || api.getSelection(this.doc);
-                return this.getIntersectingHighlights(selection.getAllRanges());
-            },
-
-            selectionOverlapsHighlight: function(selection) {
-                return this.getHighlightsInSelection(selection).length > 0;
-            },
-
-            serialize: function(options) {
-                var highlighter = this;
-                var highlights = highlighter.highlights;
-                var serializedType, serializedHighlights, convertType, serializationConverter;
-
-                highlights.sort(compareHighlights);
-                options = createOptions(options, {
-                    serializeHighlightText: false,
-                    type: highlighter.converter.type
-                });
-
-                serializedType = options.type;
-                convertType = (serializedType != highlighter.converter.type);
-
-                if (convertType) {
-                    serializationConverter = getConverter(serializedType);
-                }
-
-                serializedHighlights = ["type:" + serializedType];
-
-                forEach(highlights, function(highlight) {
-                    var characterRange = highlight.characterRange;
-                    var containerElement;
-
-                    // Convert to the current Highlighter's type, if different from the serialization type
-                    if (convertType) {
-                        containerElement = highlight.getContainerElement();
-                        characterRange = serializationConverter.rangeToCharacterRange(
-                            highlighter.converter.characterRangeToRange(highlighter.doc, characterRange, containerElement),
-                            containerElement
-                        );
-                    }
-
-                    var parts = [
-                        characterRange.start,
-                        characterRange.end,
-                        highlight.id,
-                        highlight.classApplier.className,
-                        highlight.containerElementId
-                    ];
-
-                    if (options.serializeHighlightText) {
-                        parts.push(highlight.getText());
-                    }
-                    serializedHighlights.push( parts.join("$") );
-                });
-
-                return serializedHighlights.join("|");
-            },
-
-            deserialize: function(serialized) {
-                var serializedHighlights = serialized.split("|");
-                var highlights = [];
-
-                var firstHighlight = serializedHighlights[0];
-                var regexResult;
-                var serializationType, serializationConverter, convertType = false;
-                if ( firstHighlight && (regexResult = /^type:(\w+)$/.exec(firstHighlight)) ) {
-                    serializationType = regexResult[1];
-                    if (serializationType != this.converter.type) {
-                        serializationConverter = getConverter(serializationType);
-                        convertType = true;
-                    }
-                    serializedHighlights.shift();
-                } else {
-                    throw new Error("Serialized highlights are invalid.");
-                }
-
-                var classApplier, highlight, characterRange, containerElementId, containerElement;
-
-                for (var i = serializedHighlights.length, parts; i-- > 0; ) {
-                    parts = serializedHighlights[i].split("$");
-                    characterRange = new CharacterRange(+parts[0], +parts[1]);
-                    containerElementId = parts[4] || null;
-
-                    // Convert to the current Highlighter's type, if different from the serialization type
-                    if (convertType) {
-                        containerElement = getContainerElement(this.doc, containerElementId);
-                        characterRange = this.converter.rangeToCharacterRange(
-                            serializationConverter.characterRangeToRange(this.doc, characterRange, containerElement),
-                            containerElement
-                        );
-                    }
-
-                    classApplier = this.classAppliers[ parts[3] ];
-
-                    if (!classApplier) {
-                        throw new Error("No class applier found for class '" + parts[3] + "'");
-                    }
-
-                    highlight = new Highlight(this.doc, characterRange, classApplier, this.converter, parseInt(parts[2]), containerElementId);
-                    highlight.apply();
-                    highlights.push(highlight);
-                }
-                this.highlights = highlights;
-            }
-        };
-
-        api.Highlighter = Highlighter;
-
-        api.createHighlighter = function(doc, rangeCharacterOffsetConverterType) {
-            return new Highlighter(doc, rangeCharacterOffsetConverterType);
-        };
-    });
-    
-    return rangy;
-}, this);
-
-
-/***/ }),
-/* 16 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
  * Serializer module for Rangy.
  * Serializes Ranges and Selections. An example use would be to store a user's selection on a particular page in a
  * cookie or local storage and restore it on the user's next visit to the same page.
@@ -17615,7 +16993,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 }, this);
 
 /***/ }),
-/* 17 */
+/* 16 */
 /***/ (function(module, exports) {
 
 exports.emit = (eventName, data) => {
@@ -17626,7 +17004,7 @@ exports.emit = (eventName, data) => {
 
 
 /***/ }),
-/* 18 */
+/* 17 */
 /***/ (function(module, exports) {
 
 class Bioes {
@@ -17779,7 +17157,7 @@ module.exports = Bioes;
 
 
 /***/ }),
-/* 19 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const AbstractFile = __webpack_require__(35);
@@ -17844,11 +17222,11 @@ function parseHtml(html) {
 
 
 /***/ }),
-/* 20 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const $ = __webpack_require__(0);
-const Htmlanno = __webpack_require__(21);
+const Htmlanno = __webpack_require__(20);
 window.$ = $;
 
 $(()=>{
@@ -17859,33 +17237,33 @@ $(()=>{
 
 
 /***/ }),
-/* 21 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const $ = __webpack_require__(0);
 const URI = __webpack_require__(9);
 
-const EventManager = __webpack_require__(24);
-const AnnotationContainer = __webpack_require__(26);
+const EventManager = __webpack_require__(23);
+const AnnotationContainer = __webpack_require__(25);
 
 window.globalEvent = new EventManager();
 window.annotationContainer = new AnnotationContainer();
 
 const AnnoUI = __webpack_require__(4);
 
-const TomlTool = __webpack_require__(27);
-const Highlighter = __webpack_require__(33);
+const TomlTool = __webpack_require__(26);
+const Highlighter = __webpack_require__(32);
 const Circle = __webpack_require__(3);
 const ArrowConnector = __webpack_require__(34);
 const FileContainer = __webpack_require__(7);
 const SpanAnnotation = __webpack_require__(5);
 const RelationAnnotation = __webpack_require__(6);
-const Bioes = __webpack_require__(18);
+const Bioes = __webpack_require__(17);
 const LoadBioesPromise = __webpack_require__(36);
-const LoadHtmlPromise = __webpack_require__(19);
+const LoadHtmlPromise = __webpack_require__(18);
 const LoadTextPromise = __webpack_require__(37);
 const HideBioesAnnotation = __webpack_require__(8);
-const WindowEvent = __webpack_require__(17);
+const WindowEvent = __webpack_require__(16);
 const Searcher = __webpack_require__(38);
 const HtmlViewer = __webpack_require__(39)
 
@@ -17899,7 +17277,7 @@ class Htmlanno{
      * @see #loadDefaultData
      */
     this.useDefaultData = true;
-    this.setupHtml();
+    HtmlViewer._setupHtml();
     this.highlighter = new Highlighter(annotationContainer);
     this.arrowConnector = new ArrowConnector(annotationContainer);
 
@@ -17915,6 +17293,7 @@ class Htmlanno{
       this.arrowConnector.removeAnnotation(data);
       this.unselectRelation();
     });
+    this.setupAnnoUI();
     this.wrapGlobalEvents();
 
     const query = URI(document.URL).query(true);
@@ -17940,40 +17319,7 @@ class Htmlanno{
     return "htmlanno-save-"+document.location.href;
   }
 
-  setupHtml(){
-    const html = `
-      <div id="htmlanno-annotation">
-      <link rel="stylesheet" href="index.css">
-      <svg id="htmlanno-svg-screen"
-      visibility="hidden"
-      baseProfile="full"
-      pointer-events="visible"
-      width="100%"
-      height="100%" style="z-index: 100;">
-      <defs>
-      <marker id="htmlanno-arrow-head"
-      class="htmlanno-arrow-head"
-      visibility="visible"
-      refX="6"
-      refY="3"
-      fill="red"
-      markerWidth="6"
-      markerHeight="6"
-      orient="auto-start-reverse"
-      markerUnits="strokeWidth">
-      <polyline
-      points="0,0 6,3 0,6 0.2,3" />
-      </marker>
-      </defs>
-      </svg>
-      <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;"></span>
-      </div>
-      `;
-
-    $(html).appendTo("#viewerWrapper");
-  }
-
-  wrapGlobalEvents(){
+  setupAnnoUI () {
     AnnoUI.util.setupResizableColumns();
     AnnoUI.event.setup();
 
@@ -18031,7 +17377,9 @@ class Htmlanno{
       getAnnotations: annotationContainer.getPrimaryAnnotations.bind(annotationContainer),
       scrollToAnnotation: this.scrollToAnnotation.bind(this)
     });
+  }
 
+  wrapGlobalEvents(){
     $(document).on("keydown", this.handleKeydown.bind(this));
     $("#viewer").on("mouseup", this.handleMouseUp.bind(this));
 
@@ -18325,25 +17673,16 @@ class Htmlanno{
    * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
    */
   _renderAnnotation(annotationFileObj, uiAnnotation) {
-    const colorMap = AnnoUI.labelInput.getColorMap();
-    if (undefined == uiAnnotation) {
-      TomlTool.loadToml(
-        annotationFileObj,
-        this.viewer,
-        this.highlighter,
-        this.arrowConnector,
-        colorMap
-      );
-    } else {
-      TomlTool.loadToml(
-        annotationFileObj,
-        this.viewer,
-        this.highlighter,
-        this.arrowConnector,
-        colorMap,
-        uiAnnotation.name
-      );
-    }
+    const ui_annotation_name = uiAnnotation === undefined ? undefined : uiAnnotation.name;
+    TomlTool.loadToml(
+      annotationFileObj,
+      this.viewer,
+      this.highlighter,
+      this.arrowConnector,
+      AnnoUI.labelInput.getColorMap(),
+      ui_annotation_name
+    );
+    annotationContainer.setEventListenerForEachAnnotation();
     WindowEvent.emit('annotationrendered');
   }
 
@@ -18431,6 +17770,7 @@ class Htmlanno{
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
+          console.log(reject);
           this.showReadError();
         });
 
@@ -18458,10 +17798,12 @@ class Htmlanno{
             this.arrowConnector,
             AnnoUI.labelInput.getColorMap()
           );
+          annotationContainer.setEventListenerForEachAnnotation();
           WindowEvent.emit('annotationrendered');
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
+          console.log(reject);
           this.showReadError();
         });
 
@@ -18474,6 +17816,7 @@ class Htmlanno{
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
+          console.log(reject);
           this.showReadError();
         });
 
@@ -18532,6 +17875,7 @@ class Htmlanno{
           // Create a new span.
           const span = this.highlighter.highlight(label.text);
           if (undefined != span) {
+            span.setEventHandler();
             WindowEvent.emit('annotationrendered');
             span.setColor(label.color);
             span.select();
@@ -18684,7 +18028,7 @@ module.exports = Htmlanno;
 
 
 /***/ }),
-/* 22 */
+/* 21 */
 /***/ (function(module, exports) {
 
 module.exports = function(module) {
@@ -18712,7 +18056,7 @@ module.exports = function(module) {
 
 
 /***/ }),
-/* 23 */
+/* 22 */
 /***/ (function(module, exports) {
 
 var g;
@@ -18739,10 +18083,10 @@ module.exports = g;
 
 
 /***/ }),
-/* 24 */
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const EventEmitter = __webpack_require__(25).EventEmitter
+const EventEmitter = __webpack_require__(24).EventEmitter
 
 class EventManager{
   constructor(){
@@ -18796,7 +18140,7 @@ module.exports = EventManager;
 
 
 /***/ }),
-/* 25 */
+/* 24 */
 /***/ (function(module, exports) {
 
 // Copyright Joyent, Inc. and other Node contributors.
@@ -19104,7 +18448,7 @@ function isUndefined(arg) {
 
 
 /***/ }),
-/* 26 */
+/* 25 */
 /***/ (function(module, exports) {
 
 class AnnotationContainer{
@@ -19259,6 +18603,12 @@ class AnnotationContainer{
     return Promise.all(promises).then();
   }
 
+  setEventListenerForEachAnnotation () {
+    this.forEach((annotation) => {
+      annotation.setEventHandler();
+    });
+  }
+
   // TODO: pdfanno only
   destroy(){
   }
@@ -19368,10 +18718,10 @@ module.exports = AnnotationContainer;
 
 
 /***/ }),
-/* 27 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const TomlParser = __webpack_require__(28);
+const TomlParser = __webpack_require__(27);
 const SpanAnnotation = __webpack_require__(5);
 const RelationAnnotation = __webpack_require__(6);
 const Annotation = __webpack_require__(1);
@@ -19416,14 +18766,23 @@ function renderAnnotation(annotationFileObj, tomlObj, viewer, highlighter, arrow
     if ("version" == key) {
       continue;
     }
-    let annotation = undefined;
     // Span.
     if (SpanAnnotation.isMydata(tomlObj[key])) {
-      annotation = highlighter.addToml(key, tomlObj[key], referenceId, viewer);
+      const annotation = highlighter.addToml(key, tomlObj[key], referenceId, viewer);
       if (null != annotation) {
         annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
         annotation.setFileContent(annotationFileObj);
+      } else {
+        console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
+        console.log(tomlObj[key]);
       }
+    }
+  }
+  viewer.reflectBuffer();
+
+  for(key in tomlObj) {
+    if ("version" == key) {
+      continue;
     }
     // Relation(one-way, two-way, or link)
     if (RelationAnnotation.isMydata(tomlObj[key])) {
@@ -19431,22 +18790,21 @@ function renderAnnotation(annotationFileObj, tomlObj, viewer, highlighter, arrow
       if (null != annotation) {
         annotation.setColor(_getColor(colorMap, annotation.direction, annotation.text));
         annotation.setFileContent(annotationFileObj);
+      } else {
+        console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
+        console.log(tomlObj[key]);
       }
-    }
-    if (null == annotation) {
-      console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
-      console.log(tomlObj[key]);
     }
   }
 }
 
 
 /***/ }),
-/* 28 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var parser = __webpack_require__(29);
-var compiler = __webpack_require__(30);
+var parser = __webpack_require__(28);
+var compiler = __webpack_require__(29);
 
 module.exports = {
   parse: function(input) {
@@ -19457,7 +18815,7 @@ module.exports = {
 
 
 /***/ }),
-/* 29 */
+/* 28 */
 /***/ (function(module, exports) {
 
 module.exports = (function() {
@@ -23304,7 +22662,7 @@ module.exports = (function() {
 
 
 /***/ }),
-/* 30 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -23506,7 +22864,7 @@ module.exports = {
 
 
 /***/ }),
-/* 31 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 class Diamond extends __webpack_require__(3) {
@@ -23519,7 +22877,7 @@ module.exports = Diamond;
 
 
 /***/ }),
-/* 32 */
+/* 31 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const $ = __webpack_require__(0);
@@ -23831,18 +23189,18 @@ module.exports = RenderRelation;
 
 
 /***/ }),
-/* 33 */
+/* 32 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const $ = __webpack_require__(0);
 const rangy = __webpack_require__(2);
 __webpack_require__(14);
+__webpack_require__(33);
 __webpack_require__(15);
-__webpack_require__(16);
 
 const SpanAnnotation = __webpack_require__(5);
 const Annotation = __webpack_require__(1);
-const WindowEvent = __webpack_require__(17);
+const WindowEvent = __webpack_require__(16);
 
 class Highlighter{
   constructor(annotationContainer){
@@ -23907,9 +23265,9 @@ class Highlighter{
         for(let selector_index = start_index; selector_index <= end_index; selector_index ++) {
           selector.push(`[data-htmlanno-id="${selector_index + 1}"]`);
         }
-        const target = $(selector.join(','));
+        const target = $(selector.join(','), viewer.renderingBuffer());
         target.wrapAll('<div id="temporary">')
-        const real_target = document.getElementById('temporary');
+        const real_target = viewer.renderingBuffer().getElementById('temporary');
 
         // TODO if (!selection.isCollapsed)
         const span = new SpanAnnotation(
@@ -23945,6 +23303,635 @@ class Highlighter{
 }
 
 module.exports = Highlighter;
+
+
+/***/ }),
+/* 33 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/**
+ * Highlighter module for Rangy, a cross-browser JavaScript range and selection library
+ * https://github.com/timdown/rangy
+ *
+ * Depends on Rangy core, ClassApplier and optionally TextRange modules.
+ *
+ * Copyright 2015, Tim Down
+ * Licensed under the MIT license.
+ * Version: 1.3.0
+ * Build date: 10 May 2015
+ */
+(function(factory, root) {
+    if (true) {
+        // AMD. Register as an anonymous module with a dependency on Rangy.
+        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(2)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
+				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+    } else if (typeof module != "undefined" && typeof exports == "object") {
+        // Node/CommonJS style
+        module.exports = factory( require("rangy") );
+    } else {
+        // No AMD or CommonJS support so we use the rangy property of root (probably the global variable)
+        factory(root.rangy);
+    }
+})(function(rangy) {
+    rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
+        var dom = api.dom;
+        var contains = dom.arrayContains;
+        var getBody = dom.getBody;
+        var createOptions = api.util.createOptions;
+        var forEach = api.util.forEach;
+        var nextHighlightId = 1;
+
+        // Puts highlights in order, last in document first.
+        function compareHighlights(h1, h2) {
+            return h1.characterRange.start - h2.characterRange.start;
+        }
+
+        function getContainerElement(doc, id) {
+            return id ? doc.getElementById(id) : getBody(doc);
+        }
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        var highlighterTypes = {};
+
+        function HighlighterType(type, converterCreator) {
+            this.type = type;
+            this.converterCreator = converterCreator;
+        }
+
+        HighlighterType.prototype.create = function() {
+            var converter = this.converterCreator();
+            converter.type = this.type;
+            return converter;
+        };
+
+        function registerHighlighterType(type, converterCreator) {
+            highlighterTypes[type] = new HighlighterType(type, converterCreator);
+        }
+
+        function getConverter(type) {
+            var highlighterType = highlighterTypes[type];
+            if (highlighterType instanceof HighlighterType) {
+                return highlighterType.create();
+            } else {
+                throw new Error("Highlighter type '" + type + "' is not valid");
+            }
+        }
+
+        api.registerHighlighterType = registerHighlighterType;
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        function CharacterRange(start, end) {
+            this.start = start;
+            this.end = end;
+        }
+
+        CharacterRange.prototype = {
+            intersects: function(charRange) {
+                return this.start < charRange.end && this.end > charRange.start;
+            },
+
+            isContiguousWith: function(charRange) {
+                return this.start == charRange.end || this.end == charRange.start;
+            },
+
+            union: function(charRange) {
+                return new CharacterRange(Math.min(this.start, charRange.start), Math.max(this.end, charRange.end));
+            },
+
+            intersection: function(charRange) {
+                return new CharacterRange(Math.max(this.start, charRange.start), Math.min(this.end, charRange.end));
+            },
+
+            getComplements: function(charRange) {
+                var ranges = [];
+                if (this.start >= charRange.start) {
+                    if (this.end <= charRange.end) {
+                        return [];
+                    }
+                    ranges.push(new CharacterRange(charRange.end, this.end));
+                } else {
+                    ranges.push(new CharacterRange(this.start, Math.min(this.end, charRange.start)));
+                    if (this.end > charRange.end) {
+                        ranges.push(new CharacterRange(charRange.end, this.end));
+                    }
+                }
+                return ranges;
+            },
+
+            toString: function() {
+                return "[CharacterRange(" + this.start + ", " + this.end + ")]";
+            }
+        };
+
+        CharacterRange.fromCharacterRange = function(charRange) {
+            return new CharacterRange(charRange.start, charRange.end);
+        };
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        var textContentConverter = {
+            rangeToCharacterRange: function(range, containerNode) {
+                var bookmark = range.getBookmark(containerNode);
+                return new CharacterRange(bookmark.start, bookmark.end);
+            },
+
+            characterRangeToRange: function(doc, characterRange, containerNode) {
+                var range = api.createRange(doc);
+                range.moveToBookmark({
+                    start: characterRange.start,
+                    end: characterRange.end,
+                    containerNode: containerNode
+                });
+
+                return range;
+            },
+
+            serializeSelection: function(selection, containerNode) {
+                var ranges = selection.getAllRanges(), rangeCount = ranges.length;
+                var rangeInfos = [];
+
+                var backward = rangeCount == 1 && selection.isBackward();
+
+                for (var i = 0, len = ranges.length; i < len; ++i) {
+                    rangeInfos[i] = {
+                        characterRange: this.rangeToCharacterRange(ranges[i], containerNode),
+                        backward: backward
+                    };
+                }
+
+                return rangeInfos;
+            },
+
+            restoreSelection: function(selection, savedSelection, containerNode) {
+                selection.removeAllRanges();
+                var doc = selection.win.document;
+                for (var i = 0, len = savedSelection.length, range, rangeInfo, characterRange; i < len; ++i) {
+                    rangeInfo = savedSelection[i];
+                    characterRange = rangeInfo.characterRange;
+                    range = this.characterRangeToRange(doc, rangeInfo.characterRange, containerNode);
+                    selection.addRange(range, rangeInfo.backward);
+                }
+            }
+        };
+
+        registerHighlighterType("textContent", function() {
+            return textContentConverter;
+        });
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        // Lazily load the TextRange-based converter so that the dependency is only checked when required.
+        registerHighlighterType("TextRange", (function() {
+            var converter;
+
+            return function() {
+                if (!converter) {
+                    // Test that textRangeModule exists and is supported
+                    var textRangeModule = api.modules.TextRange;
+                    if (!textRangeModule) {
+                        throw new Error("TextRange module is missing.");
+                    } else if (!textRangeModule.supported) {
+                        throw new Error("TextRange module is present but not supported.");
+                    }
+
+                    converter = {
+                        rangeToCharacterRange: function(range, containerNode) {
+                            return CharacterRange.fromCharacterRange( range.toCharacterRange(containerNode) );
+                        },
+
+                        characterRangeToRange: function(doc, characterRange, containerNode) {
+                            var range = api.createRange(doc);
+                            range.selectCharacters(containerNode, characterRange.start, characterRange.end);
+                            return range;
+                        },
+
+                        serializeSelection: function(selection, containerNode) {
+                            return selection.saveCharacterRanges(containerNode);
+                        },
+
+                        restoreSelection: function(selection, savedSelection, containerNode) {
+                            selection.restoreCharacterRanges(containerNode, savedSelection);
+                        }
+                    };
+                }
+
+                return converter;
+            };
+        })());
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        function Highlight(doc, characterRange, classApplier, converter, id, containerElementId) {
+            if (id) {
+                this.id = id;
+                nextHighlightId = Math.max(nextHighlightId, id + 1);
+            } else {
+                this.id = nextHighlightId++;
+            }
+            this.characterRange = characterRange;
+            this.doc = doc;
+            this.classApplier = classApplier;
+            this.converter = converter;
+            this.containerElementId = containerElementId || null;
+            this.applied = false;
+        }
+
+        Highlight.prototype = {
+            getContainerElement: function() {
+                return getContainerElement(this.doc, this.containerElementId);
+            },
+
+            getRange: function() {
+                return this.converter.characterRangeToRange(this.doc, this.characterRange, this.getContainerElement());
+            },
+
+            fromRange: function(range) {
+                this.characterRange = this.converter.rangeToCharacterRange(range, this.getContainerElement());
+            },
+
+            getText: function() {
+                return this.getRange().toString();
+            },
+
+            containsElement: function(el) {
+                return this.getRange().containsNodeContents(el.firstChild);
+            },
+
+            unapply: function() {
+                this.classApplier.undoToRange(this.getRange());
+                this.applied = false;
+            },
+
+            apply: function() {
+                this.classApplier.applyToRange(this.getRange());
+                this.applied = true;
+            },
+
+            getHighlightElements: function() {
+                return this.classApplier.getElementsWithClassIntersectingRange(this.getRange());
+            },
+
+            toString: function() {
+                return "[Highlight(ID: " + this.id + ", class: " + this.classApplier.className + ", character range: " +
+                    this.characterRange.start + " - " + this.characterRange.end + ")]";
+            }
+        };
+
+        /*----------------------------------------------------------------------------------------------------------------*/
+
+        function Highlighter(doc, type) {
+            type = type || "textContent";
+            this.doc = doc || document;
+            this.classAppliers = {};
+            this.highlights = [];
+            this.converter = getConverter(type);
+        }
+
+        Highlighter.prototype = {
+            addClassApplier: function(classApplier) {
+                this.classAppliers[classApplier.className] = classApplier;
+            },
+
+            getHighlightForElement: function(el) {
+                var highlights = this.highlights;
+                for (var i = 0, len = highlights.length; i < len; ++i) {
+                    if (highlights[i].containsElement(el)) {
+                        return highlights[i];
+                    }
+                }
+                return null;
+            },
+
+            removeHighlights: function(highlights) {
+                for (var i = 0, len = this.highlights.length, highlight; i < len; ++i) {
+                    highlight = this.highlights[i];
+                    if (contains(highlights, highlight)) {
+                        highlight.unapply();
+                        this.highlights.splice(i--, 1);
+                    }
+                }
+            },
+
+            removeAllHighlights: function() {
+                this.removeHighlights(this.highlights);
+            },
+
+            getIntersectingHighlights: function(ranges) {
+                // Test each range against each of the highlighted ranges to see whether they overlap
+                var intersectingHighlights = [], highlights = this.highlights;
+                forEach(ranges, function(range) {
+                    //var selCharRange = converter.rangeToCharacterRange(range);
+                    forEach(highlights, function(highlight) {
+                        if (range.intersectsRange( highlight.getRange() ) && !contains(intersectingHighlights, highlight)) {
+                            intersectingHighlights.push(highlight);
+                        }
+                    });
+                });
+
+                return intersectingHighlights;
+            },
+
+            highlightCharacterRanges: function(className, charRanges, options) {
+                var i, len, j;
+                var highlights = this.highlights;
+                var converter = this.converter;
+                var doc = this.doc;
+                var highlightsToRemove = [];
+                var classApplier = className ? this.classAppliers[className] : null;
+
+                options = createOptions(options, {
+                    containerElementId: null,
+                    exclusive: true
+                });
+
+                var containerElementId = options.containerElementId;
+                var exclusive = options.exclusive;
+
+                var containerElement, containerElementRange, containerElementCharRange;
+                if (containerElementId) {
+                    containerElement = this.doc.getElementById(containerElementId);
+                    if (containerElement) {
+                        containerElementRange = api.createRange(this.doc);
+                        containerElementRange.selectNodeContents(containerElement);
+                        containerElementCharRange = new CharacterRange(0, containerElementRange.toString().length);
+                    }
+                }
+
+                var charRange, highlightCharRange, removeHighlight, isSameClassApplier, highlightsToKeep, splitHighlight;
+
+                for (i = 0, len = charRanges.length; i < len; ++i) {
+                    charRange = charRanges[i];
+                    highlightsToKeep = [];
+
+                    // Restrict character range to container element, if it exists
+                    if (containerElementCharRange) {
+                        charRange = charRange.intersection(containerElementCharRange);
+                    }
+
+                    // Ignore empty ranges
+                    if (charRange.start == charRange.end) {
+                        continue;
+                    }
+
+                    // Check for intersection with existing highlights. For each intersection, create a new highlight
+                    // which is the union of the highlight range and the selected range
+                    for (j = 0; j < highlights.length; ++j) {
+                        removeHighlight = false;
+
+                        if (containerElementId == highlights[j].containerElementId) {
+                            highlightCharRange = highlights[j].characterRange;
+                            isSameClassApplier = (classApplier == highlights[j].classApplier);
+                            splitHighlight = !isSameClassApplier && exclusive;
+
+                            // Replace the existing highlight if it needs to be:
+                            //  1. merged (isSameClassApplier)
+                            //  2. partially or entirely erased (className === null)
+                            //  3. partially or entirely replaced (isSameClassApplier == false && exclusive == true)
+                            if (    (highlightCharRange.intersects(charRange) || highlightCharRange.isContiguousWith(charRange)) &&
+                                    (isSameClassApplier || splitHighlight) ) {
+
+                                // Remove existing highlights, keeping the unselected parts
+                                if (splitHighlight) {
+                                    forEach(highlightCharRange.getComplements(charRange), function(rangeToAdd) {
+                                        highlightsToKeep.push( new Highlight(doc, rangeToAdd, highlights[j].classApplier, converter, null, containerElementId) );
+                                    });
+                                }
+
+                                removeHighlight = true;
+                                if (isSameClassApplier) {
+                                    charRange = highlightCharRange.union(charRange);
+                                }
+                            }
+                        }
+
+                        if (removeHighlight) {
+                            highlightsToRemove.push(highlights[j]);
+                            highlights[j] = new Highlight(doc, highlightCharRange.union(charRange), classApplier, converter, null, containerElementId);
+                        } else {
+                            highlightsToKeep.push(highlights[j]);
+                        }
+                    }
+
+                    // Add new range
+                    if (classApplier) {
+                        highlightsToKeep.push(new Highlight(doc, charRange, classApplier, converter, null, containerElementId));
+                    }
+                    this.highlights = highlights = highlightsToKeep;
+                }
+
+                // Remove the old highlights
+                forEach(highlightsToRemove, function(highlightToRemove) {
+                    highlightToRemove.unapply();
+                });
+
+                // Apply new highlights
+                var newHighlights = [];
+                forEach(highlights, function(highlight) {
+                    if (!highlight.applied) {
+                        highlight.apply();
+                        newHighlights.push(highlight);
+                    }
+                });
+
+                return newHighlights;
+            },
+
+            highlightRanges: function(className, ranges, options) {
+                var selCharRanges = [];
+                var converter = this.converter;
+
+                options = createOptions(options, {
+                    containerElement: null,
+                    exclusive: true
+                });
+
+                var containerElement = options.containerElement;
+                var containerElementId = containerElement ? containerElement.id : null;
+                var containerElementRange;
+                if (containerElement) {
+                    containerElementRange = api.createRange(containerElement);
+                    containerElementRange.selectNodeContents(containerElement);
+                }
+
+                forEach(ranges, function(range) {
+                    var scopedRange = containerElement ? containerElementRange.intersection(range) : range;
+                    selCharRanges.push( converter.rangeToCharacterRange(scopedRange, containerElement || getBody(range.getDocument())) );
+                });
+
+                return this.highlightCharacterRanges(className, selCharRanges, {
+                    containerElementId: containerElementId,
+                    exclusive: options.exclusive
+                });
+            },
+
+            highlightSelection: function(className, options) {
+                var converter = this.converter;
+                var classApplier = className ? this.classAppliers[className] : false;
+
+                options = createOptions(options, {
+                    containerElementId: null,
+                    selection: api.getSelection(this.doc),
+                    exclusive: true
+                });
+
+                var containerElementId = options.containerElementId;
+                var exclusive = options.exclusive;
+                var selection = options.selection;
+                var doc = selection.win.document;
+                var containerElement = getContainerElement(doc, containerElementId);
+
+                if (!classApplier && className !== false) {
+                    throw new Error("No class applier found for class '" + className + "'");
+                }
+
+                // Store the existing selection as character ranges
+                var serializedSelection = converter.serializeSelection(selection, containerElement);
+
+                // Create an array of selected character ranges
+                var selCharRanges = [];
+                forEach(serializedSelection, function(rangeInfo) {
+                    selCharRanges.push( CharacterRange.fromCharacterRange(rangeInfo.characterRange) );
+                });
+
+                var newHighlights = this.highlightCharacterRanges(className, selCharRanges, {
+                    containerElementId: containerElementId,
+                    exclusive: exclusive
+                });
+
+                // Restore selection
+                converter.restoreSelection(selection, serializedSelection, containerElement);
+
+                return newHighlights;
+            },
+
+            unhighlightSelection: function(selection) {
+                selection = selection || api.getSelection(this.doc);
+                var intersectingHighlights = this.getIntersectingHighlights( selection.getAllRanges() );
+                this.removeHighlights(intersectingHighlights);
+                selection.removeAllRanges();
+                return intersectingHighlights;
+            },
+
+            getHighlightsInSelection: function(selection) {
+                selection = selection || api.getSelection(this.doc);
+                return this.getIntersectingHighlights(selection.getAllRanges());
+            },
+
+            selectionOverlapsHighlight: function(selection) {
+                return this.getHighlightsInSelection(selection).length > 0;
+            },
+
+            serialize: function(options) {
+                var highlighter = this;
+                var highlights = highlighter.highlights;
+                var serializedType, serializedHighlights, convertType, serializationConverter;
+
+                highlights.sort(compareHighlights);
+                options = createOptions(options, {
+                    serializeHighlightText: false,
+                    type: highlighter.converter.type
+                });
+
+                serializedType = options.type;
+                convertType = (serializedType != highlighter.converter.type);
+
+                if (convertType) {
+                    serializationConverter = getConverter(serializedType);
+                }
+
+                serializedHighlights = ["type:" + serializedType];
+
+                forEach(highlights, function(highlight) {
+                    var characterRange = highlight.characterRange;
+                    var containerElement;
+
+                    // Convert to the current Highlighter's type, if different from the serialization type
+                    if (convertType) {
+                        containerElement = highlight.getContainerElement();
+                        characterRange = serializationConverter.rangeToCharacterRange(
+                            highlighter.converter.characterRangeToRange(highlighter.doc, characterRange, containerElement),
+                            containerElement
+                        );
+                    }
+
+                    var parts = [
+                        characterRange.start,
+                        characterRange.end,
+                        highlight.id,
+                        highlight.classApplier.className,
+                        highlight.containerElementId
+                    ];
+
+                    if (options.serializeHighlightText) {
+                        parts.push(highlight.getText());
+                    }
+                    serializedHighlights.push( parts.join("$") );
+                });
+
+                return serializedHighlights.join("|");
+            },
+
+            deserialize: function(serialized) {
+                var serializedHighlights = serialized.split("|");
+                var highlights = [];
+
+                var firstHighlight = serializedHighlights[0];
+                var regexResult;
+                var serializationType, serializationConverter, convertType = false;
+                if ( firstHighlight && (regexResult = /^type:(\w+)$/.exec(firstHighlight)) ) {
+                    serializationType = regexResult[1];
+                    if (serializationType != this.converter.type) {
+                        serializationConverter = getConverter(serializationType);
+                        convertType = true;
+                    }
+                    serializedHighlights.shift();
+                } else {
+                    throw new Error("Serialized highlights are invalid.");
+                }
+
+                var classApplier, highlight, characterRange, containerElementId, containerElement;
+
+                for (var i = serializedHighlights.length, parts; i-- > 0; ) {
+                    parts = serializedHighlights[i].split("$");
+                    characterRange = new CharacterRange(+parts[0], +parts[1]);
+                    containerElementId = parts[4] || null;
+
+                    // Convert to the current Highlighter's type, if different from the serialization type
+                    if (convertType) {
+                        containerElement = getContainerElement(this.doc, containerElementId);
+                        characterRange = this.converter.rangeToCharacterRange(
+                            serializationConverter.characterRangeToRange(this.doc, characterRange, containerElement),
+                            containerElement
+                        );
+                    }
+
+                    classApplier = this.classAppliers[ parts[3] ];
+
+                    if (!classApplier) {
+                        throw new Error("No class applier found for class '" + parts[3] + "'");
+                    }
+
+                    highlight = new Highlight(this.doc, characterRange, classApplier, this.converter, parseInt(parts[2]), containerElementId);
+                    highlight.apply();
+                    highlights.push(highlight);
+                }
+                this.highlights = highlights;
+            }
+        };
+
+        api.Highlighter = Highlighter;
+
+        api.createHighlighter = function(doc, rangeCharacterOffsetConverterType) {
+            return new Highlighter(doc, rangeCharacterOffsetConverterType);
+        };
+    });
+    
+    return rangy;
+}, this);
 
 
 /***/ }),
@@ -24213,12 +24200,30 @@ module.exports = Search;
 
 /***/ }),
 /* 39 */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
+
+const Annotation = __webpack_require__(1)
 
 class HtmlViewer {
     constructor() {
+        /**
+         * infomation about each HTMLElement offset from head of text contents.
+         * [n] = {
+         *   parent_index: in case of [n] is included by other HTMLElement(is not the base node), this is n for other HTMLElement, other case be undefined
+         *   offset: position from head of text contents
+         *   id: id attribute value as HTML tag
+         * }
+         */
         this.contents = []
-        this.body_node = undefined
+        /**
+         * original content that read from file
+         * TODO: Document (Fragment) or innerHTML string ? current is Document (from DOMParser)
+         */
+        this.content_source = undefined
+        /**
+         * DocumentFragment for annotation rendering buffer
+         */
+        this.view_buffer = undefined
     }
 
     /**
@@ -24227,12 +24232,35 @@ class HtmlViewer {
      */
     render(doc) {
         if (doc !== undefined) {
-            this.body_node = doc;
+            this.content_source = doc
             this.contents = []
-            this.content_length = this._calculateOffsetAndRegister(this.body_node, undefined, 0)
+            this.content_length = this._calculateOffsetAndRegister(this.content_source, undefined, 0)
         }
-        const view = document.getElementById('viewer');
-        view.innerHTML = this.body_node.innerHTML;
+        this.$containerViewer().innerHTML = this.content_source.innerHTML
+    }
+
+    /**
+     * get DocumentFragment with content source.
+     * in case it is not created returns new created, and other case, returns buffer
+     * @return DocumentFragment
+     */
+    renderingBuffer () {
+        if (this.view_buffer === undefined) {
+            this.view_buffer = document.createDocumentFragment()
+            const view = document.createElement('div')
+            view.id = 'viewer'
+            view.innerHTML = this.content_source.innerHTML
+            this.view_buffer.appendChild(view)
+        }
+        return this.view_buffer
+    }
+
+    /**
+     * replace the viewer on window.document by buffer, and destroy buffer.
+     */
+    reflectBuffer () {
+        this.$containerViewer().replaceWith(this.renderingBuffer());
+        this.view_buffer = undefined
     }
 
     /**
@@ -24266,6 +24294,42 @@ class HtmlViewer {
 
     getContentsOffset(index) {
         return this.contents[index].offset;
+    }
+
+    static _setupHtml () {
+        const html = `
+    <div id="htmlanno-annotation">
+    <link rel="stylesheet" href="index.css">
+    <svg id="htmlanno-svg-screen"
+      visibility="hidden"
+      baseProfile="full"
+      pointer-events="visible"
+      width="100%"
+      height="100%" style="z-index: 100;">
+      <defs>
+        <marker id="htmlanno-arrow-head"
+          class="htmlanno-arrow-head"
+          visibility="visible"
+          refX="6"
+          refY="3"
+          fill="red"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+          markerUnits="strokeWidth">
+          <polyline points="0,0 6,3 0,6 0.2,3" />
+        </marker>
+      </defs>
+    </svg>
+    <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;"></span>
+    </div>
+    `
+
+        $(html).appendTo('#viewerWrapper');
+    }
+
+    $containerViewer () {
+        return document.getElementById('viewer');
     }
 
     /**
