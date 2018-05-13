@@ -150,6 +150,12 @@ class AnnotationContainer{
     return Promise.all(promises).then();
   }
 
+  setEventListenerForEachAnnotation () {
+    this.forEach((annotation) => {
+      annotation.setEventHandler();
+    });
+  }
+
   // TODO: pdfanno only
   destroy(){
   }
