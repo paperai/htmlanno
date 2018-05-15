@@ -649,7 +649,9 @@ class Htmlanno{
       (relationUpdated) => {
         if (!relationUpdated) {
           const selected = this.getSelectedAnnotations().sort(
-            (a, b) => { return b.selectedTimeStamp - a.selectedTimestamp }
+            (a, b) => {
+              return a.selectedTimestamp.getTime() - b.selectedTimestamp.getTime();
+            }
           );
           if (2 == selected.length) {
             const relation = new RelationAnnotation(
