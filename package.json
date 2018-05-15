@@ -1,6 +1,6 @@
 {
   "name": "htmlanno",
-  "version": "0.1.0-dev",
+  "version": "0.1.1-dev",
   "description": "",
   "scripts": {
     "watch": "webpack --progress --colors --watch --config ./webpack.config.js",
