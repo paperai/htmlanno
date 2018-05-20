@@ -9,6 +9,7 @@ class Circle{
     this.basePosition = undefined;
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="${this.className()}"></div>`);
+    this.setEventHandler();
  }
 
  setEventHandler () {

@@ -6,36 +6,29 @@ const Annotation = require("./annotation.js");
 const Highlight = require('./highlight.js');
 
 class SpanAnnotation extends Annotation {
-  // TODO: base_nodeはレンダリング高速化用途で一時的に必要なだけなので、渡し方を再検討
-  constructor(startOffset, endOffset, content, referenceId, base_node){
+  constructor(startOffset, endOffset, content, referenceId){
     super(referenceId);
     // TODO: 最終的にはDOM関連部分をHighlightへ委譲
-    this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName(), base_node);
-    this.setDomElements(this.domHighlight.domElements, base_node);
+    this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName());
+    this.setDomElements(this.domHighlight.domElements);
 
     this.setContent(content);
   }
 
-  setDomElements(elements, base_node) {
+  setDomElements(elements) {
     this.elements = elements;
     this.topElement = this.elements[0];
 
     this.addCircle();
     this.setClass();
-    // TODO: setEventHandler, remove, setContent, content, setColor, removeColor のみ使用
-    this.jObject = $(`.${this.getClassName()}`, base_node);
-  }
+    this.jObject = $(`.${this.getClassName()}`);
 
-  /**
-   * set the handler for HTML event.
-   * This method must be called after instance is set to real Document object
-   * memo; this method uses jQuery object because be executed for each DOM element
-   */
-  setEventHandler () {
-    this.jObject.off('mouseenter').on('mouseenter', this.handleHoverIn.bind(this));
-    this.jObject.off('mouseleave').on('mouseleave', this.handleHoverOut.bind(this));
-
-    this.circle.setEventHandler();
+    this.jObject.hover(
+        this.handleHoverIn.bind(this),
+        this.handleHoverOut.bind(this)
+    );
+    // Move _content to jObject's data-label
+    this.setContent(this._content);
   }
 
   handleHoverIn(e){
@@ -129,7 +122,7 @@ class SpanAnnotation extends Annotation {
   saveToml(){
     return [
       `type = "${SpanAnnotation.Type}"`,
-      `position = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
+      `position = [${domHighlight.startOffset}, ${domHighlight.endOffset}]`,
       'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
       `label = "${this.content()}"`
     ].join("\n");

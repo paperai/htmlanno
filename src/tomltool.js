@@ -20,46 +20,36 @@ exports.saveToml = (annotationSet)=>{
 
 /**
  * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
- * @param viewer HtmlViewer obj, etc.
  * @param highlighter ... SpanAnnotation annotation container.
  * @param arrowConnector ... Relation annotation container.
  * @param colorMap
  * @param referenceId (optional) ... Used to identify annotations.
  */
-exports.loadToml = (annotationFileObj, viewer, highlighter, arrowConnector, colorMap, referenceId) => {
+exports.loadToml = (annotationFileObj, highlighter, arrowConnector, colorMap, referenceId) => {
   const toml = 'string' == typeof(annotationFileObj.content) ?
     TomlParser.parse(annotationFileObj.content) :
     annotationFileObj.content;
 
-  renderAnnotation(annotationFileObj, toml, viewer, highlighter, arrowConnector, colorMap, referenceId);
+  renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap);
 };
 
 function _getColor(colorMap, type, labelText) {
   return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
 }
 
-function renderAnnotation(annotationFileObj, tomlObj, viewer, highlighter, arrowConnector, colorMap, referenceId) {
+function renderAnnotation(annotationFileObj, tomlObj, highlighter, arrowConnector, colorMap, referenceId) {
   for(key in tomlObj) {
     if ("version" == key) {
       continue;
     }
+    let annotation = undefined;
     // Span.
     if (SpanAnnotation.isMydata(tomlObj[key])) {
-      const annotation = highlighter.addToml(key, tomlObj[key], referenceId, viewer);
+      annotation = highlighter.addToml(key, tomlObj[key], referenceId);
       if (null != annotation) {
         annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
         annotation.setFileContent(annotationFileObj);
-      } else {
-        console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
-        console.log(tomlObj[key]);
       }
-    }
-  }
-  viewer.reflectBuffer();
-
-  for(key in tomlObj) {
-    if ("version" == key) {
-      continue;
     }
     // Relation(one-way, two-way, or link)
     if (RelationAnnotation.isMydata(tomlObj[key])) {
@@ -67,10 +57,11 @@ function renderAnnotation(annotationFileObj, tomlObj, viewer, highlighter, arrow
       if (null != annotation) {
         annotation.setColor(_getColor(colorMap, annotation.direction, annotation.text));
         annotation.setFileContent(annotationFileObj);
-      } else {
-        console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
-        console.log(tomlObj[key]);
       }
+    }
+    if (null == annotation) {
+      console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
+      console.log(tomlObj[key]);
     }
   }
 }
