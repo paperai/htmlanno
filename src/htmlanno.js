@@ -659,6 +659,7 @@ class Htmlanno{
             WindowEvent.emit('annotationrendered');
             span.setColor(label.color);
             span.select();
+            span.circle.reposition();
           }
         }
       }
