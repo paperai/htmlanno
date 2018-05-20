@@ -23,7 +23,6 @@ const LoadTextPromise = require('./loadtextpromise.js');
 const HideBioesAnnotation = require('./hidebioesannotation.js');
 const WindowEvent = require('./windowevent.js');
 const Searcher = require('./search.js');
-const HtmlViewer = require('./htmlViewer.js')
 
 class Htmlanno{
   constructor(){
@@ -35,14 +34,12 @@ class Htmlanno{
      * @see #loadDefaultData
      */
     this.useDefaultData = true;
-    HtmlViewer._setupHtml();
+    this.setupHtml();
     this.highlighter = new Highlighter(annotationContainer);
     this.arrowConnector = new ArrowConnector(annotationContainer);
 
     // The contents and annotations from files.
     this.fileContainer = new FileContainer();
-    // HtmlViewer object, etc.
-    this.viewer = undefined;
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
@@ -51,7 +48,6 @@ class Htmlanno{
       this.arrowConnector.removeAnnotation(data);
       this.unselectRelation();
     });
-    this.setupAnnoUI();
     this.wrapGlobalEvents();
 
     const query = URI(document.URL).query(true);
@@ -77,7 +73,40 @@ class Htmlanno{
     return "htmlanno-save-"+document.location.href;
   }
 
-  setupAnnoUI () {
+  setupHtml(){
+    const html = `
+      <div id="htmlanno-annotation">
+      <link rel="stylesheet" href="index.css">
+      <svg id="htmlanno-svg-screen"
+      visibility="hidden"
+      baseProfile="full"
+      pointer-events="visible"
+      width="100%"
+      height="100%" style="z-index: 100;">
+      <defs>
+      <marker id="htmlanno-arrow-head"
+      class="htmlanno-arrow-head"
+      visibility="visible"
+      refX="6"
+      refY="3"
+      fill="red"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse"
+      markerUnits="strokeWidth">
+      <polyline
+      points="0,0 6,3 0,6 0.2,3" />
+      </marker>
+      </defs>
+      </svg>
+      <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;"></span>
+      </div>
+      `;
+
+    $(html).appendTo("#viewerWrapper");
+  }
+
+  wrapGlobalEvents(){
     AnnoUI.util.setupResizableColumns();
     AnnoUI.event.setup();
 
@@ -135,9 +164,7 @@ class Htmlanno{
       getAnnotations: annotationContainer.getPrimaryAnnotations.bind(annotationContainer),
       scrollToAnnotation: this.scrollToAnnotation.bind(this)
     });
-  }
 
-  wrapGlobalEvents(){
     $(document).on("keydown", this.handleKeydown.bind(this));
     $("#viewer").on("mouseup", this.handleMouseUp.bind(this));
 
@@ -431,16 +458,22 @@ class Htmlanno{
    * @param uiAnnotation . undefined(Primary annotation) or UiAnnotation object(Reference annotation)
    */
   _renderAnnotation(annotationFileObj, uiAnnotation) {
-    const ui_annotation_name = uiAnnotation === undefined ? undefined : uiAnnotation.name;
-    TomlTool.loadToml(
-      annotationFileObj,
-      this.viewer,
-      this.highlighter,
-      this.arrowConnector,
-      AnnoUI.labelInput.getColorMap(),
-      ui_annotation_name
-    );
-    annotationContainer.setEventListenerForEachAnnotation();
+    const colorMap = AnnoUI.labelInput.getColorMap();
+    if (undefined == uiAnnotation) {
+      TomlTool.loadToml(
+        annotationFileObj,
+        this.highlighter, this.arrowConnector,
+        undefined, /* uiAnnotation.name */
+        colorMap
+      );
+    } else {
+      TomlTool.loadToml(
+        annotationFileObj,
+        this.highlighter, this.arrowConnector,
+        uiAnnotation.name,
+        colorMap
+      );
+    }
     WindowEvent.emit('annotationrendered');
   }
 
@@ -517,51 +550,36 @@ class Htmlanno{
       case 'html':
         return LoadHtmlPromise.run(content, this).then((results) => {
           this.removeAll();
-          if (results[1] instanceof HtmlViewer) {
-            content.content.render();
-          } else {
-            content.content = new HtmlViewer();
-            content.content.render(results[1]);
-            content.source = undefined;
-          }
-          this.viewer = content.content;
+          content.content = results[1];
+          content.source = undefined;
+          document.getElementById('viewer').innerHTML = content.content;
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
-          console.log(reject);
           this.showReadError();
         });
 
       case 'bioes':
         return LoadBioesPromise.run(content, this).then((results) => {
           this.removeAll();
-          if (results[1].content instanceof HtmlViewer) {
-            content.content.render();
-          } else {
-            content.content = new HtmlViewer();
-            const bodyObj = document.createElement('body');
-            bodyObj.innerHTML = results[1].content;
-            content.content.render(bodyObj);
-            content.source = undefined;
-          }
-          this.viewer = content.content;
+          content.content = results[1].content;
+          content.source = undefined;
+          document.getElementById('viewer').innerHTML = content.content;
           this.enableDropdownAnnotationPrimary(false);
           // BIOESの場合Content fileとPrimary annotationがセットなので、
           // これがRefereneで使用されていることは起こりえない。
           results[1].annotation.primary = true;
           TomlTool.loadToml(
             results[1].annotation,
-            this.viewer,
             this.highlighter,
             this.arrowConnector,
+            undefined, /* uiAnnotation.name */
             AnnoUI.labelInput.getColorMap()
           );
-          annotationContainer.setEventListenerForEachAnnotation();
           WindowEvent.emit('annotationrendered');
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
-          console.log(reject);
           this.showReadError();
         });
 
@@ -574,7 +592,6 @@ class Htmlanno{
           this.handleResize();
           new Searcher();
         }).catch((reject) => {
-          console.log(reject);
           this.showReadError();
         });
 
@@ -589,26 +606,32 @@ class Htmlanno{
   restoreAnnotations(beforeStatus) {
     let promise = undefined;
     if (null != beforeStatus.pdfName) {
-      let content = this.fileContainer.getContent(beforeStatus.pdfName);
-      if ('bioes' == content.type) {
-        promise = new Promise((resolve, reject) => {
-          this.enableDropdownAnnotationPrimary(false);
-          beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
-          resolve();
-        });
+      const content = this.fileContainer.getContent(beforeStatus.pdfName);
+      if (content !== null) {
+        if ('bioes' == content.type) {
+          promise = new Promise((resolve, reject) => {
+            this.enableDropdownAnnotationPrimary(false);
+            beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
+            resolve();
+          });
+        } else {
+          promise = HideBioesAnnotation.create(this);
+        }
       } else {
-        promise = HideBioesAnnotation.create(this);
+        promise = Promise.resolve(false);
       }
     } else {
-      promise = Promise.resolve(true);
+      promise = Promise.resolve(false);
     }
-    promise.then((resolve) => {
-      if (null != beforeStatus.primaryAnnotationName) {
-        this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
-      }
-      if (0 != beforeStatus.referenceAnnotationNames.length) {
-        // the reference annotation drawing color is set in this process based from Ui.
-        this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
+    promise.then((exists_restore_target_on_new_filelist) => {
+      if (exists_restore_target_on_new_filelist) {
+        if (null != beforeStatus.primaryAnnotationName) {
+          this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
+        }
+        if (0 != beforeStatus.referenceAnnotationNames.length) {
+          // the reference annotation drawing color is set in this process based from Ui.
+          this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
+        }
       }
     });
   }
@@ -633,10 +656,10 @@ class Htmlanno{
           // Create a new span.
           const span = this.highlighter.highlight(label.text);
           if (undefined != span) {
-            span.setEventHandler();
             WindowEvent.emit('annotationrendered');
             span.setColor(label.color);
             span.select();
+            span.circle.reposition();
           }
         }
       }

@@ -50,10 +50,16 @@ function htmlLoader(file, callback) {
 function parseHtml(html) {
   const sgmlFunc  = new RegExp(/<\?.+\?>/g);
   const comment   = new RegExp(/<!--.+-->/g);
+  const htmlTag = new RegExp(/<html\s?.*>/i);
 
-  const parser = new DOMParser();
-  // Htmlanno uses the XHTML, but DOMParser accepted only 'text/html'.
-  const content_body = parser.parseFromString(html, 'text/html').body
-  content_body.innerHTML = content_body.innerHTML.replace(sgmlFunc, '').replace(comment, '');
-  return content_body;
+  if (null != html.match(htmlTag)) {
+    const bodyStart = html.match(/<body\s?.*>/im);
+    const bodyEnd   = html.search(/<\/body>/im);
+    if (null != bodyStart && -1 != bodyEnd){
+      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
+    }
+    return html.replace(sgmlFunc, '').replace(comment, '');
+  } else {
+    return undefined;
+  }
 }
