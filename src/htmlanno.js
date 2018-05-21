@@ -606,32 +606,26 @@ class Htmlanno{
   restoreAnnotations(beforeStatus) {
     let promise = undefined;
     if (null != beforeStatus.pdfName) {
-      const content = this.fileContainer.getContent(beforeStatus.pdfName);
-      if (content !== null) {
-        if ('bioes' == content.type) {
-          promise = new Promise((resolve, reject) => {
-            this.enableDropdownAnnotationPrimary(false);
-            beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
-            resolve();
-          });
-        } else {
-          promise = HideBioesAnnotation.create(this);
-        }
+      let content = this.fileContainer.getContent(beforeStatus.pdfName);
+      if ('bioes' == content.type) {
+        promise = new Promise((resolve, reject) => {
+          this.enableDropdownAnnotationPrimary(false);
+          beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
+          resolve();
+        });
       } else {
-        promise = Promise.resolve(false);
+        promise = HideBioesAnnotation.create(this);
       }
     } else {
-      promise = Promise.resolve(false);
+      promise = Promise.resolve(true);
     }
-    promise.then((exists_restore_target_on_new_filelist) => {
-      if (exists_restore_target_on_new_filelist) {
-        if (null != beforeStatus.primaryAnnotationName) {
-          this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
-        }
-        if (0 != beforeStatus.referenceAnnotationNames.length) {
-          // the reference annotation drawing color is set in this process based from Ui.
-          this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
-        }
+    promise.then((resolve) => {
+      if (null != beforeStatus.primaryAnnotationName) {
+        this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
+      }
+      if (0 != beforeStatus.referenceAnnotationNames.length) {
+        // the reference annotation drawing color is set in this process based from Ui.
+        this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
       }
     });
   }
@@ -659,7 +653,6 @@ class Htmlanno{
             WindowEvent.emit('annotationrendered');
             span.setColor(label.color);
             span.select();
-            span.circle.reposition();
           }
         }
       }

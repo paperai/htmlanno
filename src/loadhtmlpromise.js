@@ -48,13 +48,13 @@ function htmlLoader(file, callback) {
 }
 
 function parseHtml(html) {
-  const sgmlFunc  = new RegExp(/<\?.+\?>/g);
-  const comment   = new RegExp(/<!--.+-->/g);
-  const htmlTag = new RegExp(/<html\s?.*>/i);
+  let sgmlFunc  = new RegExp(/<\?.+\?>/g);
+  let comment   = new RegExp(/<!--.+-->/g);
+  let htmlTag = new RegExp(/<html\s?.*>/i);
 
   if (null != html.match(htmlTag)) {
-    const bodyStart = html.match(/<body\s?.*>/im);
-    const bodyEnd   = html.search(/<\/body>/im);
+    let bodyStart = html.match(/<body\s?.*>/im);
+    let bodyEnd   = html.search(/<\/body>/im);
     if (null != bodyStart && -1 != bodyEnd){
       html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
     }
