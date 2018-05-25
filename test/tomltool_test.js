@@ -2,7 +2,7 @@ const {test} = QUnit;
 
 const TomlTool = require('../src/tomltool.js');
 const AnnotationContainer = require('../src/annotationcontainer.js');
-const Highlight = require('../src/highlight.js');
+const SpanAnnotation = require('../src/spanannotation.js');
 const RelationAnnotation = require('../src/relationannotation.js');
 
 QUnit.module('TomlTool', {
@@ -15,7 +15,7 @@ QUnit.module('TomlTool', {
 });
 
 test('saveToml should return Array that include all annotation as TOML format string, in case of one highlight.', (assert) => {
-  const highlight = new Highlight(123, 456, 'highlight 1');
+  const highlight = new SpanAnnotation(123, 456, 'highlight 1');
   annotationContainer.add(highlight);
 
   const parentElement = document.createElement('div');
@@ -27,6 +27,7 @@ test('saveToml should return Array that include all annotation as TOML format st
     elm.classList.add(highlight.getClassName());
     parentElement.appendChild(elm);
   });
+  highlight._content = 'new highlight label';
   $('#viewer')[0].appendChild(parentElement);
   highlight.setDomElements(highlightingElements);
 
@@ -43,7 +44,7 @@ test('saveToml should return Array that include all annotation as TOML format st
         'type = "span"',
         'position = [123, 456]',
         'text = "TEST TESTTEST TEST"',
-        'label = "highlight 1"'
+        'label = "new highlight label"'
       ].join("\n")
     ]
   );
