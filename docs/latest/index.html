@@ -29,17 +29,6 @@
     <script src="bundle.js"></script>
   </head>
   <body>
-    <nav class="navbar navbar-inverse">
-      <div class="container-fluid">
-        <div class="navbar-header">
-          <a class="navbar-brand" href="#">HTMLAnno</a>
-        </div>
-        <ul class="nav navbar-nav">
-          <li><a href="https://paperai.github.io/htmlanno/">Home</a></li>
-          <li><a href="https://github.com/paperai/htmlanno">Github</a></li>
-        </ul>
-      </div>
-    </nav>
     <div class="main">
       <div class="container-fluid">
         <div class="row anno-ui u-mb-10">
@@ -185,6 +174,10 @@
                       </ul>
                     </div>
                   </div>
+                  <div class="mt-10">
+                    <a href="#" class="js-export-label">export labels</a>&nbsp;&nbsp;/&nbsp;&nbsp;<a href="#" class="js-import-label">import labels</a>
+                    <input type="file" class="hidden js-import-file" accept=".conf">
+                  </div>
                 </div>
                 <div id="search_tab" class="tab-pane">
                   <h3 class="h4 u-mt-20">Text Search</h3>
@@ -298,6 +291,6 @@
           </div>
         </div>
       </div>
-    </div>
+    </nav>
   </body>
 </html>
