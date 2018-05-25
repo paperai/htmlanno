@@ -25,11 +25,11 @@ class Highlight {
   }
 
   get startOffset() {
-    return this.startOffset;
+    return this._startOffset;
   }
 
   get endOffset() {
-    return this.endOffset;
+    return this._endOffset;
   }
 
   get scrollOffset() {

@@ -18,26 +18,7 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-/**
- * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
- * @param highlighter ... SpanAnnotation annotation container.
- * @param arrowConnector ... Relation annotation container.
- * @param colorMap
- * @param referenceId (optional) ... Used to identify annotations.
- */
-exports.loadToml = (annotationFileObj, highlighter, arrowConnector, colorMap, referenceId) => {
-  const toml = 'string' == typeof(annotationFileObj.content) ?
-    TomlParser.parse(annotationFileObj.content) :
-    annotationFileObj.content;
-
-  renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap);
-};
-
-function _getColor(colorMap, type, labelText) {
-  return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
-}
-
-function renderAnnotation(annotationFileObj, tomlObj, highlighter, arrowConnector, colorMap, referenceId) {
+exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, colorMap) => {
   for(key in tomlObj) {
     if ("version" == key) {
       continue;
@@ -64,4 +45,23 @@ function renderAnnotation(annotationFileObj, tomlObj, highlighter, arrowConnecto
       console.log(tomlObj[key]);
     }
   }
+};
+
+/**
+ * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
+ * @param highlighter ... SpanAnnotation annotation container.
+ * @param arrowConnector ... Relation annotation container.
+ * @param referenceId (optional) ... Used to identify annotations.
+ */
+exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, colorMap) => {
+  const toml = 'string' == typeof(annotationFileObj.content) ?
+    TomlParser.parse(annotationFileObj.content) :
+    annotationFileObj.content;
+
+  exports.renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap);
+};
+
+function _getColor(colorMap, type, labelText) {
+  return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
 }
+

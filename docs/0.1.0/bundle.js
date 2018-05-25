@@ -4126,17 +4126,13 @@ class Circle{
     Circle.instances.push(this);
     this.id = id;
     this.highlight = highlight;
-    this.basePosition = undefined;
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="${this.className()}"></div>`);
-    this.setEventHandler();
- }
 
- setEventHandler () {
-    // TODO: jObject再作成が必要
     this.jObject.on("click", (e)=>{
       this.highlight.select();
     });
+
     this.jObject.hover(
       this.handleHoverIn.bind(this),
       this.handleHoverOut.bind(this)
@@ -4162,9 +4158,6 @@ class Circle{
   }
 
   originalPosition(){
-    if (this.basePosition === undefined) {
-      this.basePosition = this._calculateBasePosition();
-    }
     return this.basePosition;
   }
 
@@ -4208,6 +4201,10 @@ class Circle{
 
   appendTo(target){
     this.jObject.appendTo(target);
+    this.basePosition = this._calculateBasePosition();
+    const pos = this.divPosition();
+    this.jObject.css("left", `${pos.left}px`);
+    this.jObject.css("top", `${pos.top}px`);
   }
 
   /**
@@ -4241,10 +4238,9 @@ class Circle{
 
   reposition(){
     const pos = this.divPosition();
-    this.jObject.css({
-      left: `${pos.left}px`,
-      top: `${pos.top}px`
-    });
+    this.jObject.css("left", `${pos.left}px`);
+    this.jObject.css("top", `${pos.top}px`);
+    this.jObject.css("transition", "0.2s");
   }
 
   remove(batch = false){
@@ -4264,14 +4260,12 @@ class Circle{
   }
 
   static repositionAll() {
-    return Promise.all(
-      Circle.instances.map((cir) => {
-        return new Promise((resolve, reject) => {
-          cir.reposition();
-          resolve();
-        });
-      })
-    );
+    return new Promise((resolve, reject) => {
+      Circle.instances.forEach((cir) => {
+        cir.reposition();
+      });
+      resolve();
+    });
   }
 }
 
@@ -11418,7 +11412,7 @@ class SpanAnnotation extends Annotation {
   saveToml(){
     return [
       `type = "${SpanAnnotation.Type}"`,
-      `position = [${domHighlight.startOffset}, ${domHighlight.endOffset}]`,
+      `position = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
       'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
       `label = "${this.content()}"`
     ].join("\n");
@@ -15457,11 +15451,11 @@ class Highlight {
   }
 
   get startOffset() {
-    return this.startOffset;
+    return this._startOffset;
   }
 
   get endOffset() {
-    return this.endOffset;
+    return this._endOffset;
   }
 
   get scrollOffset() {
@@ -17837,13 +17831,13 @@ function htmlLoader(file, callback) {
 }
 
 function parseHtml(html) {
-  const sgmlFunc  = new RegExp(/<\?.+\?>/g);
-  const comment   = new RegExp(/<!--.+-->/g);
-  const htmlTag = new RegExp(/<html\s?.*>/i);
+  let sgmlFunc  = new RegExp(/<\?.+\?>/g);
+  let comment   = new RegExp(/<!--.+-->/g);
+  let htmlTag = new RegExp(/<html\s?.*>/i);
 
   if (null != html.match(htmlTag)) {
-    const bodyStart = html.match(/<body\s?.*>/im);
-    const bodyEnd   = html.search(/<\/body>/im);
+    let bodyStart = html.match(/<body\s?.*>/im);
+    let bodyEnd   = html.search(/<\/body>/im);
     if (null != bodyStart && -1 != bodyEnd){
       html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
     }
@@ -18481,32 +18475,26 @@ class Htmlanno{
   restoreAnnotations(beforeStatus) {
     let promise = undefined;
     if (null != beforeStatus.pdfName) {
-      const content = this.fileContainer.getContent(beforeStatus.pdfName);
-      if (content !== null) {
-        if ('bioes' == content.type) {
-          promise = new Promise((resolve, reject) => {
-            this.enableDropdownAnnotationPrimary(false);
-            beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
-            resolve();
-          });
-        } else {
-          promise = HideBioesAnnotation.create(this);
-        }
+      let content = this.fileContainer.getContent(beforeStatus.pdfName);
+      if ('bioes' == content.type) {
+        promise = new Promise((resolve, reject) => {
+          this.enableDropdownAnnotationPrimary(false);
+          beforeStatus.primaryAnnotationName = beforeStatus.pdfName;
+          resolve();
+        });
       } else {
-        promise = Promise.resolve(false);
+        promise = HideBioesAnnotation.create(this);
       }
     } else {
-      promise = Promise.resolve(false);
+      promise = Promise.resolve(true);
     }
-    promise.then((exists_restore_target_on_new_filelist) => {
-      if (exists_restore_target_on_new_filelist) {
-        if (null != beforeStatus.primaryAnnotationName) {
-          this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
-        }
-        if (0 != beforeStatus.referenceAnnotationNames.length) {
-          // the reference annotation drawing color is set in this process based from Ui.
-          this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
-        }
+    promise.then((resolve) => {
+      if (null != beforeStatus.primaryAnnotationName) {
+        this.displayPrimaryAnnotation(beforeStatus.primaryAnnotationName);
+      }
+      if (0 != beforeStatus.referenceAnnotationNames.length) {
+        // the reference annotation drawing color is set in this process based from Ui.
+        this.displayReferenceAnnotation(beforeStatus.referenceAnnotationNames);
       }
     });
   }
@@ -18534,7 +18522,6 @@ class Htmlanno{
             WindowEvent.emit('annotationrendered');
             span.setColor(label.color);
             span.select();
-            span.circle.reposition();
           }
         }
       }
@@ -19393,26 +19380,7 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-/**
- * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
- * @param highlighter ... SpanAnnotation annotation container.
- * @param arrowConnector ... Relation annotation container.
- * @param colorMap
- * @param referenceId (optional) ... Used to identify annotations.
- */
-exports.loadToml = (annotationFileObj, highlighter, arrowConnector, colorMap, referenceId) => {
-  const toml = 'string' == typeof(annotationFileObj.content) ?
-    TomlParser.parse(annotationFileObj.content) :
-    annotationFileObj.content;
-
-  renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap);
-};
-
-function _getColor(colorMap, type, labelText) {
-  return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
-}
-
-function renderAnnotation(annotationFileObj, tomlObj, highlighter, arrowConnector, colorMap, referenceId) {
+exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnector, referenceId, colorMap) => {
   for(key in tomlObj) {
     if ("version" == key) {
       continue;
@@ -19439,7 +19407,26 @@ function renderAnnotation(annotationFileObj, tomlObj, highlighter, arrowConnecto
       console.log(tomlObj[key]);
     }
   }
+};
+
+/**
+ * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
+ * @param highlighter ... SpanAnnotation annotation container.
+ * @param arrowConnector ... Relation annotation container.
+ * @param referenceId (optional) ... Used to identify annotations.
+ */
+exports.loadToml = (annotationFileObj, highlighter, arrowConnector, referenceId, colorMap) => {
+  const toml = 'string' == typeof(annotationFileObj.content) ?
+    TomlParser.parse(annotationFileObj.content) :
+    annotationFileObj.content;
+
+  exports.renderAnnotation(annotationFileObj, toml, highlighter, arrowConnector, referenceId, colorMap);
+};
+
+function _getColor(colorMap, type, labelText) {
+  return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
 }
+
 
 
 /***/ }),
