@@ -22,9 +22,9 @@ First, install [Node.js](https://nodejs.org/) and npm. The version of Node.js mu
 Then, run the following commands:
 ```
 npm install
-npm run build
+npm run publish:latest
 ```
-where the output is on `docs/`, and you can access HTMLAnno via `docs/index.html`.  
+and you can access HTMLAnno via `docs/latest/index.html`.  
 
 For developing,
 ```
