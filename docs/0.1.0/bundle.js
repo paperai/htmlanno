@@ -4288,7 +4288,7 @@ module.exports = Circle;
 		exports["annoUI"] = factory();
 	else
 		root["annoUI"] = factory();
-})(this, function() {
+})(typeof self !== 'undefined' ? self : this, function() {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -5569,7 +5569,7 @@ function setup ({
 
     $('.js-file :file').on('change', ev => {
 
-        const files = ev.target.files
+        const files = Array.from(ev.target.files)
 
         let error = isValidDirectorySelect(files)
         if (error) {
@@ -5577,6 +5577,9 @@ function setup ({
             return
         }
 
+        files.sort((a, b) => {
+            return a.name.localeCompare(b.name)
+        })
         loadFiles(files).then(() => {
 
             // Get current visuals.
@@ -14947,9 +14950,9 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 	if (
 		true
 	) {
-		!(__WEBPACK_AMD_DEFINE_RESULT__ = (function() {
+		!(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
 			return punycode;
-		}).call(exports, __webpack_require__, exports, module),
+		}.call(exports, __webpack_require__, exports, module),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	} else if (freeExports && freeModule) {
 		if (module.exports == freeExports) {
