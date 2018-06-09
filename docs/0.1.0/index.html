@@ -109,6 +109,11 @@
                     Search
                   </a>
                 </li>
+                <li>
+                  <a href="#css_tab" aria-controlls="css_tab" role="tab" data-toggle="tab" class="js-label-tab">
+                    CSS
+                  </a>
+                </li>
               </ul>
               <div class="tab-content">
                 <div id="annotation_tab" class="tab-pane active">
@@ -228,72 +233,73 @@
                     <label><input type="checkbox" value="on" class="js-dict-match-case-sensitive">Case sensitive</label>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div class="u-mt-20">
-              <ul id="adjust_css">
-                <li id="submit_letter_spacing" class="row" data-style="letter-spacing">
-                  <label class="form-label col-md-4">letter spacing</label>
-                  <div class="col-md-6">
-                    <div class="input-group">
-                      <div class="input-group-btn">
-                        <button type="button" class="btn btn-info decrement">
-                          <i class="fa fa-minus"></i>
-                        </button>
+                <div id="css_tab" class="tab-pane"> 
+                  <ul id="adjust_css">
+                    <li id="submit_letter_spacing" class="row" data-style="letter-spacing">
+                      <label class="form-label col-md-4">letter spacing</label>
+                      <div class="col-md-6">
+                        <div class="input-group">
+                          <div class="input-group-btn">
+                            <button type="button" class="btn btn-info decrement">
+                              <i class="fa fa-minus"></i>
+                            </button>
+                          </div>
+                          <input type="text" class="form-control" />
+                          <div class="input-group-btn">
+                            <button type="button" class="btn btn-success increment">
+                              <i class="fa fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <input type="text" class="form-control" />
-                      <div class="input-group-btn">
-                        <button type="button" class="btn btn-success increment">
-                          <i class="fa fa-plus"></i>
-                        </button>
+                    </li>
+                    <li id="submit_line_height" class="row" data-style="line-height">
+                      <label class="fom-label col-md-4">line height</label>
+                      <div class="col-md-6">
+                        <div class="input-group">
+                          <div class="input-group-btn">
+                            <button type="button" class="btn btn-info decrement">
+                              <i class="fa fa-minus"></i>
+                            </button>
+                          </div>
+                          <input type="text" class="form-control" />
+                          <div class="input-group-btn">
+                            <button type="button" class="btn btn-success increment">
+                              <i class="fa fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
                       </div>
+                    </li>
+                    <li id="submit_font_size" class="row" data-style="font-size">
+                      <label class="form-label col-md-4">font size</label>
+                      <div class="col-md-6">
+                        <div class="input-group">
+                          <div class="input-group-btn">
+                            <button type="button" class="btn btn-info decrement">
+                              <i class="fa fa-minus"></i>
+                            </button>
+                          </div>
+                          <input type="text" class="form-control" />
+                          <div class="input-group-btn">
+                            <button type="button" class="btn btn-success increment">
+                              <i class="fa fa-plus"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                  <div class="row">
+                    <div class="col-md-12">
+                      <button type="button" class="btn btn-danger pull-right" id="adjust_css_reset">
+                        RESET
+                      </button>
                     </div>
                   </div>
-                </li>
-                <li id="submit_line_height" class="row" data-style="line-height">
-                  <label class="fom-label col-md-4">line height</label>
-                  <div class="col-md-6">
-                    <div class="input-group">
-                      <div class="input-group-btn">
-                        <button type="button" class="btn btn-info decrement">
-                          <i class="fa fa-minus"></i>
-                        </button>
-                      </div>
-                      <input type="text" class="form-control" />
-                      <div class="input-group-btn">
-                        <button type="button" class="btn btn-success increment">
-                          <i class="fa fa-plus"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-                <li id="submit_font_size" class="row" data-style="font-size">
-                  <label class="form-label col-md-4">font size</label>
-                  <div class="col-md-6">
-                    <div class="input-group">
-                      <div class="input-group-btn">
-                        <button type="button" class="btn btn-info decrement">
-                          <i class="fa fa-minus"></i>
-                        </button>
-                      </div>
-                      <input type="text" class="form-control" />
-                      <div class="input-group-btn">
-                        <button type="button" class="btn btn-success increment">
-                          <i class="fa fa-plus"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              </ul>
-              <div class="row">
-                <div class="col-md-12">
-                  <button type="button" class="btn btn-danger pull-right" id="adjust_css_reset">
-                    RESET
-                  </button>
                 </div>
               </div>
+              <!-- End tab-content -->
             </div>
           </div>
           <div id="viewerWrapper" class="col-md-9 col-sm-9 col-xs-9">
