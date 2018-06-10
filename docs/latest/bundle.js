@@ -4351,7 +4351,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 7);
+/******/ 	return __webpack_require__(__webpack_require__.s = 8);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -4365,7 +4365,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /**
  * UI - Alert dialog.
  */
-__webpack_require__(12)
+__webpack_require__(13)
 
 function create ({ type = 'alert', message = '' }) {
     const id = 'modal-' + (new Date().getTime())
@@ -4530,7 +4530,7 @@ var singleton = null;
 var	singletonCounter = 0;
 var	stylesInsertedAtTop = [];
 
-var	fixUrls = __webpack_require__(10);
+var	fixUrls = __webpack_require__(11);
 
 module.exports = function(list, options) {
 	if (typeof DEBUG !== "undefined" && DEBUG) {
@@ -5118,30 +5118,56 @@ function getColorMap () {
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = getLabelList;
 /* harmony export (immutable) */ __webpack_exports__["b"] = saveLabelList;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__core__ = __webpack_require__(6);
+
+
 /**
  * Storage for label settings.
  */
 
 // LocalStorage key to save label data.
-const LSKEY_LABEL_LIST = 'pdfanno-label-list'
+function LSKEY_LABEL_LIST () {
+    return __WEBPACK_IMPORTED_MODULE_0__core__["applicationName"]() + '-label-list'
+}
 
 /**
  * Get the labels from the storage.
  */
 function getLabelList () {
-    return JSON.parse(localStorage.getItem(LSKEY_LABEL_LIST) || '{}')
+    return JSON.parse(localStorage.getItem(LSKEY_LABEL_LIST()) || '{}')
 }
 
 /**
  * Save the labels to the storage.
  */
 function saveLabelList (data) {
-    localStorage.setItem(LSKEY_LABEL_LIST, JSON.stringify(data))
+    localStorage.setItem(LSKEY_LABEL_LIST(), JSON.stringify(data))
 }
 
 
 /***/ }),
 /* 6 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["setup"] = setup;
+/* harmony export (immutable) */ __webpack_exports__["applicationName"] = applicationName;
+let _applicationName = 'pdfanno'
+
+function setup ({
+    applicationName
+}) {
+    _applicationName = applicationName
+}
+
+function applicationName () {
+    return _applicationName
+}
+
+
+/***/ }),
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5337,23 +5363,24 @@ function loadFileAsText (file) {
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_browseButton__ = __webpack_require__(11);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__components_contentDropdown__ = __webpack_require__(14);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__components_primaryAnnoDropdown__ = __webpack_require__(15);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__components_referenceAnnoDropdown__ = __webpack_require__(16);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__components_annoListDropdown__ = __webpack_require__(17);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__components_downloadButton__ = __webpack_require__(18);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__components_labelInput__ = __webpack_require__(19);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__components_uploadButton__ = __webpack_require__(27);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__components_searchUI__ = __webpack_require__(29);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__uis__ = __webpack_require__(30);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__events__ = __webpack_require__(31);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__utils__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_browseButton__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__components_contentDropdown__ = __webpack_require__(15);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__components_primaryAnnoDropdown__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__components_referenceAnnoDropdown__ = __webpack_require__(17);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__components_annoListDropdown__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__components_downloadButton__ = __webpack_require__(19);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__components_labelInput__ = __webpack_require__(20);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__components_uploadButton__ = __webpack_require__(28);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__components_searchUI__ = __webpack_require__(30);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__uis__ = __webpack_require__(31);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__events__ = __webpack_require__(32);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__utils__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__core__ = __webpack_require__(6);
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "browseButton", function() { return __WEBPACK_IMPORTED_MODULE_0__components_browseButton__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "contentDropdown", function() { return __WEBPACK_IMPORTED_MODULE_1__components_contentDropdown__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "primaryAnnoDropdown", function() { return __WEBPACK_IMPORTED_MODULE_2__components_primaryAnnoDropdown__; });
@@ -5366,7 +5393,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "ui", function() { return __WEBPACK_IMPORTED_MODULE_9__uis__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "event", function() { return __WEBPACK_IMPORTED_MODULE_10__events__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "util", function() { return __WEBPACK_IMPORTED_MODULE_11__utils__; });
-__webpack_require__(8)
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "core", function() { return __WEBPACK_IMPORTED_MODULE_12__core__; });
+__webpack_require__(9)
+
 
 
 
@@ -5385,13 +5414,13 @@ __webpack_require__(8)
 
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // style-loader: Adds some css to the DOM by adding a <style> tag
 
 // load the styles
-var content = __webpack_require__(9);
+var content = __webpack_require__(10);
 if(typeof content === 'string') content = [[module.i, content, '']];
 // Prepare cssTransformation
 var transform;
@@ -5416,7 +5445,7 @@ if(false) {
 }
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(1)(undefined);
@@ -5424,13 +5453,13 @@ exports = module.exports = __webpack_require__(1)(undefined);
 
 
 // module
-exports.push([module.i, "@charset 'utf-8';\n\n/* Reset CSS */\nhtml{color:#000;background:#FFF}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0}table{border-collapse:collapse;border-spacing:0}fieldset,img{border:0}address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal}ol,ul{list-style:none}caption,th{text-align:left}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal}q:before,q:after{content:''}abbr,acronym{border:0;font-variant:normal}sup{vertical-align:text-top}sub{vertical-align:text-bottom}input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit;*font-size:100%}legend{color:#000}\n\n/* Super Hack to disable autofill style for Chrome. */\ninput:-webkit-autofill,\ninput:-webkit-autofill:hover,\ninput:-webkit-autofill:focus,\ninput:-webkit-autofill:active {\n    transition: background-color 5000s ease-in-out 0s;\n}\n\n.u-mt-10 {margin-top: 10px;}\n.u-mt-20 {margin-top: 20px;}\n.u-mb-10 {margin-bottom: 10px;}\n.u-ml-15 {margin-left: 15px;}\n.u-disp-iblock {display: inline-block;}\n.no-visible {visibility: hidden;}\n.no-action {pointer-events: none;}\n\n/**\n * Viewer size.\n * This height will be override to fit the browser height (by pdfanno.js).\n */\n.anno-viewer {\n    width: 100%;\n    height: 500px;\n}\n\n/**\n * Annotation Select UI Layout.\n */\n.anno-select-layout {}\n.anno-select-layout .row:first-child {\n    margin-bottom: 10px;\n}\n.anno-select-layout [type=\"radio\"] {\n    margin-right: 5px;\n}\n.anno-select-layout [type=\"file\"] {\n    display: inline-block;\n    margin-left: 5px;\n    line-height: 1em;\n}\n.anno-select-layout .sp-replacer {\n    padding: 0;\n    border: none;\n}\n.anno-select-layout .sp-dd {\n    display: none;\n}\n\n/**\n * Dropdown.\n */\n.dropdown-menu {\n    overflow: scroll;\n}\n\n/**\n * Color picker.\n */\n.anno-ui .sp-replacer {\n    padding: 0;\n    border: none;\n}\n.anno-ui .sp-dd {\n    display: none;\n}\n.anno-ui .sp-preview {\n    margin-right: 0;\n}\n\n.js-label-tab-content {\n    overflow-y: scroll;\n    overflow-x: hidden;\n    max-height: calc(100vh - 25em); /* Adjust for HD size(1366x768) */\n}\n\n.js-label-tab-content .label-list__text {\n    word-break: break-all;\n}\n\n.js-label-tab-content .label-list__input {\n    width: 100%;\n}\n\n.js-label-tab-content .sp-replacer {\n    overflow: inherit;\n}\n\n.js-export-label.disabled {\n    cursor: not-allowed;\n}\n", ""]);
+exports.push([module.i, "@charset 'utf-8';\n\n/* Reset CSS */\nhtml{color:#000;background:#FFF}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0}table{border-collapse:collapse;border-spacing:0}fieldset,img{border:0}address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal}ol,ul{list-style:none}caption,th{text-align:left}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal}q:before,q:after{content:''}abbr,acronym{border:0;font-variant:normal}sup{vertical-align:text-top}sub{vertical-align:text-bottom}input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit;*font-size:100%}legend{color:#000}\n\n/* Super Hack to disable autofill style for Chrome. */\ninput:-webkit-autofill,\ninput:-webkit-autofill:hover,\ninput:-webkit-autofill:focus,\ninput:-webkit-autofill:active {\n    transition: background-color 5000s ease-in-out 0s;\n}\n\n.u-mt-10 {margin-top: 10px;}\n.u-mt-20 {margin-top: 20px;}\n.u-mb-10 {margin-bottom: 10px;}\n.u-ml-15 {margin-left: 15px;}\n.u-disp-iblock {display: inline-block;}\n.no-visible {visibility: hidden;}\n.no-action {pointer-events: none;}\n\n/**\n * Viewer size.\n * This height will be override to fit the browser height (by pdfanno.js).\n */\n.anno-viewer {\n    width: 100%;\n    height: 500px;\n}\n\n/**\n * Annotation Select UI Layout.\n */\n.anno-select-layout {}\n.anno-select-layout .row:first-child {\n    margin-bottom: 10px;\n}\n.anno-select-layout [type=\"radio\"] {\n    margin-right: 5px;\n}\n.anno-select-layout [type=\"file\"] {\n    display: inline-block;\n    margin-left: 5px;\n    line-height: 1em;\n}\n.anno-select-layout .sp-replacer {\n    padding: 0;\n    border: none;\n}\n.anno-select-layout .sp-dd {\n    display: none;\n}\n\n/**\n * Dropdown.\n */\n.dropdown-menu {\n    overflow: scroll;\n}\n\n/**\n * Color picker.\n */\n.anno-ui .sp-replacer {\n    padding: 0;\n    border: none;\n}\n.anno-ui .sp-dd {\n    display: none;\n}\n.anno-ui .sp-preview {\n    margin-right: 0;\n}\n\n.js-label-tab-content {\n    overflow-y: scroll;\n    overflow-x: hidden;\n    max-height: calc(100vh - 25em); /* Adjust for HD size(1366x768) */\n}\n\n.js-label-tab-content .label-list__text {\n    word-break: break-all;\n}\n\n.js-label-tab-content .label-list__input {\n    width: 100%;\n}\n\n.js-label-tab-content .sp-replacer {\n    overflow: inherit;\n}\n", ""]);
 
 // exports
 
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports) {
 
 
@@ -5525,7 +5554,7 @@ module.exports = function (css) {
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5786,13 +5815,13 @@ function getContentDropdownInitialText () {
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // style-loader: Adds some css to the DOM by adding a <style> tag
 
 // load the styles
-var content = __webpack_require__(13);
+var content = __webpack_require__(14);
 if(typeof content === 'string') content = [[module.i, content, '']];
 // Prepare cssTransformation
 var transform;
@@ -5817,7 +5846,7 @@ if(false) {
 }
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(1)(undefined);
@@ -5831,7 +5860,7 @@ exports.push([module.i, "/**\n * UI - Alert Dialog.\n */\n\n.alertdialog-danger 
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5917,7 +5946,7 @@ function resetCheckReferenceAnnoDropdown () {
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5984,7 +6013,7 @@ function setup ({
 
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6027,7 +6056,7 @@ function setup ({
 
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6094,7 +6123,7 @@ function setup ({
 
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6157,20 +6186,20 @@ function _getDownloadFileName (getCurrentContentName) {
 
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["setup"] = setup;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__core__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__behavior__ = __webpack_require__(22);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__listener__ = __webpack_require__(26);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__behavior__ = __webpack_require__(23);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__listener__ = __webpack_require__(27);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__color__ = __webpack_require__(4);
 /**
  * UI parts - Input Label.
  */
-__webpack_require__(20)
+__webpack_require__(21)
 
 
 
@@ -6185,15 +6214,14 @@ function setup ({
     saveAnnotationText,
     createSpanAnnotation,
     createRelAnnotation,
-    colorChangeListener = function () {},
-    namingRuleForExport = __WEBPACK_IMPORTED_MODULE_1__behavior__["a" /* defaultNamingRuleForExport */]
+    colorChangeListener = function () {}
 }) {
 
     // Define core functions.
     __WEBPACK_IMPORTED_MODULE_0__core__["g" /* setup */](saveAnnotationText)
 
     // Define user actions.
-    __WEBPACK_IMPORTED_MODULE_1__behavior__["b" /* setup */](createSpanAnnotation, createRelAnnotation, namingRuleForExport)
+    __WEBPACK_IMPORTED_MODULE_1__behavior__["a" /* setup */](createSpanAnnotation, createRelAnnotation)
 
     // Define window event listeners.
     __WEBPACK_IMPORTED_MODULE_2__listener__["a" /* setup */](getSelectedAnnotations)
@@ -6208,13 +6236,13 @@ const getColorMap = __WEBPACK_IMPORTED_MODULE_3__color__["d" /* getColorMap */]
 
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // style-loader: Adds some css to the DOM by adding a <style> tag
 
 // load the styles
-var content = __webpack_require__(21);
+var content = __webpack_require__(22);
 if(typeof content === 'string') content = [[module.i, content, '']];
 // Prepare cssTransformation
 var transform;
@@ -6239,7 +6267,7 @@ if(false) {
 }
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(1)(undefined);
@@ -6253,16 +6281,15 @@ exports.push([module.i, "\n.inputLabel {\n    font-size: 20px;\n}\n\n/**\n * Lab
 
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (immutable) */ __webpack_exports__["b"] = setup;
-/* harmony export (immutable) */ __webpack_exports__["a"] = defaultNamingRuleForExport;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml__ = __webpack_require__(23);
+/* harmony export (immutable) */ __webpack_exports__["a"] = setup;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml__ = __webpack_require__(24);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_toml__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__uis_alertDialog__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils__ = __webpack_require__(7);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__db__ = __webpack_require__(5);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__core__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__color__ = __webpack_require__(4);
@@ -6279,7 +6306,7 @@ exports.push([module.i, "\n.inputLabel {\n    font-size: 20px;\n}\n\n/**\n * Lab
 /**
  * Setup the behaviors for Input Label.
  */
-function setup (createSpanAnnotation, createRelAnnotation, namingRuleForExport) {
+function setup (createSpanAnnotation, createRelAnnotation) {
 
     __WEBPACK_IMPORTED_MODULE_4__core__["f" /* setCurrentTab */]('span')
 
@@ -6296,11 +6323,7 @@ function setup (createSpanAnnotation, createRelAnnotation, namingRuleForExport) 
     setupTabClick()
 
     // Set import/export link behavior.
-    setupImportExportLink(namingRuleForExport)
-}
-
-function defaultNamingRuleForExport (exportProcess) {
-    exportProcess('pdfanno.conf')
+    setupImportExportLink()
 }
 
 /**
@@ -6494,45 +6517,27 @@ function setupLabelText (createSpanAnnotation, createRelAnnotation) {
 /**
  * Set the behavior of importing/exporting label settings.
  */
-function setupImportExportLink (namingRuleForExport) {
+function setupImportExportLink () {
 
     // Export behavior.
-    $('.js-export-label').on('click', (e) => {
-        e.preventDefault()
-        if (e.target.classList.contains('disabled')) {
-            // already running the other click process.
-            return false;
-        }
-        // change to not clickable
-        e.target.classList.add('disabled');
-        namingRuleForExport((exportFileName) => {
-            if (exportFileName === undefined) {
-                // export is canceled.
-                // rechange to clickable
-                e.target.classList.remove('disabled');
-                return false
-            }
-            let data = __WEBPACK_IMPORTED_MODULE_3__db__["a" /* getLabelList */]()
+    $('.js-export-label').on('click', () => {
+        let data = __WEBPACK_IMPORTED_MODULE_3__db__["a" /* getLabelList */]()
 
-            // Modify.
-            Object.keys(data).forEach(type => {
-                data[type].labels.forEach((item, index) => {
-                    // old -> new style.
-                    if (typeof item === 'string') {
-                        data[type].labels[index] = [ item, __WEBPACK_IMPORTED_MODULE_5__color__["b" /* colors */][0] ]
-                    }
-                })
+        // Modify.
+        Object.keys(data).forEach(type => {
+            data[type].labels.forEach((item, index) => {
+                // old -> new style.
+                if (typeof item === 'string') {
+                    data[type].labels[index] = [ item, __WEBPACK_IMPORTED_MODULE_5__color__["b" /* colors */][0] ]
+                }
             })
-
-            // Conver to TOML style.
-            const toml = __WEBPACK_IMPORTED_MODULE_2__utils__["tomlString"](data)
-
-            // Download.
-            __WEBPACK_IMPORTED_MODULE_2__utils__["download"](exportFileName, toml)
-
-            // rechange to clickable
-            e.target.classList.remove('disabled');
         })
+
+        // Conver to TOML style.
+        const toml = __WEBPACK_IMPORTED_MODULE_2__utils__["tomlString"](data)
+
+        // Download.
+        __WEBPACK_IMPORTED_MODULE_2__utils__["download"]('pdfanno.conf', toml)
     })
 
     // Import behavior.
@@ -6568,11 +6573,11 @@ function setupImportExportLink (namingRuleForExport) {
 
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var parser = __webpack_require__(24);
-var compiler = __webpack_require__(25);
+var parser = __webpack_require__(25);
+var compiler = __webpack_require__(26);
 
 module.exports = {
   parse: function(input) {
@@ -6583,7 +6588,7 @@ module.exports = {
 
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ (function(module, exports) {
 
 module.exports = (function() {
@@ -10430,7 +10435,7 @@ module.exports = (function() {
 
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10634,7 +10639,7 @@ module.exports = {
 
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -10745,7 +10750,7 @@ function handleAnnotationDeselected () {
 
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -10754,7 +10759,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["uploadPDF"] = uploadPDF;
 /* harmony export (immutable) */ __webpack_exports__["setResult"] = setResult;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__funcs_upload__ = __webpack_require__(28);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__funcs_upload__ = __webpack_require__(29);
 /**
  * UI parts - Upload Button.
  */
@@ -10825,7 +10830,7 @@ function setResult (text) {
 
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -10901,7 +10906,7 @@ function arrayBufferToBase64 (buffer) {
 
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -11255,7 +11260,7 @@ function searchByDictionary (texts = []) {
 
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -11268,7 +11273,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -18005,6 +18010,9 @@ class Htmlanno{
   wrapGlobalEvents(){
     AnnoUI.util.setupResizableColumns();
     AnnoUI.event.setup();
+    AnnoUI.core.setup({
+      applicationName: 'htmlanno'
+    });
 
     AnnoUI.browseButton.setup({
       loadFiles :                          this.loadFiles.bind(this),
@@ -18037,8 +18045,7 @@ class Htmlanno{
       saveAnnotationText: this.endEditLabel.bind(this),
       createSpanAnnotation: this.handleAddSpan.bind(this),
       createRelAnnotation: this.handleAddRelation.bind(this),
-      colorChangeListener: this.handleColorChange.bind(this),
-      namingRuleForExport: this.getExportFileName.bind(this)
+      colorChangeListener: this.handleColorChange.bind(this)
     });
 
     AnnoUI.downloadButton.setup({
@@ -18052,6 +18059,7 @@ class Htmlanno{
            return undefined;
          }
          else {
+           // TODO: use AnnoUI.core.applicationName
            return this.currentContentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
          }
       }
@@ -18694,36 +18702,6 @@ class Htmlanno{
         listElement.removeClass('hidden');
       }
     });
-  }
-
-  getExportFileName(exportProcess) {
-    const inputPanel = $('#export_filename_input'); // this is jQuery object because be used by Bootstrap.
-    const submitButton = document.querySelector('#export_filename_input_submit');
-    const cancelButton = document.querySelector('#export_filename_input_cancel');
-
-    const submitListener = () => {
-      const inputField = document.querySelector('.js-export-file');
-      const fileName = inputField.value;
-      if (fileName !== '') {
-        exportProcess(fileName);
-        submitButton.removeEventListener('click', submitListener);
-        cancelButton.removeEventListener('click', cancelListener);
-        inputPanel.collapse('hide');
-      } else {
-        alert('Please input file name'); // TODO: 適切に
-      }
-    };
-    const cancelListener = () => {
-      submitButton.removeEventListener('click', submitListener);
-      cancelButton.removeEventListener('click', cancelListener);
-      inputPanel.collapse('hide');
-
-      exportProcess(); // Cancel export
-    };
-    submitButton.addEventListener('click', submitListener); 
-    cancelButton.addEventListener('click', cancelListener);
-
-    inputPanel.collapse('show');
   }
 }
 
