@@ -109,6 +109,9 @@ class Htmlanno{
   wrapGlobalEvents(){
     AnnoUI.util.setupResizableColumns();
     AnnoUI.event.setup();
+    AnnoUI.core.setup({
+      applicationName: 'htmlanno'
+    });
 
     AnnoUI.browseButton.setup({
       loadFiles :                          this.loadFiles.bind(this),
@@ -155,6 +158,7 @@ class Htmlanno{
            return undefined;
          }
          else {
+           // TODO: use AnnoUI.core.applicationName
            return this.currentContentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
          }
       }
