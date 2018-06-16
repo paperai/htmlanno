@@ -4288,7 +4288,7 @@ module.exports = Circle;
 		exports["annoUI"] = factory();
 	else
 		root["annoUI"] = factory();
-})(typeof self !== 'undefined' ? self : this, function() {
+})(this, function() {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -5424,7 +5424,7 @@ exports = module.exports = __webpack_require__(1)(undefined);
 
 
 // module
-exports.push([module.i, "@charset 'utf-8';\n\n/* Reset CSS */\nhtml{color:#000;background:#FFF}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0}table{border-collapse:collapse;border-spacing:0}fieldset,img{border:0}address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal}ol,ul{list-style:none}caption,th{text-align:left}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal}q:before,q:after{content:''}abbr,acronym{border:0;font-variant:normal}sup{vertical-align:text-top}sub{vertical-align:text-bottom}input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit;*font-size:100%}legend{color:#000}\n\n/* Super Hack to disable autofill style for Chrome. */\ninput:-webkit-autofill,\ninput:-webkit-autofill:hover,\ninput:-webkit-autofill:focus,\ninput:-webkit-autofill:active {\n    transition: background-color 5000s ease-in-out 0s;\n}\n\n.u-mt-10 {margin-top: 10px;}\n.u-mt-20 {margin-top: 20px;}\n.u-mb-10 {margin-bottom: 10px;}\n.u-ml-15 {margin-left: 15px;}\n.u-disp-iblock {display: inline-block;}\n.no-visible {visibility: hidden;}\n.no-action {pointer-events: none;}\n\n/**\n * Viewer size.\n * This height will be override to fit the browser height (by pdfanno.js).\n */\n.anno-viewer {\n    width: 100%;\n    height: 500px;\n}\n\n/**\n * Annotation Select UI Layout.\n */\n.anno-select-layout {}\n.anno-select-layout .row:first-child {\n    margin-bottom: 10px;\n}\n.anno-select-layout [type=\"radio\"] {\n    margin-right: 5px;\n}\n.anno-select-layout [type=\"file\"] {\n    display: inline-block;\n    margin-left: 5px;\n    line-height: 1em;\n}\n.anno-select-layout .sp-replacer {\n    padding: 0;\n    border: none;\n}\n.anno-select-layout .sp-dd {\n    display: none;\n}\n\n/**\n * Dropdown.\n */\n.dropdown-menu {\n    overflow: scroll;\n}\n\n/**\n * Color picker.\n */\n.anno-ui .sp-replacer {\n    padding: 0;\n    border: none;\n}\n.anno-ui .sp-dd {\n    display: none;\n}\n.anno-ui .sp-preview {\n    margin-right: 0;\n}\n\n.js-label-tab-content {\n    overflow-y: scroll;\n    overflow-x: hidden;\n    max-height: calc(100vh - 25em); /* Adjust for HD size(1366x768) */\n}\n\n.js-label-tab-content .label-list__text {\n    word-break: break-all;\n}\n\n.js-label-tab-content .label-list__input {\n    width: 100%;\n}\n\n.js-label-tab-content .sp-replacer {\n    overflow: inherit;\n}\n", ""]);
+exports.push([module.i, "@charset 'utf-8';\n\n/* Reset CSS */\nhtml{color:#000;background:#FFF}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0}table{border-collapse:collapse;border-spacing:0}fieldset,img{border:0}address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal}ol,ul{list-style:none}caption,th{text-align:left}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal}q:before,q:after{content:''}abbr,acronym{border:0;font-variant:normal}sup{vertical-align:text-top}sub{vertical-align:text-bottom}input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit;*font-size:100%}legend{color:#000}\n\n/* Super Hack to disable autofill style for Chrome. */\ninput:-webkit-autofill,\ninput:-webkit-autofill:hover,\ninput:-webkit-autofill:focus,\ninput:-webkit-autofill:active {\n    transition: background-color 5000s ease-in-out 0s;\n}\n\n.u-mt-10 {margin-top: 10px;}\n.u-mt-20 {margin-top: 20px;}\n.u-mb-10 {margin-bottom: 10px;}\n.u-ml-15 {margin-left: 15px;}\n.u-disp-iblock {display: inline-block;}\n.no-visible {visibility: hidden;}\n.no-action {pointer-events: none;}\n\n/**\n * Viewer size.\n * This height will be override to fit the browser height (by pdfanno.js).\n */\n.anno-viewer {\n    width: 100%;\n    height: 500px;\n}\n\n/**\n * Annotation Select UI Layout.\n */\n.anno-select-layout {}\n.anno-select-layout .row:first-child {\n    margin-bottom: 10px;\n}\n.anno-select-layout [type=\"radio\"] {\n    margin-right: 5px;\n}\n.anno-select-layout [type=\"file\"] {\n    display: inline-block;\n    margin-left: 5px;\n    line-height: 1em;\n}\n.anno-select-layout .sp-replacer {\n    padding: 0;\n    border: none;\n}\n.anno-select-layout .sp-dd {\n    display: none;\n}\n\n/**\n * Dropdown.\n */\n.dropdown-menu {\n    overflow: scroll;\n}\n\n/**\n * Color picker.\n */\n.anno-ui .sp-replacer {\n    padding: 0;\n    border: none;\n}\n.anno-ui .sp-dd {\n    display: none;\n}\n.anno-ui .sp-preview {\n    margin-right: 0;\n}\n\n.js-label-tab-content {\n    overflow-y: scroll;\n    overflow-x: hidden;\n    max-height: calc(100vh - 25em); /* Adjust for HD size(1366x768) */\n}\n\n.js-label-tab-content .label-list__text {\n    word-break: break-all;\n}\n\n.js-label-tab-content .label-list__input {\n    width: 100%;\n}\n\n.js-label-tab-content .sp-replacer {\n    overflow: inherit;\n}\n\n.js-export-label.disabled {\n    cursor: not-allowed;\n}\n", ""]);
 
 // exports
 
@@ -6185,14 +6185,15 @@ function setup ({
     saveAnnotationText,
     createSpanAnnotation,
     createRelAnnotation,
-    colorChangeListener = function () {}
+    colorChangeListener = function () {},
+    namingRuleForExport = __WEBPACK_IMPORTED_MODULE_1__behavior__["a" /* defaultNamingRuleForExport */]
 }) {
 
     // Define core functions.
     __WEBPACK_IMPORTED_MODULE_0__core__["g" /* setup */](saveAnnotationText)
 
     // Define user actions.
-    __WEBPACK_IMPORTED_MODULE_1__behavior__["a" /* setup */](createSpanAnnotation, createRelAnnotation)
+    __WEBPACK_IMPORTED_MODULE_1__behavior__["b" /* setup */](createSpanAnnotation, createRelAnnotation, namingRuleForExport)
 
     // Define window event listeners.
     __WEBPACK_IMPORTED_MODULE_2__listener__["a" /* setup */](getSelectedAnnotations)
@@ -6256,7 +6257,8 @@ exports.push([module.i, "\n.inputLabel {\n    font-size: 20px;\n}\n\n/**\n * Lab
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (immutable) */ __webpack_exports__["a"] = setup;
+/* harmony export (immutable) */ __webpack_exports__["b"] = setup;
+/* harmony export (immutable) */ __webpack_exports__["a"] = defaultNamingRuleForExport;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml__ = __webpack_require__(23);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_toml__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__uis_alertDialog__ = __webpack_require__(0);
@@ -6277,7 +6279,7 @@ exports.push([module.i, "\n.inputLabel {\n    font-size: 20px;\n}\n\n/**\n * Lab
 /**
  * Setup the behaviors for Input Label.
  */
-function setup (createSpanAnnotation, createRelAnnotation) {
+function setup (createSpanAnnotation, createRelAnnotation, namingRuleForExport) {
 
     __WEBPACK_IMPORTED_MODULE_4__core__["f" /* setCurrentTab */]('span')
 
@@ -6294,7 +6296,11 @@ function setup (createSpanAnnotation, createRelAnnotation) {
     setupTabClick()
 
     // Set import/export link behavior.
-    setupImportExportLink()
+    setupImportExportLink(namingRuleForExport)
+}
+
+function defaultNamingRuleForExport (exportProcess) {
+    exportProcess('pdfanno.conf')
 }
 
 /**
@@ -6488,27 +6494,45 @@ function setupLabelText (createSpanAnnotation, createRelAnnotation) {
 /**
  * Set the behavior of importing/exporting label settings.
  */
-function setupImportExportLink () {
+function setupImportExportLink (namingRuleForExport) {
 
     // Export behavior.
-    $('.js-export-label').on('click', () => {
-        let data = __WEBPACK_IMPORTED_MODULE_3__db__["a" /* getLabelList */]()
+    $('.js-export-label').on('click', (e) => {
+        e.preventDefault()
+        if (e.target.classList.contains('disabled')) {
+            // already running the other click process.
+            return false;
+        }
+        // change to not clickable
+        e.target.classList.add('disabled');
+        namingRuleForExport((exportFileName) => {
+            if (exportFileName === undefined) {
+                // export is canceled.
+                // rechange to clickable
+                e.target.classList.remove('disabled');
+                return false
+            }
+            let data = __WEBPACK_IMPORTED_MODULE_3__db__["a" /* getLabelList */]()
 
-        // Modify.
-        Object.keys(data).forEach(type => {
-            data[type].labels.forEach((item, index) => {
-                // old -> new style.
-                if (typeof item === 'string') {
-                    data[type].labels[index] = [ item, __WEBPACK_IMPORTED_MODULE_5__color__["b" /* colors */][0] ]
-                }
+            // Modify.
+            Object.keys(data).forEach(type => {
+                data[type].labels.forEach((item, index) => {
+                    // old -> new style.
+                    if (typeof item === 'string') {
+                        data[type].labels[index] = [ item, __WEBPACK_IMPORTED_MODULE_5__color__["b" /* colors */][0] ]
+                    }
+                })
             })
+
+            // Conver to TOML style.
+            const toml = __WEBPACK_IMPORTED_MODULE_2__utils__["tomlString"](data)
+
+            // Download.
+            __WEBPACK_IMPORTED_MODULE_2__utils__["download"](exportFileName, toml)
+
+            // rechange to clickable
+            e.target.classList.remove('disabled');
         })
-
-        // Conver to TOML style.
-        const toml = __WEBPACK_IMPORTED_MODULE_2__utils__["tomlString"](data)
-
-        // Download.
-        __WEBPACK_IMPORTED_MODULE_2__utils__["download"]('pdfanno.conf', toml)
     })
 
     // Import behavior.
@@ -10764,7 +10788,7 @@ function uploadPDF ({
     const $progressBar = $('.js-upload-progress')
 
     // Upload and analyze the PDF.
-    Object(__WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */])({
+    __WEBPACK_IMPORTED_MODULE_1__funcs_upload__["a" /* upload */]({
         contentFile,
         willStartCallback : () => {
             // Reset the result text.
@@ -18013,7 +18037,8 @@ class Htmlanno{
       saveAnnotationText: this.endEditLabel.bind(this),
       createSpanAnnotation: this.handleAddSpan.bind(this),
       createRelAnnotation: this.handleAddRelation.bind(this),
-      colorChangeListener: this.handleColorChange.bind(this)
+      colorChangeListener: this.handleColorChange.bind(this),
+      namingRuleForExport: this.getExportFileName.bind(this)
     });
 
     AnnoUI.downloadButton.setup({
@@ -18669,6 +18694,36 @@ class Htmlanno{
         listElement.removeClass('hidden');
       }
     });
+  }
+
+  getExportFileName(exportProcess) {
+    const inputPanel = $('#export_filename_input'); // this is jQuery object because be used by Bootstrap.
+    const submitButton = document.querySelector('#export_filename_input_submit');
+    const cancelButton = document.querySelector('#export_filename_input_cancel');
+
+    const submitListener = () => {
+      const inputField = document.querySelector('.js-export-file');
+      const fileName = inputField.value;
+      if (fileName !== '') {
+        exportProcess(fileName);
+        submitButton.removeEventListener('click', submitListener);
+        cancelButton.removeEventListener('click', cancelListener);
+        inputPanel.collapse('hide');
+      } else {
+        alert('Please input file name'); // TODO: 適切に
+      }
+    };
+    const cancelListener = () => {
+      submitButton.removeEventListener('click', submitListener);
+      cancelButton.removeEventListener('click', cancelListener);
+      inputPanel.collapse('hide');
+
+      exportProcess(); // Cancel export
+    };
+    submitButton.addEventListener('click', submitListener); 
+    cancelButton.addEventListener('click', cancelListener);
+
+    inputPanel.collapse('show');
   }
 }
 
