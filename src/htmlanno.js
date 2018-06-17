@@ -159,8 +159,7 @@ class Htmlanno{
            return undefined;
          }
          else {
-           // TODO: use AnnoUI.core.applicationName
-           return this.currentContentFileName.replace(/(\.[^.]+)?$/, '.htmlanno');
+           return this.currentContentFileName.replace(/(\.[^.]+)?$/, '.' + AnnoUI.core.applicationName());
          }
       }
     });
@@ -550,63 +549,88 @@ class Htmlanno{
     this._currentContentFileName = fileName;
     this.enableDropdownAnnotationPrimary(true);
 
-    let content = this.fileContainer.getContent(fileName);
-    switch(content.type) {
+    const _removeExtension = (filename) => {
+      const parts = filename.split('.');
+      parts.pop(); // Remove extension
+      return parts.join('.');
+    };
+
+    const contentData = this.fileContainer.getContent(fileName);
+    const contentName = _removeExtension(contentData.name);
+    const sameNameAnnotation = this.fileContainer.annotations.filter((annotation) => {
+      if (annotation.subtype !== 'bioes') {
+        const annoName = _removeExtension(annotation.name);
+        return annoName == contentName;
+      } else {
+        return false;
+      }
+    });
+    switch(contentData.type) {
       case 'html':
-        return LoadHtmlPromise.run(content, this).then((results) => {
-          this.removeAll();
-          content.content = results[1];
-          content.source = undefined;
-          document.getElementById('viewer').innerHTML = content.content;
-          this.handleResize();
-          new Searcher();
-        }).catch((reject) => {
-          this.showReadError();
-        });
+        return LoadHtmlPromise.run(contentData, this)
+          .then((results) => {
+            const annotation = sameNameAnnotation.length !== 0 ? sameNameAnnotation[0] : undefined;
+            this._afterContentLoading(contentData, { content: results[1], annotation: annotation });
+          }).catch((reject) => {
+            this.showReadError();
+          });
 
       case 'bioes':
-        return LoadBioesPromise.run(content, this).then((results) => {
-          this.removeAll();
-          content.content = results[1].content;
-          content.source = undefined;
-          document.getElementById('viewer').innerHTML = content.content;
+        return LoadBioesPromise.run(contentData, this).then((results) => {
           this.enableDropdownAnnotationPrimary(false);
-          // BIOESの場合Content fileとPrimary annotationがセットなので、
-          // これがRefereneで使用されていることは起こりえない。
-          results[1].annotation.primary = true;
-          TomlTool.loadToml(
-            results[1].annotation,
-            this.highlighter,
-            this.arrowConnector,
-            undefined, /* uiAnnotation.name */
-            AnnoUI.labelInput.getColorMap()
-          );
-          WindowEvent.emit('annotationrendered');
-          this.handleResize();
-          new Searcher();
+          this._afterContentLoading(contentData, results[1]);
         }).catch((reject) => {
           this.showReadError();
         });
 
       case 'text':
-        return LoadTextPromise.run(content, this).then((results) => {
-          this.removeAll();
-          content.content = results[1];
-          content.source = undefined;
-          document.getElementById('viewer').innerHTML = content.content;
-          this.handleResize();
-          new Searcher();
-        }).catch((reject) => {
-          this.showReadError();
-        });
+        return LoadTextPromise.run(contentData, this)
+          .then((results) => {
+            const annotation = sameNameAnnotation.length !== 0 ? sameNameAnnotation[0] : undefined;
+            this._afterContentLoading(contentData, { content: results[1], annotation: annotation });
+          }).catch((reject) => {
+            this.showReadError();
+          });
 
       default:
         WindowEvent.emit(
           'open-alert-dialog',
-          {message: 'Unknown content type; ' + content.content}
+          {message: 'Unknown content type; ' + contentData.content}
         );
     }
   }  
+
+  /**
+   * called from reloadContent()
+   */
+  _afterContentLoading(contentData, loadingResult) {
+    this.removeAll();
+    contentData.content = loadingResult.content;
+    contentData.source  = undefined;
+    document.getElementById('viewer').innerHTML = contentData.content;
+    if (loadingResult.annotation !== undefined) {
+      document.querySelectorAll('#dropdownAnnoPrimary li').forEach((listElement) => {
+        const listName = listElement.textContent.trim();
+        if (loadingResult.annotation.name == listName) {
+          document.querySelector('#dropdownAnnoPrimary .js-text').textContent = listName;
+          listElement.querySelector('.fa-check').classList.remove('no-visible');
+        } else {
+          listElement.querySelector('.fa-check').classList.add('no-visible');
+        }
+      });
+      loadingResult.annotation.primary = true;
+      TomlTool.loadToml(
+        loadingResult.annotation,
+        this.highlighter,
+        this.arrowConnector,
+        undefined,
+        AnnoUI.labelInput.getColorMap()
+      );
+      WindowEvent.emit('annotationrendered');
+    }
+    this.handleResize();
+    new Searcher();
+  }
 
   restoreAnnotations(beforeStatus) {
     let promise = undefined;
