@@ -144,7 +144,8 @@ class Htmlanno{
       saveAnnotationText: this.endEditLabel.bind(this),
       createSpanAnnotation: this.handleAddSpan.bind(this),
       createRelAnnotation: this.handleAddRelation.bind(this),
-      colorChangeListener: this.handleColorChange.bind(this)
+      colorChangeListener: this.handleColorChange.bind(this),
+      namingRuleForExport: this.getExportFileName.bind(this)
     });
 
     AnnoUI.downloadButton.setup({
@@ -801,6 +802,36 @@ class Htmlanno{
         listElement.removeClass('hidden');
       }
     });
+  }
+
+  getExportFileName(exportProcess) {
+    const inputPanel = $('#export_filename_input'); // this is jQuery object because be used by Bootstrap.
+    const submitButton = document.querySelector('#export_filename_input_submit');
+    const cancelButton = document.querySelector('#export_filename_input_cancel');
+
+    const submitListener = () => {
+      const inputField = document.querySelector('.js-export-file');
+      const fileName = inputField.value;
+      if (fileName !== '') {
+        exportProcess(fileName);
+        submitButton.removeEventListener('click', submitListener);
+        cancelButton.removeEventListener('click', cancelListener);
+        inputPanel.collapse('hide');
+      } else {
+        alert('Please input file name'); // TODO: 適切に
+      }
+    };
+    const cancelListener = () => {
+      submitButton.removeEventListener('click', submitListener);
+      cancelButton.removeEventListener('click', cancelListener);
+      inputPanel.collapse('hide');
+
+      exportProcess(); // Cancel export
+    };
+    submitButton.addEventListener('click', submitListener); 
+    cancelButton.addEventListener('click', cancelListener);
+
+    inputPanel.collapse('show');
   }
 }
 
