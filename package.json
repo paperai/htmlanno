@@ -5,8 +5,7 @@
   "scripts": {
     "watch": "npm run _prepare && webpack-dev-server --inline",
     "_prepare": "gulp prepare",
-    "publish:latest": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish_latest",
-    "publish:stable": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish_stable",
+    "publish": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish",
     "build-test": "webpack --progress --colors --config ./test/webpack_test.config.js",
     "test": "jasmine",
     "webtest": "karma start karma.conf.js"

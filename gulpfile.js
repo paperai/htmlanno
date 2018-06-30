@@ -11,11 +11,6 @@ function checkIsStableVersion () {
     }
 }
 
-function publish () {
-  fs.removeSync(baseDir);
-  fs.copySync('dist', baseDir);
-}
-
 gulp.task('prepare', () => {
   fs.removeSync('dist');
   ['index.html', 'index.css', 'jats-preview.css', 'sample'].forEach((target) => {
@@ -23,13 +18,8 @@ gulp.task('prepare', () => {
   });
 });
 
-gulp.task('publish_latest', () => {
-  baseDir = path.join('docs', 'latest');
-  publish();
-});
-
-gulp.task('publish_stable', () => {
-  checkIsStableVersion();
-  baseDir = path.join('docs', version);
-  publish();
+gulp.task('publish', () => {
+  const baseDir = path.join('publish', version);
+  fs.removeSync(baseDir);
+  fs.copySync('dist', baseDir);
 });
