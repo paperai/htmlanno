@@ -3,14 +3,6 @@ const fs = require('fs-extra');
 const path = require('path');
 const version = require('./package.json').version;
 
-let baseDir;
-
-function checkIsStableVersion () {
-    if (version.indexOf('dev') !== -1) {
-        throw 'version is not stable. version=' + version
-    }
-}
-
 gulp.task('prepare', () => {
   fs.removeSync('dist');
   ['index.html', 'index.css', 'jats-preview.css', 'sample'].forEach((target) => {
