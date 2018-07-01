@@ -1,12 +1,11 @@
 {
   "name": "htmlanno",
-  "version": "0.1.1-dev",
+  "version": "0.1.0",
   "description": "",
   "scripts": {
     "watch": "webpack --progress --colors --watch --config ./webpack.config.js",
     "_prepare": "gulp prepare",
-    "publish:latest": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish_latest",
-    "publish:stable": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish_stable",
+    "publish": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish",
     "build-test": "webpack --progress --colors --config ./test/webpack_test.config.js",
     "test": "jasmine",
     "webtest": "karma start karma.conf.js"
