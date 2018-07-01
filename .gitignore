@@ -3,3 +3,4 @@ node_modules
 
 # Work directory for npm run publish:*
 /dist
+/publish

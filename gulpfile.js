@@ -9,3 +9,9 @@ gulp.task('prepare', () => {
     fs.copySync(path.join('src', 'preset', target), path.join('dist', target));
   });
 });
+
+gulp.task('publish', () => {
+  const baseDir = path.join('publish', version);
+  fs.removeSync(baseDir);
+  fs.copySync('dist', baseDir);
+});
