@@ -3,9 +3,8 @@ HTMLAnno is a web-based linguistic annotation tool for xhtml/txt documents.
 It offers functions for annotating the documents with labels and relations.  
 For natural language processing and machine learning, it is suitable for development of gold-standard data with named entity spans, dependency relations, and coreference chains.  
 
-[Online Demo (v0.1.0)](https://paperai.github.io/htmlanno/0.1.0)
-
-[Online Demo (experimental)](https://paperai.github.io/htmlanno/latest)
+* [Online Demo (v0.1.0)](https://paperai.github.io/htmlanno/0.1.0)
+* [Online Demo (latest)](https://htmlanno-master.netlify.com/)
 
 ## Annotation Tools
 | Icon | Description |
