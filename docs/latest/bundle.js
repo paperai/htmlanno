@@ -4396,6 +4396,9 @@ function create ({ type = 'alert', message = '' }) {
 
 function show () {
     const $modal = create(...arguments)
+    $modal.on('shown.bs.modal', () => {
+        $('[data-dismiss="modal"]').focus()
+    })
     $modal.modal('show')
     return $modal
 }
