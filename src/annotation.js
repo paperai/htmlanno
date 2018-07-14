@@ -82,6 +82,10 @@ class Annotation {
     return this.content();
   }
 
+  set text(value) {
+    this.setContent(value);
+  }
+
   /**
    * Returns the Y coordinate of the annotation object.
    * this method expects ths subclass to override.
