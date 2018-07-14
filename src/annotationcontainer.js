@@ -196,50 +196,91 @@ class AnnotationContainer{
     return list;
   }
 
-  // For labelInput: colorChangeListener -> notifyColorChanged
+  // For labelInput: labelChangeListener -> notifyColorChanged
   /**
-   * @param query { text, color, uuid, annoType }
+   * @param query { text, color, uuid, annoType, oldText }
    *  text: label text
    *  color: pickuped color(hex string)
    *  uuid: annotation's uuid(when end edit label text only)
    *  annoType: 'span', 'one-way', 'two-way', and 'link'
+   *  oldText: the lable text of before edit (this is only when listen for editButton)
    *
-   * when end edit label text; uuid and color
+   * when end edit label text; text, annoType, and oldText
    * when change color on color picker; text, color, and annoType
+   * @see _annotationUpdater
    */
   setColor(query) {
-    if (undefined != query.text) {
+    if (query.color !== undefined) {
+      if (undefined != query.text) {
+        return this.forEachPromise((annotation) => {
+          return this._annotationUpdater(
+            query, annotation, 
+            (q, a) => { return a.text === q.text },
+            (q, a) => { a.setColor(q.color) }
+          )
+        })
+      } else if (undefined != query.uuid) {
+        return new Promise((resolve, reject) => {
+          this.findByUuid(query.uuid).setColor(query.color)
+          resolve(true)
+        }).then()
+      }
+    } else {
+      return false
+    }
+  }
+
+  // For labelInput: labelChangeListener -> labelInput/behavior/editButton
+  /**
+   * @param query { text, color, uuid, annoType, oldText }
+   *  text: label text
+   *  color: pickuped color(hex string)
+   *  uuid: annotation's uuid(when end edit label text only)
+   *  annoType: 'span', 'one-way', 'two-way', and 'link'
+   *  oldText: the lable text of before edit (this is only when listen for editButton)
+   *
+   * when end edit label text; text, annoType, and oldText
+   * when change color on color picker; text, color, and annoType
+   * @see _annotationUpdater
+   */
+  setContext(query) {
+    if (query.oldText !== undefined) {
       return this.forEachPromise((annotation) => {
-        if (query.text == annotation.text) {
-          switch(query.annoType) {
-            case 'span':
-              if (query.annoType == annotation.type) {
-                annotation.setColor(query.color);
-                return true;
-              }
-              break;
+        return this._annotationUpdater(
+          query, annotation,
+          (q, a) => { return a.text === q.oldText },
+          (q, a) => { a.setContent(q.text) }
+        )
+      })
+    } else {
+      return false
+    }
+  }
 
-            case 'one-way':
-            case 'two-way':
-            case 'link':
-              if ('relation' == annotation.type && query.annoType == annotation.direction ) {
-                annotation.setColor(query.color);
-                return true;
-              }
-              break;
-
-            default:
-              return false;
+  _annotationUpdater (query, annotation, matchCondition, updateProcess) {
+    if (matchCondition(query, annotation)) {
+      switch(query.annoType) {
+        case 'span':
+          if (query.annoType === annotation.type) {
+            updateProcess(query, annotation)
+            return true
           }
-        } else {
-          return false;
-        }
-      }).then();
-    } else if (undefined != query.uuid) {
-      return new Promise((resolve, reject) => {
-        this.findByUuid(query.uuid).setColor(query.color);
-        resolve(true);
-      }).then();
+          break
+
+        case 'one-way':
+        case 'two-way':
+        case 'link':
+          if (annotation.type === 'relation' && annotation.direction === query.annoType ) {
+            updateProcess(query, annotation)
+            return true
+          }
+          break
+
+        default:
+          return false
+      }            
+    } else {
+      return false
     }
   }
 
