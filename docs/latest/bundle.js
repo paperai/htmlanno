@@ -4351,7 +4351,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 9);
+/******/ 	return __webpack_require__(__webpack_require__.s = 8);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -4365,7 +4365,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /**
  * UI - Alert dialog.
  */
-__webpack_require__(14)
+__webpack_require__(13)
 
 function create ({ type = 'alert', message = '' }) {
     const id = 'modal-' + (new Date().getTime())
@@ -4396,9 +4396,6 @@ function create ({ type = 'alert', message = '' }) {
 
 function show () {
     const $modal = create(...arguments)
-    $modal.on('shown.bs.modal', () => {
-        $('[data-dismiss="modal"]').focus()
-    })
     $modal.modal('show')
     return $modal
 }
@@ -4406,154 +4403,6 @@ function show () {
 
 /***/ }),
 /* 1 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (immutable) */ __webpack_exports__["f"] = setCurrentTab;
-/* harmony export (immutable) */ __webpack_exports__["c"] = getCurrentTab;
-/* harmony export (immutable) */ __webpack_exports__["g"] = setup;
-/* harmony export (immutable) */ __webpack_exports__["b"] = enable;
-/* harmony export (immutable) */ __webpack_exports__["a"] = disable;
-/* harmony export (immutable) */ __webpack_exports__["d"] = isCurrent;
-/* harmony export (immutable) */ __webpack_exports__["e"] = isValidInput;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__color__ = __webpack_require__(4);
-/**
- * Core facilities for Label Input.
- */
-
-
-
-let currentTab
-
-function setCurrentTab (tab) {
-    currentTab = tab
-}
-
-function getCurrentTab (tab) {
-    return currentTab
-}
-
-/**
- * A blur event listener.
- */
-let _blurListener
-
-/**
- * The uuid for the current annotation.
- */
-let currentUUID
-
-/**
- * The cache for the DOM of inputLabel.
- */
-let $inputLabel
-window.addEventListener('DOMContentLoaded', () => {
-    $inputLabel = $('#inputLabel')
-})
-
-/**
- * The function which saves a text.
- */
-let _saveAnnotationText
-
-/**
- * Setup the core module.
- */
-function setup (saveAnnotationText) {
-    _saveAnnotationText = saveAnnotationText
-}
-
-/**
- * Enable the Label Input UI.
- */
-function enable ({ uuid, text, disable = false, autoFocus = false, blurListener = null }) {
-
-    currentUUID = uuid
-
-    if (_blurListener) {
-        _blurListener()
-        _blurListener = null
-
-    }
-
-    $inputLabel
-        .attr('disabled', 'disabled')
-        .val(text || '')
-        .off('blur')
-        .off('keyup')
-
-    if (disable === false) {
-        $inputLabel
-            .removeAttr('disabled')
-            .on('keyup', () => {
-                watchColor(uuid)
-            })
-    }
-
-    if (autoFocus) {
-        $inputLabel.focus()
-    }
-
-    $inputLabel.on('blur', () => {
-        if (blurListener) {
-            blurListener()
-            _blurListener = blurListener
-        }
-        saveText(uuid)
-    })
-}
-
-/**
- * Disable the Label Input UI.
- */
-function disable () {
-    currentUUID = null
-    $inputLabel
-        .attr('disabled', 'disabled')
-        .val('')
-}
-
-/**
- * Check the uuid is the current one in Label Input.
- */
-function isCurrent (uuid) {
-    return currentUUID === uuid
-}
-
-/**
- * Save the text an user wrote, to the annotation ( specified by uuid ).
- */
-function saveText (uuid) {
-    const text = $inputLabel.val()
-
-    // Check the text valid.
-    if (!isValidInput(text)) {
-        __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : 'Nor white space, tab, or line break are not permitted.' })
-        return
-    }
-
-    _saveAnnotationText(uuid, text)
-}
-
-function watchColor (uuid) {
-    const aText = $inputLabel.val()
-    const aColor = __WEBPACK_IMPORTED_MODULE_1__color__["c" /* find */](currentTab, aText)
-    __WEBPACK_IMPORTED_MODULE_1__color__["f" /* notifyColorChanged */]({ color : aColor, uuid })
-}
-
-/**
- * Check the text is permitted to save.
- *
- * Nor White space, tab or line break are not permitted.
- */
-function isValidInput (text) {
-    return !/\s/.test(text)
-}
-
-
-/***/ }),
-/* 2 */
 /***/ (function(module, exports) {
 
 /*
@@ -4635,7 +4484,7 @@ function toComment(sourceMap) {
 
 
 /***/ }),
-/* 3 */
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /*
@@ -4681,7 +4530,7 @@ var singleton = null;
 var	singletonCounter = 0;
 var	stylesInsertedAtTop = [];
 
-var	fixUrls = __webpack_require__(12);
+var	fixUrls = __webpack_require__(11);
 
 module.exports = function(list, options) {
 	if (typeof DEBUG !== "undefined" && DEBUG) {
@@ -4994,6 +4843,154 @@ function updateLink (link, options, obj) {
 
 
 /***/ }),
+/* 3 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["f"] = setCurrentTab;
+/* harmony export (immutable) */ __webpack_exports__["c"] = getCurrentTab;
+/* harmony export (immutable) */ __webpack_exports__["g"] = setup;
+/* harmony export (immutable) */ __webpack_exports__["b"] = enable;
+/* harmony export (immutable) */ __webpack_exports__["a"] = disable;
+/* harmony export (immutable) */ __webpack_exports__["d"] = isCurrent;
+/* harmony export (immutable) */ __webpack_exports__["e"] = isValidInput;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__color__ = __webpack_require__(4);
+/**
+ * Core facilities for Label Input.
+ */
+
+
+
+let currentTab
+
+function setCurrentTab (tab) {
+    currentTab = tab
+}
+
+function getCurrentTab (tab) {
+    return currentTab
+}
+
+/**
+ * A blur event listener.
+ */
+let _blurListener
+
+/**
+ * The uuid for the current annotation.
+ */
+let currentUUID
+
+/**
+ * The cache for the DOM of inputLabel.
+ */
+let $inputLabel
+window.addEventListener('DOMContentLoaded', () => {
+    $inputLabel = $('#inputLabel')
+})
+
+/**
+ * The function which saves a text.
+ */
+let _saveAnnotationText
+
+/**
+ * Setup the core module.
+ */
+function setup (saveAnnotationText) {
+    _saveAnnotationText = saveAnnotationText
+}
+
+/**
+ * Enable the Label Input UI.
+ */
+function enable ({ uuid, text, disable = false, autoFocus = false, blurListener = null }) {
+
+    currentUUID = uuid
+
+    if (_blurListener) {
+        _blurListener()
+        _blurListener = null
+
+    }
+
+    $inputLabel
+        .attr('disabled', 'disabled')
+        .val(text || '')
+        .off('blur')
+        .off('keyup')
+
+    if (disable === false) {
+        $inputLabel
+            .removeAttr('disabled')
+            .on('keyup', () => {
+                watchColor(uuid)
+            })
+    }
+
+    if (autoFocus) {
+        $inputLabel.focus()
+    }
+
+    $inputLabel.on('blur', () => {
+        if (blurListener) {
+            blurListener()
+            _blurListener = blurListener
+        }
+        saveText(uuid)
+    })
+}
+
+/**
+ * Disable the Label Input UI.
+ */
+function disable () {
+    currentUUID = null
+    $inputLabel
+        .attr('disabled', 'disabled')
+        .val('')
+}
+
+/**
+ * Check the uuid is the current one in Label Input.
+ */
+function isCurrent (uuid) {
+    return currentUUID === uuid
+}
+
+/**
+ * Save the text an user wrote, to the annotation ( specified by uuid ).
+ */
+function saveText (uuid) {
+    const text = $inputLabel.val()
+
+    // Check the text valid.
+    if (!isValidInput(text)) {
+        __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__["show"]({ message : 'Nor white space, tab, or line break are not permitted.' })
+        return
+    }
+
+    _saveAnnotationText(uuid, text)
+}
+
+function watchColor (uuid) {
+    const aText = $inputLabel.val()
+    const aColor = __WEBPACK_IMPORTED_MODULE_1__color__["c" /* find */](currentTab, aText)
+    __WEBPACK_IMPORTED_MODULE_1__color__["f" /* notifyColorChanged */]({ color : aColor, uuid })
+}
+
+/**
+ * Check the text is permitted to save.
+ *
+ * Nor White space, tab or line break are not permitted.
+ */
+function isValidInput (text) {
+    return !/\s/.test(text)
+}
+
+
+/***/ }),
 /* 4 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
@@ -5004,7 +5001,7 @@ function updateLink (link, options, obj) {
 /* harmony export (immutable) */ __webpack_exports__["c"] = find;
 /* harmony export (immutable) */ __webpack_exports__["f"] = notifyColorChanged;
 /* harmony export (immutable) */ __webpack_exports__["d"] = getColorMap;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__db__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__db__ = __webpack_require__(7);
 // labelInput/color.js
 
 
@@ -5119,40 +5116,6 @@ function getColorMap () {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony export (immutable) */ __webpack_exports__["a"] = getLabelList;
-/* harmony export (immutable) */ __webpack_exports__["b"] = saveLabelList;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__core__ = __webpack_require__(6);
-
-
-/**
- * Storage for label settings.
- */
-
-// LocalStorage key to save label data.
-function LSKEY_LABEL_LIST () {
-    return __WEBPACK_IMPORTED_MODULE_0__core__["applicationName"]() + '-label-list'
-}
-
-/**
- * Get the labels from the storage.
- */
-function getLabelList () {
-    return JSON.parse(localStorage.getItem(LSKEY_LABEL_LIST()) || '{}')
-}
-
-/**
- * Save the labels to the storage.
- */
-function saveLabelList (data) {
-    localStorage.setItem(LSKEY_LABEL_LIST(), JSON.stringify(data))
-}
-
-
-/***/ }),
-/* 6 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["setup"] = setup;
 /* harmony export (immutable) */ __webpack_exports__["applicationName"] = applicationName;
@@ -5174,7 +5137,7 @@ const validLabelTypes = ['span', 'one-way', 'two-way', 'link']
 
 
 /***/ }),
-/* 7 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5370,37 +5333,58 @@ function loadFileAsText (file) {
 
 
 /***/ }),
+/* 7 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = getLabelList;
+/* harmony export (immutable) */ __webpack_exports__["b"] = saveLabelList;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__core__ = __webpack_require__(5);
+
+
+/**
+ * Storage for label settings.
+ */
+
+// LocalStorage key to save label data.
+function LSKEY_LABEL_LIST () {
+    return __WEBPACK_IMPORTED_MODULE_0__core__["applicationName"]() + '-label-list'
+}
+
+/**
+ * Get the labels from the storage.
+ */
+function getLabelList () {
+    return JSON.parse(localStorage.getItem(LSKEY_LABEL_LIST()) || '{}')
+}
+
+/**
+ * Save the labels to the storage.
+ */
+function saveLabelList (data) {
+    localStorage.setItem(LSKEY_LABEL_LIST(), JSON.stringify(data))
+}
+
+
+/***/ }),
 /* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__alertDialog__ = __webpack_require__(0);
-/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "alertDialog", function() { return __WEBPACK_IMPORTED_MODULE_0__alertDialog__; });
-
-
-
-
-
-/***/ }),
-/* 9 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_browseButton__ = __webpack_require__(13);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__components_contentDropdown__ = __webpack_require__(16);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__components_primaryAnnoDropdown__ = __webpack_require__(17);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__components_referenceAnnoDropdown__ = __webpack_require__(18);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__components_annoListDropdown__ = __webpack_require__(19);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__components_downloadButton__ = __webpack_require__(20);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__components_labelInput__ = __webpack_require__(21);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__components_uploadButton__ = __webpack_require__(31);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__components_searchUI__ = __webpack_require__(33);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__uis__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__events__ = __webpack_require__(34);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__utils__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__core__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_browseButton__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__components_contentDropdown__ = __webpack_require__(15);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__components_primaryAnnoDropdown__ = __webpack_require__(16);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__components_referenceAnnoDropdown__ = __webpack_require__(17);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__components_annoListDropdown__ = __webpack_require__(18);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__components_downloadButton__ = __webpack_require__(19);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__components_labelInput__ = __webpack_require__(20);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__components_uploadButton__ = __webpack_require__(29);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__components_searchUI__ = __webpack_require__(31);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__uis__ = __webpack_require__(32);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__events__ = __webpack_require__(33);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__utils__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__core__ = __webpack_require__(5);
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "browseButton", function() { return __WEBPACK_IMPORTED_MODULE_0__components_browseButton__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "contentDropdown", function() { return __WEBPACK_IMPORTED_MODULE_1__components_contentDropdown__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "primaryAnnoDropdown", function() { return __WEBPACK_IMPORTED_MODULE_2__components_primaryAnnoDropdown__; });
@@ -5414,7 +5398,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "event", function() { return __WEBPACK_IMPORTED_MODULE_10__events__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "util", function() { return __WEBPACK_IMPORTED_MODULE_11__utils__; });
 /* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "core", function() { return __WEBPACK_IMPORTED_MODULE_12__core__; });
-__webpack_require__(10)
+__webpack_require__(9)
 
 
 
@@ -5434,13 +5418,13 @@ __webpack_require__(10)
 
 
 /***/ }),
-/* 10 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // style-loader: Adds some css to the DOM by adding a <style> tag
 
 // load the styles
-var content = __webpack_require__(11);
+var content = __webpack_require__(10);
 if(typeof content === 'string') content = [[module.i, content, '']];
 // Prepare cssTransformation
 var transform;
@@ -5448,7 +5432,7 @@ var transform;
 var options = {}
 options.transform = transform
 // add the styles to the DOM
-var update = __webpack_require__(3)(content, options);
+var update = __webpack_require__(2)(content, options);
 if(content.locals) module.exports = content.locals;
 // Hot Module Replacement
 if(false) {
@@ -5465,10 +5449,10 @@ if(false) {
 }
 
 /***/ }),
-/* 11 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__(2)(undefined);
+exports = module.exports = __webpack_require__(1)(undefined);
 // imports
 
 
@@ -5479,7 +5463,7 @@ exports.push([module.i, "@charset 'utf-8';\n\n/* Reset CSS */\nhtml{color:#000;b
 
 
 /***/ }),
-/* 12 */
+/* 11 */
 /***/ (function(module, exports) {
 
 
@@ -5574,7 +5558,7 @@ module.exports = function (css) {
 
 
 /***/ }),
-/* 13 */
+/* 12 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5835,13 +5819,13 @@ function getContentDropdownInitialText () {
 
 
 /***/ }),
-/* 14 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // style-loader: Adds some css to the DOM by adding a <style> tag
 
 // load the styles
-var content = __webpack_require__(15);
+var content = __webpack_require__(14);
 if(typeof content === 'string') content = [[module.i, content, '']];
 // Prepare cssTransformation
 var transform;
@@ -5849,7 +5833,7 @@ var transform;
 var options = {}
 options.transform = transform
 // add the styles to the DOM
-var update = __webpack_require__(3)(content, options);
+var update = __webpack_require__(2)(content, options);
 if(content.locals) module.exports = content.locals;
 // Hot Module Replacement
 if(false) {
@@ -5866,10 +5850,10 @@ if(false) {
 }
 
 /***/ }),
-/* 15 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__(2)(undefined);
+exports = module.exports = __webpack_require__(1)(undefined);
 // imports
 
 
@@ -5880,7 +5864,7 @@ exports.push([module.i, "/**\n * UI - Alert Dialog.\n */\n\n.alertdialog-danger 
 
 
 /***/ }),
-/* 16 */
+/* 15 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5966,7 +5950,7 @@ function resetCheckReferenceAnnoDropdown () {
 
 
 /***/ }),
-/* 17 */
+/* 16 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6033,7 +6017,7 @@ function setup ({
 
 
 /***/ }),
-/* 18 */
+/* 17 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6076,7 +6060,7 @@ function setup ({
 
 
 /***/ }),
-/* 19 */
+/* 18 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6143,7 +6127,7 @@ function setup ({
 
 
 /***/ }),
-/* 20 */
+/* 19 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6206,20 +6190,20 @@ function _getDownloadFileName (getCurrentContentName) {
 
 
 /***/ }),
-/* 21 */
+/* 20 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["setup"] = setup;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__core__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__behavior__ = __webpack_require__(24);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__listener__ = __webpack_require__(30);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__core__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__behavior__ = __webpack_require__(23);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__listener__ = __webpack_require__(28);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__color__ = __webpack_require__(4);
 /**
  * UI parts - Input Label.
  */
-__webpack_require__(22)
+__webpack_require__(21)
 
 
 
@@ -6257,13 +6241,13 @@ const getColorMap = __WEBPACK_IMPORTED_MODULE_3__color__["d" /* getColorMap */]
 
 
 /***/ }),
-/* 22 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // style-loader: Adds some css to the DOM by adding a <style> tag
 
 // load the styles
-var content = __webpack_require__(23);
+var content = __webpack_require__(22);
 if(typeof content === 'string') content = [[module.i, content, '']];
 // Prepare cssTransformation
 var transform;
@@ -6271,7 +6255,7 @@ var transform;
 var options = {}
 options.transform = transform
 // add the styles to the DOM
-var update = __webpack_require__(3)(content, options);
+var update = __webpack_require__(2)(content, options);
 if(content.locals) module.exports = content.locals;
 // Hot Module Replacement
 if(false) {
@@ -6288,10 +6272,10 @@ if(false) {
 }
 
 /***/ }),
-/* 23 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__(2)(undefined);
+exports = module.exports = __webpack_require__(1)(undefined);
 // imports
 
 
@@ -6302,23 +6286,21 @@ exports.push([module.i, "\n.inputLabel {\n    font-size: 20px;\n}\n\n/**\n * Lab
 
 
 /***/ }),
-/* 24 */
+/* 23 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["b"] = setup;
 /* harmony export (immutable) */ __webpack_exports__["a"] = defaultNamingRuleForExport;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__db__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__core__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__db__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__core__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__color__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__reader__ = __webpack_require__(25);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__editButton__ = __webpack_require__(29);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__reader__ = __webpack_require__(24);
 /**
  * Define the behaviors of label input component.
  */
-
 
 
 
@@ -6339,9 +6321,6 @@ function setup (createSpanAnnotation, createRelAnnotation, namingRuleForExport) 
     // Set trash button behavior.
     setupTrashButton()
 
-    // Set edit button behavior.
-    $('.js-label-tab-content').on('click', '.js-label-edit', __WEBPACK_IMPORTED_MODULE_6__editButton__["a" /* default */])
-
     // Set the action when a label is clicked.
     setupLabelText(createSpanAnnotation, createRelAnnotation)
 
@@ -6356,25 +6335,32 @@ function defaultNamingRuleForExport (exportProcess) {
     exportProcess('pdfanno.conf')
 }
 
+function initializeLabelDb () {
+    const labelTypes = ['span', 'one-way', 'two-way', 'link']
+    const defaultColor = __WEBPACK_IMPORTED_MODULE_4__color__["b" /* colors */][0]
+    const labelList = __WEBPACK_IMPORTED_MODULE_2__db__["a" /* getLabelList */]()
+
+    labelTypes.forEach((labelType) => {
+        const labelTypeObj = labelList[labelType] || { labels : [] }
+        if (labelTypeObj.labels.length === 0) {
+            if (labelType === 'span') {
+                labelTypeObj.labels.push(['span1', defaultColor])
+            } else {
+                labelTypeObj.labels.push(['relation1', defaultColor])
+            }
+        }
+        labelList[labelType] = labelTypeObj
+    })
+    __WEBPACK_IMPORTED_MODULE_2__db__["b" /* saveLabelList */](labelList)
+}
+
 /**
  * Setup the tab behavior.
  */
 function setupTabClick () {
     $('.js-label-tab').on('click', e => {
         const type = $(e.currentTarget).data('type')
-        let d = __WEBPACK_IMPORTED_MODULE_2__db__["a" /* getLabelList */]()
-        const labelObject = d[type] || {}
-        let labels
-        if (labelObject.labels === undefined) {
-            const text = type === 'span' ? 'span1' : 'relation1'
-            labels = [ [ text, __WEBPACK_IMPORTED_MODULE_4__color__["b" /* colors */][0] ] ]
-        } else {
-            labels = labelObject.labels
-        }
-
-        labelObject.labels = labels
-        d[type] = labelObject
-        __WEBPACK_IMPORTED_MODULE_2__db__["b" /* saveLabelList */](d)
+        const labels = __WEBPACK_IMPORTED_MODULE_2__db__["a" /* getLabelList */]()[type].labels
 
         // currentTab = type
         __WEBPACK_IMPORTED_MODULE_3__core__["f" /* setCurrentTab */](type)
@@ -6393,9 +6379,6 @@ function setupTabClick () {
 
             $ul.append(`
                 <li class="label-list__item">
-                    <div class="label-list__btn js-label-edit" data-index="${index}">
-                        <i class="fa fa-edit fa-2x"></i>
-                    </div>
                     <div class="label-list__btn js-label-trash" data-index="${index}">
                         <i class="fa fa-trash-o fa-2x"></i>
                     </div>
@@ -6422,6 +6405,7 @@ function setupTabClick () {
     })
 
     // Setup the initial tab content.
+    initializeLabelDb()
     $('.js-label-tab[data-type="span"]').click()
 }
 
@@ -6623,14 +6607,14 @@ function setupImportExportLink (namingRuleForExport) {
 
 
 /***/ }),
-/* 25 */
+/* 24 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml__ = __webpack_require__(26);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml__ = __webpack_require__(25);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_toml__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__core__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__core__ = __webpack_require__(5);
 
 
 
@@ -6658,11 +6642,11 @@ function setupImportExportLink (namingRuleForExport) {
 
 
 /***/ }),
-/* 26 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var parser = __webpack_require__(27);
-var compiler = __webpack_require__(28);
+var parser = __webpack_require__(26);
+var compiler = __webpack_require__(27);
 
 module.exports = {
   parse: function(input) {
@@ -6673,7 +6657,7 @@ module.exports = {
 
 
 /***/ }),
-/* 27 */
+/* 26 */
 /***/ (function(module, exports) {
 
 module.exports = (function() {
@@ -10520,7 +10504,7 @@ module.exports = (function() {
 
 
 /***/ }),
-/* 28 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10724,89 +10708,12 @@ module.exports = {
 
 
 /***/ }),
-/* 29 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__core__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__uis__ = __webpack_require__(8);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__db__ = __webpack_require__(5);
-
-
-
-
-function setupLabelEditListener (inputField, labelText, editButton) {
-    const blurListener = (event) => {
-        event.stopPropagation()
-
-        const value = inputField.value.trim()
-        if (__WEBPACK_IMPORTED_MODULE_0__core__["e" /* isValidInput */](value)) {
-            // Get <ul class="label-list" data-type="...">
-            const labelType = $(inputField).parentsUntil('.label-list').parent()[0].getAttribute('data-type')
-            const oldValue = labelText.textContent.trim()
-            labelText.textContent = value
-
-            const labelList = __WEBPACK_IMPORTED_MODULE_2__db__["a" /* getLabelList */]()
-            labelList[labelType].labels.forEach((labelObject) => {
-                if (labelObject[0] === oldValue) {
-                    labelObject[0] = value
-                }
-            })
-            __WEBPACK_IMPORTED_MODULE_2__db__["b" /* saveLabelList */](labelList)
-
-            inputField.parentElement.replaceChild(labelText, inputField)
-            inputField.removeEventListener('blur', blurListener)
-            editButton.classList.remove('disabled')
-        } else {
-            const modal = __WEBPACK_IMPORTED_MODULE_1__uis__["alertDialog"].show({
-                type    : 'alert',
-                message : 'Nor white space, tab, or line break are not permitted.'
-            })
-            modal.on('hide.bs.modal', () => {
-                inputField.parentElement.replaceChild(labelText, inputField)
-                inputField.removeEventListener('blur', blurListener)
-                editButton.classList.remove('disabled')
-            })
-        }
-    }
-
-    const keyboardListener = (event) => {
-        if (event.type === 'keydown') {
-            if (event.key !== 'Enter' || event.altKey || event.ctrlkey || event.shiftKey) {
-                return false
-            } else {
-                event.stopPropagation()
-                inputField.removeEventListener('kewdown', keyboardListener)
-                inputField.blur()
-                return true
-            }
-        }
-    }
-    inputField.addEventListener('keydown', keyboardListener)
-    inputField.addEventListener('blur', blurListener)
-}
-
-/* harmony default export */ __webpack_exports__["a"] = (function (event) {
-    const labelText = event.currentTarget.parentElement.querySelector('.js-label')
-    const inputField = document.createElement('input')
-    inputField.setAttribute('type', 'text')
-    inputField.classList.add('label-list__input')
-    inputField.value = labelText.textContent.trim()
-    event.currentTarget.classList.add('disabled')
-    setupLabelEditListener(inputField, labelText, event.currentTarget)
-
-    event.currentTarget.parentElement.replaceChild(inputField, labelText)
-    inputField.focus()
-});
-
-
-/***/ }),
-/* 30 */
+/* 28 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = setup;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__core__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__core__ = __webpack_require__(3);
 /**
  * Listeners for Input Label.
  */
@@ -10912,7 +10819,7 @@ function handleAnnotationDeselected () {
 
 
 /***/ }),
-/* 31 */
+/* 29 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -10921,7 +10828,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["uploadPDF"] = uploadPDF;
 /* harmony export (immutable) */ __webpack_exports__["setResult"] = setResult;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__uis_alertDialog__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__funcs_upload__ = __webpack_require__(32);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__funcs_upload__ = __webpack_require__(30);
 /**
  * UI parts - Upload Button.
  */
@@ -10992,7 +10899,7 @@ function setResult (text) {
 
 
 /***/ }),
-/* 32 */
+/* 30 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -11068,7 +10975,7 @@ function arrayBufferToBase64 (buffer) {
 
 
 /***/ }),
-/* 33 */
+/* 31 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -11422,7 +11329,20 @@ function searchByDictionary (texts = []) {
 
 
 /***/ }),
-/* 34 */
+/* 32 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__alertDialog__ = __webpack_require__(0);
+/* harmony reexport (module object) */ __webpack_require__.d(__webpack_exports__, "alertDialog", function() { return __WEBPACK_IMPORTED_MODULE_0__alertDialog__; });
+
+
+
+
+
+/***/ }),
+/* 33 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
