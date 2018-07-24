@@ -202,7 +202,7 @@ class AnnotationContainer{
    *  text: label text
    *  color: pickuped color(hex string)
    *  uuid: annotation's uuid(when end edit label text only)
-   *  annoType: 'span', 'one-way', 'two-way', and 'link'
+   *  annoType: 'span' and 'relation'
    *
    * when end edit label text; uuid and color
    * when change color on color picker; text, color, and annoType
@@ -219,9 +219,7 @@ class AnnotationContainer{
               }
               break;
 
-            case 'one-way':
-            case 'two-way':
-            case 'link':
+            case 'relation':
               if ('relation' == annotation.type && query.annoType == annotation.direction ) {
                 annotation.setColor(query.color);
                 return true;
