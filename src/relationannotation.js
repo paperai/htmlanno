@@ -95,8 +95,7 @@ class RelationAnnotation extends Annotation {
 
   static isMydata(toml){
     return (
-      undefined !== toml && RelationAnnotation.Type === toml.type && 
-      ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
+      undefined !== toml && RelationAnnotation.Type === toml.type
     );
   }
 
