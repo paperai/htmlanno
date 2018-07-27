@@ -150,7 +150,7 @@ class Htmlanno{
 
     AnnoUI.downloadButton.setup({
       getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
-      getCurrentContentName: ()=> {
+      getDownloadFileName: () => {
          if (undefined == this.currentContentFileName) {
            WindowEvent.emit(
              'open-alert-dialog',
