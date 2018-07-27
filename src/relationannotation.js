@@ -86,9 +86,8 @@ class RelationAnnotation extends Annotation {
   saveToml(){
     // There is used '_id'. the uuid is set by constructor inner process, the _id is set by TomlTool#saveToml().
     return [
-      `type = "${RelationAnnotation.Type}"`,
-      `dir = "${this._direction}"`,
-      `ids = ["${this.startingCircle.highlight._id}", "${this.endingCircle.highlight._id}"]`,
+      `head = "${this.startingCircle.highlight._id}"`,
+      `tail = "${this.endingCircle.highlight._id}"`,
       `label = "${this.content()}"`
     ].join("\n");
   }

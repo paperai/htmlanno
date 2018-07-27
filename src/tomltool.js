@@ -4,7 +4,7 @@ const RelationAnnotation = require("./relationannotation.js");
 const Annotation = require("./annotation.js");
 
 exports.saveToml = (annotationSet)=>{
-  const data = ["version = 0.1"];
+  const data = ["version = 0.2.0"];
   let id = 1;
   annotationSet.forEach((annotation)=>{
     annotation._id = id;
@@ -12,7 +12,7 @@ exports.saveToml = (annotationSet)=>{
   });
   annotationSet.forEach((annotation)=>{
     data.push("");
-    data.push(`[${annotation._id}]`);
+    data.push(`[[${annotation.type}s]]`);
     data.push(annotation.saveToml());
   });
   return [data.join("\n")];
