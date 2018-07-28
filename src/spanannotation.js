@@ -122,7 +122,7 @@ class SpanAnnotation extends Annotation {
   saveToml(){
     return [
       `id = "${this._id}"`,
-      `range = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
+      `textrange = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
       `label = "${this.content()}"`,
       'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"'
     ].join("\n");
@@ -196,6 +196,15 @@ class SpanAnnotation extends Annotation {
       });
       resolve(targetExists);
     });
+  }
+
+  static parseToml(toml, color, referenceId) {
+    if (color === undefined) {
+      color = {r: 255, g: 165, b: 0};
+    }
+    const instance = new SpanAnnotation(toml.textrange[0], toml.textrange[1], toml.label, referenceId);
+    instance.setColor(color);
+    return instance;
   }
 }
 
