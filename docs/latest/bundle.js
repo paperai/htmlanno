@@ -11519,7 +11519,7 @@ class SpanAnnotation extends Annotation {
   saveToml(){
     return [
       `id = "${this._id}"`,
-      `range = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
+      `textrange = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
       `label = "${this.content()}"`,
       'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"'
     ].join("\n");
@@ -11593,6 +11593,15 @@ class SpanAnnotation extends Annotation {
       });
       resolve(targetExists);
     });
+  }
+
+  static parseToml(toml, color, referenceId) {
+    if (color === undefined) {
+      color = {r: 255, g: 165, b: 0};
+    }
+    const instance = new SpanAnnotation(toml.textrange[0], toml.textrange[1], toml.label, referenceId);
+    instance.setColor(color);
+    return instance;
   }
 }
 
@@ -11746,6 +11755,34 @@ class RelationAnnotation extends Annotation {
       });
       resolve(targetExists);
     });
+  }
+
+  static parseToml(toml, color, referenceId) {
+    let startingHighlight = undefined;
+    let endingHighlight = undefined;
+    annotationContainer.forEach((annotation) => {
+      if (annotation._id === toml.head) {
+        startingHighlight = annotation;
+      }
+      if (annotation._id === toml.tail) {
+        endingHighlight = annotation;
+      }
+    });
+    if (startingHighlight !== undefined && endingHighlight !== undefined) {
+      const instance = new RelationAnnotation(
+        startingHighlight.circle, endingHighlight.circle,
+        'relation', // direction
+        referenceId
+      );
+      instance.setContent(toml.label);
+      if (color !== undefined) {
+        instance.setColor(color); 
+      }
+
+      return instance;
+    } else {
+      return null;
+    }
   }
 }
 
@@ -19539,30 +19576,13 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
     if ("version" == key) {
       continue;
     }
-    let annotation = undefined;
     // Span.
     if (key === SpanAnnotation.Type + 's') {
-      tomlObj[key].forEach((anToml) => {
-        annotation = highlighter.addToml(anToml, referenceId);
-        if (null != annotation) {
-          annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
-          annotation.setFileContent(annotationFileObj);
-        }
-      });
+      _parseToml(tomlObj[key], referenceId, SpanAnnotation.parseToml);
     }
-    // Relation(one-way, two-way, or link)
+    // Relation.
     if (key === RelationAnnotation.Type + 's') {
-      tomlObj[key].forEach((anToml) => {
-        annotation = arrowConnector.addToml(anToml, referenceId);
-        if (null != annotation) {
-          annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
-          annotation.setFileContent(annotationFileObj);
-        }
-      });
-    }
-    if (null == annotation) {
-      console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
-      console.log(tomlObj[key]);
+      _parseToml(tomlObj[key], referenceId, RelationAnnotation.parseToml);
     }
   }
 };
@@ -19585,6 +19605,20 @@ function _getColor(colorMap, type, labelText) {
   return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
 }
 
+function _parseToml(tomlList, referenceId, parser) {
+  tomlList.forEach((anToml) => {
+    const annotation = parser(
+      anToml, _getColor(colorMap, SpanAnnotation.Type, anToml.label), referenceId
+    );
+    if (annotation === null) {
+      console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
+      console.log(tomlObj[key]);
+    } else {
+      annotation.setFileContent(annotationFileObj);
+      annotationContainer.add(annotation);
+    }
+  });
+}
 
 
 /***/ }),
@@ -24032,25 +24066,6 @@ class Highlighter{
     return highlight;
   }
 
-  addToml(toml, referenceId){
-    try {
-      // TODO if (!selection.isCollapsed)
-      const span = this._create(
-        toml.range[0], toml.range[1], toml.label, referenceId
-      );
-      if (null != span) {
-        span._id = toml.id; // This is used to associate with RelationAnnotation.
-        span.blur();
-      }
-      return span;
-    } catch(ex) {
-      console.log(`id: ${toml.id}, referenceId: ${referenceId}, toml is the following;`);
-      console.log(toml);
-      console.log(ex);
-      return null;
-    }
-  }
-
   get(id, referenceId){
     return this.highlights.findById(Annotation.createId(id, referenceId));
   }
@@ -24069,32 +24084,6 @@ const Annotation = __webpack_require__(1);
 class ArrowConnector{
   constructor(annotationContainer){
     this.annotations = annotationContainer;
-  }
-
-  addToml(toml, referenceId){
-    let startingHighlight = undefined;
-    let endingHighlight = undefined;
-    annotationContainer.forEach((annotation) => {
-      if (annotation._id == toml.head) {
-        startingHighlight = annotation;
-      }
-      if (annotation._id == toml.tail) {
-        endingHighlight = annotation;
-      }
-    });
-    if (undefined != startingHighlight && undefined != endingHighlight) {
-      const relation = new RelationAnnotation(
-        startingHighlight.circle, endingHighlight.circle,
-        'relation', // direction
-        referenceId
-      );
-      relation.setContent(toml.label);
-      annotationContainer.add(relation);
-
-      return relation;
-    } else {
-      return null;
-    }
   }
 
   remove(referenceId){
