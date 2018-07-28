@@ -142,6 +142,34 @@ class RelationAnnotation extends Annotation {
       resolve(targetExists);
     });
   }
+
+  static parseToml(toml, color, referenceId) {
+    let startingHighlight = undefined;
+    let endingHighlight = undefined;
+    annotationContainer.forEach((annotation) => {
+      if (annotation._id === toml.head) {
+        startingHighlight = annotation;
+      }
+      if (annotation._id === toml.tail) {
+        endingHighlight = annotation;
+      }
+    });
+    if (startingHighlight !== undefined && endingHighlight !== undefined) {
+      const instance = new RelationAnnotation(
+        startingHighlight.circle, endingHighlight.circle,
+        'relation', // direction
+        referenceId
+      );
+      instance.setContent(toml.label);
+      if (color !== undefined) {
+        instance.setColor(color); 
+      }
+
+      return instance;
+    } else {
+      return null;
+    }
+  }
 }
 
 module.exports = RelationAnnotation;
