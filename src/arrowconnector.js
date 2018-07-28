@@ -6,32 +6,6 @@ class ArrowConnector{
     this.annotations = annotationContainer;
   }
 
-  addToml(toml, referenceId){
-    let startingHighlight = undefined;
-    let endingHighlight = undefined;
-    annotationContainer.forEach((annotation) => {
-      if (annotation._id == toml.head) {
-        startingHighlight = annotation;
-      }
-      if (annotation._id == toml.tail) {
-        endingHighlight = annotation;
-      }
-    });
-    if (undefined != startingHighlight && undefined != endingHighlight) {
-      const relation = new RelationAnnotation(
-        startingHighlight.circle, endingHighlight.circle,
-        'relation', // direction
-        referenceId
-      );
-      relation.setContent(toml.label);
-      annotationContainer.add(relation);
-
-      return relation;
-    } else {
-      return null;
-    }
-  }
-
   remove(referenceId){
     let promises = [];
     this.annotations.forEach((annotation, i)=>{
