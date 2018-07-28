@@ -204,6 +204,7 @@ class SpanAnnotation extends Annotation {
     }
     const instance = new SpanAnnotation(toml.textrange[0], toml.textrange[1], toml.label, referenceId);
     instance.setColor(color);
+    instance._id = toml.id;
     return instance;
   }
 }
