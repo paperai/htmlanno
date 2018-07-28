@@ -138,7 +138,7 @@ class Annotation {
   }
 
   /**
-   * Returns annotation direction.
+   * Returns annotation direction (CURRENT VERSION, NOT USED)
    * direction ::= 'one-way'|'two-way'|'link'
    * this method expects ths subclass to override.
    *
@@ -5131,7 +5131,7 @@ function applicationName () {
     return _applicationName
 }
 
-const validLabelTypes = ['span', 'one-way', 'two-way', 'link']
+const validLabelTypes = ['span', 'relation']
 /* harmony export (immutable) */ __webpack_exports__["validLabelTypes"] = validLabelTypes;
 
 
@@ -5144,9 +5144,14 @@ const validLabelTypes = ['span', 'one-way', 'two-way', 'link']
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["setupResizableColumns"] = setupResizableColumns;
 /* harmony export (immutable) */ __webpack_exports__["tomlString"] = tomlString;
+/* harmony export (immutable) */ __webpack_exports__["toml2object"] = toml2object;
 /* harmony export (immutable) */ __webpack_exports__["uuid"] = uuid;
 /* harmony export (immutable) */ __webpack_exports__["download"] = download;
 /* harmony export (immutable) */ __webpack_exports__["loadFileAsText"] = loadFileAsText;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml__ = __webpack_require__(24);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_toml__);
+
+
 /**
  * Make the UI resizable.
  */
@@ -5223,51 +5228,60 @@ function setupResizableColumns () {
 }
 
 /**
- * Convert object to TOML String.
+ * Convert label object to TOML String.
  */
-function tomlString (obj, root = true) {
+function tomlString (obj, type = null) {
     let lines = []
-
-    // `version` is first.
-    if ('version' in obj) {
-        lines.push(`version = "${obj['version']}"`)
-        lines.push('')
-        delete obj['version']
-    }
-
-    // #paperanno-ja/issues/38
-    // Make all values in `position` as string.
-    if ('position' in obj) {
-        let position = obj.position
-        position = position.map(p => {
-            if (typeof p === 'number') {
-                return String(p)
-            } else {
-                return p.map(v => String(v))
-            }
-        })
-        obj.position = position
-    }
 
     Object.keys(obj).forEach(prop => {
         let val = obj[prop]
-        if (typeof val === 'string') {
-            lines.push(`${prop} = "${val}"`)
-            root && lines.push('')
-        } else if (typeof val === 'number') {
-            lines.push(`${prop} = ${val}`)
-            root && lines.push('')
-        } else if (isArray(val)) {
-            lines.push(`${prop} = ${JSON.stringify(val)}`)
-            root && lines.push('')
-        } else if (typeof val === 'object') {
-            lines.push(`[${prop}]`)
-            lines.push(tomlString(val, false))
-            root && lines.push('')
+        if (prop === 'span' || prop === 'relation') {
+            lines.push(tomlString(val, prop))
+        } else if (prop === 'labels') {
+            if (isArray(val)) {
+                val.forEach(v => {
+                    if (type !== null) {
+                        lines.push(`[[${type}]]`)
+                    }
+                    lines.push(`label = "${escapeDoubleQuote(v[0])}"`)
+                    lines.push(`color = "${escapeDoubleQuote(v[1])}"`)
+                    lines.push('')
+                })
+            }
         }
     })
 
     return lines.join('\n')
+}
+
+/**
+ * Convert TOML String to label object.
+ *
+ * @export
+ * @param {String} tomlData
+ */
+function toml2object (tomlData) {
+    const data = __WEBPACK_IMPORTED_MODULE_0_toml___default.a.parse(tomlData)
+    const object = {}
+    ;['span', 'relation'].forEach(type => {
+        object[type] = {}
+        object[type].labels = []
+        if (isArray(data[type])) {
+            data[type].forEach(item => {
+                object[type].labels.push([unescapeDoubleQuote(item.label), unescapeDoubleQuote(item.color)])
+            })
+        }
+    })
+
+    return object
+}
+
+function escapeDoubleQuote (str) {
+    return str.replace(/"/g, '\\"')
+}
+
+function unescapeDoubleQuote (str) {
+    return str.replace(/\\"/g, '"')
 }
 
 /**
@@ -6084,12 +6098,8 @@ function setup ({
             let icon
             if (a.type === 'span') {
                 icon = '<i class="fa fa-pencil"></i>'
-            } else if (a.type === 'relation' && a.direction === 'one-way') {
+            } else if (a.type === 'relation' && a.direction === 'relation') {
                 icon = '<i class="fa fa-long-arrow-right"></i>'
-            } else if (a.type === 'relation' && a.direction === 'two-way') {
-                icon = '<i class="fa fa-arrows-h"></i>'
-            } else if (a.type === 'relation' && a.direction === 'link') {
-                icon = '<i class="fa fa-minus"></i>'
             } else if (a.type === 'area') {
                 icon = '<i class="fa fa-square-o"></i>'
             }
@@ -6142,7 +6152,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
  */
 function setup ({
     getAnnotationTOMLString,
-    getCurrentContentName,
+    getDownloadFileName,
     didDownloadCallback = function () {}
 }) {
     $('#downloadButton').off('click').on('click', e => {
@@ -6153,7 +6163,7 @@ function setup ({
             let blobURL = window.URL.createObjectURL(blob)
             let a = document.createElement('a')
             document.body.appendChild(a) // for firefox working correctly.
-            a.download = _getDownloadFileName(getCurrentContentName)
+            a.download = _getDownloadFileName(getDownloadFileName)
             a.href = blobURL
             a.click()
             a.parentNode.removeChild(a)
@@ -6168,7 +6178,7 @@ function setup ({
 /**
  * Get the file name for download.
  */
-function _getDownloadFileName (getCurrentContentName) {
+function _getDownloadFileName (getDownloadFileName) {
 
     // The name of Primary Annotation.
     let primaryAnnotationName
@@ -6182,10 +6192,8 @@ function _getDownloadFileName (getCurrentContentName) {
         return primaryAnnotationName
     }
 
-    // The name of Content.
-    let pdfFileName = getCurrentContentName()
-    let annoName = pdfFileName.replace(/\.pdf$/i, '.anno')
-    return annoName
+    // The name of Annotation file.
+    return getDownloadFileName()
 }
 
 
@@ -6297,7 +6305,7 @@ exports.push([module.i, "\n.inputLabel {\n    font-size: 20px;\n}\n\n/**\n * Lab
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__db__ = __webpack_require__(7);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__core__ = __webpack_require__(3);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__color__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__reader__ = __webpack_require__(24);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__reader__ = __webpack_require__(27);
 /**
  * Define the behaviors of label input component.
  */
@@ -6335,25 +6343,32 @@ function defaultNamingRuleForExport (exportProcess) {
     exportProcess('pdfanno.conf')
 }
 
+function initializeLabelDb () {
+    const defaultColor = __WEBPACK_IMPORTED_MODULE_4__color__["b" /* colors */][0]
+    const labelList = __WEBPACK_IMPORTED_MODULE_2__db__["a" /* getLabelList */]()
+
+    document.querySelectorAll('.js-label-tab').forEach((labelTab) => {
+        const labelType = labelTab.getAttribute('data-type')
+        const labelTypeObj = labelList[labelType] || { labels : [] }
+        if (labelTypeObj.labels.length === 0) {
+            if (labelType === 'span') {
+                labelTypeObj.labels.push(['span1', defaultColor])
+            } else {
+                labelTypeObj.labels.push(['relation1', defaultColor])
+            }
+        }
+        labelList[labelType] = labelTypeObj
+    })
+    __WEBPACK_IMPORTED_MODULE_2__db__["b" /* saveLabelList */](labelList)
+}
+
 /**
  * Setup the tab behavior.
  */
 function setupTabClick () {
     $('.js-label-tab').on('click', e => {
         const type = $(e.currentTarget).data('type')
-        let d = __WEBPACK_IMPORTED_MODULE_2__db__["a" /* getLabelList */]()
-        const labelObject = d[type] || {}
-        let labels
-        if (labelObject.labels === undefined) {
-            const text = type === 'span' ? 'span1' : 'relation1'
-            labels = [ [ text, __WEBPACK_IMPORTED_MODULE_4__color__["b" /* colors */][0] ] ]
-        } else {
-            labels = labelObject.labels
-        }
-
-        labelObject.labels = labels
-        d[type] = labelObject
-        __WEBPACK_IMPORTED_MODULE_2__db__["b" /* saveLabelList */](d)
+        const labels = __WEBPACK_IMPORTED_MODULE_2__db__["a" /* getLabelList */]()[type].labels
 
         // currentTab = type
         __WEBPACK_IMPORTED_MODULE_3__core__["f" /* setCurrentTab */](type)
@@ -6398,6 +6413,7 @@ function setupTabClick () {
     })
 
     // Setup the initial tab content.
+    initializeLabelDb()
     $('.js-label-tab[data-type="span"]').click()
 }
 
@@ -6517,7 +6533,7 @@ function setupLabelText (createSpanAnnotation, createRelAnnotation) {
         console.log('add:', color)
         if (type === 'span') {
             createSpanAnnotation({ text, color })
-        } else if (type === 'one-way' || type === 'two-way' || type === 'link') {
+        } else if (type === 'relation') {
             createRelAnnotation({ type, text, color })
         }
     })
@@ -6600,45 +6616,10 @@ function setupImportExportLink (namingRuleForExport) {
 
 /***/ }),
 /* 24 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml__ = __webpack_require__(25);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_toml___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_toml__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__core__ = __webpack_require__(5);
-
-
-
-
-/**
- * Read the label list from File object
- * @param File(Blob) object
- * @return Promise.resolve(labelData) ... success, returned labelData (this will use to `db.setLabelList(labelData)`)
- * @return Promise.reject(DOMError) ... error occurred on read the fileObj
- * @return Promise.reject(TypeError) ... invalid label type is found in read from fileObj
- */
-/* harmony default export */ __webpack_exports__["a"] = (async function (fileObj) {
-    const tomlString = await __WEBPACK_IMPORTED_MODULE_1__utils__["loadFileAsText"](fileObj)
-    if (tomlString === '') {
-        throw new TypeError('Empty data')
-    }
-    const labelData = __WEBPACK_IMPORTED_MODULE_0_toml___default.a.parse(tomlString)
-    for (let key in labelData) {
-        if (!__WEBPACK_IMPORTED_MODULE_2__core__["validLabelTypes"].includes(key)) {
-            throw new TypeError('Invalid label type; ' + key)
-        }
-    }
-    return labelData
-});
-
-
-/***/ }),
-/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var parser = __webpack_require__(26);
-var compiler = __webpack_require__(27);
+var parser = __webpack_require__(25);
+var compiler = __webpack_require__(26);
 
 module.exports = {
   parse: function(input) {
@@ -6649,7 +6630,7 @@ module.exports = {
 
 
 /***/ }),
-/* 26 */
+/* 25 */
 /***/ (function(module, exports) {
 
 module.exports = (function() {
@@ -10496,7 +10477,7 @@ module.exports = (function() {
 
 
 /***/ }),
-/* 27 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -10697,6 +10678,39 @@ function compile(nodes) {
 module.exports = {
   compile: compile
 };
+
+
+/***/ }),
+/* 27 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__core__ = __webpack_require__(5);
+// import toml from 'toml'
+
+
+
+/**
+ * Read the label list from File object
+ * @param File(Blob) object
+ * @return Promise.resolve(labelData) ... success, returned labelData (this will use to `db.setLabelList(labelData)`)
+ * @return Promise.reject(DOMError) ... error occurred on read the fileObj
+ * @return Promise.reject(TypeError) ... invalid label type is found in read from fileObj
+ */
+/* harmony default export */ __webpack_exports__["a"] = (async function (fileObj) {
+    const tomlString = await __WEBPACK_IMPORTED_MODULE_0__utils__["loadFileAsText"](fileObj)
+    if (tomlString === '') {
+        throw new TypeError('Empty data')
+    }
+    const labelData = __WEBPACK_IMPORTED_MODULE_0__utils__["toml2object"](tomlString)
+    for (let key in labelData) {
+        if (!__WEBPACK_IMPORTED_MODULE_1__core__["validLabelTypes"].includes(key)) {
+            throw new TypeError('Invalid label type; ' + key)
+        }
+    }
+    return labelData
+});
 
 
 /***/ }),
@@ -11504,15 +11518,11 @@ class SpanAnnotation extends Annotation {
 
   saveToml(){
     return [
-      `type = "${SpanAnnotation.Type}"`,
-      `position = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
-      'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
-      `label = "${this.content()}"`
+      `id = "${this._id}"`,
+      `range = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
+      `label = "${this.content()}"`,
+      'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"'
     ].join("\n");
-  }
-
-  static isMydata(toml){
-    return (undefined != toml && SpanAnnotation.Type == toml.type);
   }
 
   setContent(text){
@@ -11681,18 +11691,10 @@ class RelationAnnotation extends Annotation {
   saveToml(){
     // There is used '_id'. the uuid is set by constructor inner process, the _id is set by TomlTool#saveToml().
     return [
-      `type = "${RelationAnnotation.Type}"`,
-      `dir = "${this._direction}"`,
-      `ids = ["${this.startingCircle.highlight._id}", "${this.endingCircle.highlight._id}"]`,
+      `head = "${this.startingCircle.highlight._id}"`,
+      `tail = "${this.endingCircle.highlight._id}"`,
       `label = "${this.content()}"`
     ].join("\n");
-  }
-
-  static isMydata(toml){
-    return (
-      undefined !== toml && RelationAnnotation.Type === toml.type && 
-      ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
-    );
   }
 
   setContent(text){
@@ -18112,7 +18114,7 @@ class Htmlanno{
 
     AnnoUI.downloadButton.setup({
       getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
-      getCurrentContentName: ()=> {
+      getDownloadFileName: () => {
          if (undefined == this.currentContentFileName) {
            WindowEvent.emit(
              'open-alert-dialog',
@@ -19452,7 +19454,7 @@ class AnnotationContainer{
    *  text: label text
    *  color: pickuped color(hex string)
    *  uuid: annotation's uuid(when end edit label text only)
-   *  annoType: 'span', 'one-way', 'two-way', and 'link'
+   *  annoType: 'span' and 'relation'
    *
    * when end edit label text; uuid and color
    * when change color on color picker; text, color, and annoType
@@ -19469,9 +19471,7 @@ class AnnotationContainer{
               }
               break;
 
-            case 'one-way':
-            case 'two-way':
-            case 'link':
+            case 'relation':
               if ('relation' == annotation.type && query.annoType == annotation.direction ) {
                 annotation.setColor(query.color);
                 return true;
@@ -19517,8 +19517,9 @@ const SpanAnnotation = __webpack_require__(5);
 const RelationAnnotation = __webpack_require__(6);
 const Annotation = __webpack_require__(1);
 
+// TODO: change to AnnotationContainer.exportData (on pdfanno)
 exports.saveToml = (annotationSet)=>{
-  const data = ["version = 0.1"];
+  const data = ['version = "0.2.0"'];
   let id = 1;
   annotationSet.forEach((annotation)=>{
     annotation._id = id;
@@ -19526,7 +19527,8 @@ exports.saveToml = (annotationSet)=>{
   });
   annotationSet.forEach((annotation)=>{
     data.push("");
-    data.push(`[${annotation._id}]`);
+    // Annotation.type is 'span' and 'relation', but it on TOML is 'span`s`' and 'relation`s`'
+    data.push(`[[${annotation.type}s]]`);
     data.push(annotation.saveToml());
   });
   return [data.join("\n")];
@@ -19539,20 +19541,24 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
     }
     let annotation = undefined;
     // Span.
-    if (SpanAnnotation.isMydata(tomlObj[key])) {
-      annotation = highlighter.addToml(key, tomlObj[key], referenceId);
-      if (null != annotation) {
-        annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
-        annotation.setFileContent(annotationFileObj);
-      }
+    if (key === SpanAnnotation.Type + 's') {
+      tomlObj[key].forEach((anToml) => {
+        annotation = highlighter.addToml(anToml, referenceId);
+        if (null != annotation) {
+          annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
+          annotation.setFileContent(annotationFileObj);
+        }
+      });
     }
     // Relation(one-way, two-way, or link)
-    if (RelationAnnotation.isMydata(tomlObj[key])) {
-      annotation = arrowConnector.addToml(key, tomlObj[key], referenceId);
-      if (null != annotation) {
-        annotation.setColor(_getColor(colorMap, annotation.direction, annotation.text));
-        annotation.setFileContent(annotationFileObj);
-      }
+    if (key === RelationAnnotation.Type + 's') {
+      tomlObj[key].forEach((anToml) => {
+        annotation = arrowConnector.addToml(anToml, referenceId);
+        if (null != annotation) {
+          annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
+          annotation.setFileContent(annotationFileObj);
+        }
+      });
     }
     if (null == annotation) {
       console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);
@@ -23676,19 +23682,7 @@ class RenderRelation{
     this.move(position);
     this.eventHandlers = [];
 
-    switch(direction){
-      case 'one-way':
-        this.jObject = this._createOnewayArrowHead();
-        break;
-      case 'two-way':
-        this.jObject = this._createTwowayArrowHead();
-        break;
-      case 'link':
-        this.jObject = this._createLinkHead();
-        break;
-      default:
-        console.log('ERROR! Undefined type: ' + type);
-    }
+    this.jObject = this._createOnewayArrowHead();
 
     this.jObjectOutline = $(`
         <path
@@ -24038,19 +24032,19 @@ class Highlighter{
     return highlight;
   }
 
-  addToml(id, toml, referenceId){
+  addToml(toml, referenceId){
     try {
       // TODO if (!selection.isCollapsed)
       const span = this._create(
-        toml.position[0], toml.position[1], toml.label, referenceId
+        toml.range[0], toml.range[1], toml.label, referenceId
       );
       if (null != span) {
-        span._id = id; // This is used to associate with RelationAnnotation.
+        span._id = toml.id; // This is used to associate with RelationAnnotation.
         span.blur();
       }
       return span;
     } catch(ex) {
-      console.log(`id: ${id}, referenceId: ${referenceId}, toml is the following;`);
+      console.log(`id: ${toml.id}, referenceId: ${referenceId}, toml is the following;`);
       console.log(toml);
       console.log(ex);
       return null;
@@ -24077,21 +24071,21 @@ class ArrowConnector{
     this.annotations = annotationContainer;
   }
 
-  addToml(id, toml, referenceId){
+  addToml(toml, referenceId){
     let startingHighlight = undefined;
     let endingHighlight = undefined;
     annotationContainer.forEach((annotation) => {
-      if (annotation._id == toml.ids[0]) {
+      if (annotation._id == toml.head) {
         startingHighlight = annotation;
       }
-      if (annotation._id == toml.ids[1]) {
+      if (annotation._id == toml.tail) {
         endingHighlight = annotation;
       }
     });
     if (undefined != startingHighlight && undefined != endingHighlight) {
       const relation = new RelationAnnotation(
         startingHighlight.circle, endingHighlight.circle,
-        toml.dir,
+        'relation', // direction
         referenceId
       );
       relation.setContent(toml.label);
