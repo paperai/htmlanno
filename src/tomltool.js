@@ -3,8 +3,9 @@ const SpanAnnotation = require("./spanannotation.js");
 const RelationAnnotation = require("./relationannotation.js");
 const Annotation = require("./annotation.js");
 
+// TODO: change to AnnotationContainer.exportData (on pdfanno)
 exports.saveToml = (annotationSet)=>{
-  const data = ["version = 0.1"];
+  const data = ['version = "0.2.0"'];
   let id = 1;
   annotationSet.forEach((annotation)=>{
     annotation._id = id;
@@ -12,7 +13,8 @@ exports.saveToml = (annotationSet)=>{
   });
   annotationSet.forEach((annotation)=>{
     data.push("");
-    data.push(`[${annotation._id}]`);
+    // Annotation.type is 'span' and 'relation', but it on TOML is 'span`s`' and 'relation`s`'
+    data.push(`[[${annotation.type}s]]`);
     data.push(annotation.saveToml());
   });
   return [data.join("\n")];
@@ -25,20 +27,24 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, highlighter, arrowConnec
     }
     let annotation = undefined;
     // Span.
-    if (SpanAnnotation.isMydata(tomlObj[key])) {
-      annotation = highlighter.addToml(key, tomlObj[key], referenceId);
-      if (null != annotation) {
-        annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
-        annotation.setFileContent(annotationFileObj);
-      }
+    if (key === SpanAnnotation.Type + 's') {
+      tomlObj[key].forEach((anToml) => {
+        annotation = highlighter.addToml(anToml, referenceId);
+        if (null != annotation) {
+          annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
+          annotation.setFileContent(annotationFileObj);
+        }
+      });
     }
     // Relation(one-way, two-way, or link)
-    if (RelationAnnotation.isMydata(tomlObj[key])) {
-      annotation = arrowConnector.addToml(key, tomlObj[key], referenceId);
-      if (null != annotation) {
-        annotation.setColor(_getColor(colorMap, annotation.direction, annotation.text));
-        annotation.setFileContent(annotationFileObj);
-      }
+    if (key === RelationAnnotation.Type + 's') {
+      tomlObj[key].forEach((anToml) => {
+        annotation = arrowConnector.addToml(anToml, referenceId);
+        if (null != annotation) {
+          annotation.setColor(_getColor(colorMap, annotation.type, annotation.text));
+          annotation.setFileContent(annotationFileObj);
+        }
+      });
     }
     if (null == annotation) {
       console.log(`Cannot create an annotation. id: ${key}, referenceId: ${referenceId}, toml(the following).`);

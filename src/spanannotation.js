@@ -121,15 +121,11 @@ class SpanAnnotation extends Annotation {
 
   saveToml(){
     return [
-      `type = "${SpanAnnotation.Type}"`,
-      `position = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
-      'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"',
-      `label = "${this.content()}"`
+      `id = "${this._id}"`,
+      `range = [${this.domHighlight.startOffset}, ${this.domHighlight.endOffset}]`,
+      `label = "${this.content()}"`,
+      'text = "' + (undefined == this.elements ? '' : $(this.elements).text()) + '"'
     ].join("\n");
-  }
-
-  static isMydata(toml){
-    return (undefined != toml && SpanAnnotation.Type == toml.type);
   }
 
   setContent(text){

@@ -62,19 +62,19 @@ class Highlighter{
     return highlight;
   }
 
-  addToml(id, toml, referenceId){
+  addToml(toml, referenceId){
     try {
       // TODO if (!selection.isCollapsed)
       const span = this._create(
-        toml.position[0], toml.position[1], toml.label, referenceId
+        toml.range[0], toml.range[1], toml.label, referenceId
       );
       if (null != span) {
-        span._id = id; // This is used to associate with RelationAnnotation.
+        span._id = toml.id; // This is used to associate with RelationAnnotation.
         span.blur();
       }
       return span;
     } catch(ex) {
-      console.log(`id: ${id}, referenceId: ${referenceId}, toml is the following;`);
+      console.log(`id: ${toml.id}, referenceId: ${referenceId}, toml is the following;`);
       console.log(toml);
       console.log(ex);
       return null;
