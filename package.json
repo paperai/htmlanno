@@ -9,7 +9,7 @@
     "publish:stable": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish_stable",
     "build-test": "webpack --progress --colors --config ./test/webpack_test.config.js",
     "test": "jasmine",
-    "webtest": "karma start karma.conf.js"
+    "webtest": "karma start --single-run"
   },
   "dependencies": {
     "events": "^1.1.1",
@@ -31,6 +31,7 @@
     "karma-jquery": "^0.2.2",
     "karma-nodeunit": "^0.2.0",
     "karma-spec-reporter": "^0.0.31",
+    "karma-webpack": "^3.0.0",
     "run-sequence": "^2.2.1",
     "webpack": "^3.12.0",
     "webpack-dev-server": "^1.16.5"
