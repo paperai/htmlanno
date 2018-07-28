@@ -128,10 +128,6 @@ class SpanAnnotation extends Annotation {
     ].join("\n");
   }
 
-  static isMydata(toml){
-    return (undefined != toml && SpanAnnotation.Type == toml.type);
-  }
-
   setContent(text){
     if (undefined == this.jObject) {
       this._content = text;

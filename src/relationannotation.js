@@ -92,12 +92,6 @@ class RelationAnnotation extends Annotation {
     ].join("\n");
   }
 
-  static isMydata(toml){
-    return (
-      undefined !== toml && RelationAnnotation.Type === toml.type
-    );
-  }
-
   setContent(text){
     this.arrow.setContent(text);
   }
