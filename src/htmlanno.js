@@ -447,6 +447,7 @@ class Htmlanno{
     })
     .catch((reject) => {
       console.log(reject);
+      WindowEvent.emit('open-alert-dialog', {message: 'Read error'});
     });
   }
 

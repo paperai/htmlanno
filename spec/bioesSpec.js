@@ -54,28 +54,29 @@ Simmons	E-PER
 
       expect(instance.content).toBe('<p>-DOCSTART-</p><p>CRICKET - LEICESTERSHIRE TAKE OVER AT TOP AFTER INNINGS VICTORY .</p><p>CRICKET - ENGLISH COUNTY CHAMPIONSHIP SCORES .</p><p>West Indian all-rounder Phil Simmons</p>');
        expect(instance.annotations).toBeDefined();
-       expect(instance.annotations.length).toBe(4);
-       expect(instance.annotations[0]).toEqual({
-         type: 'span',
-         position: [20, 34],
+       expect(Object.keys(instance.annotations).length).toBe(1);
+       expect(instance.annotations.spans.length).toBe(4);
+       expect(instance.annotations.spans[0]).toEqual({
+         id: '1',
+         textrange: [20, 34],
          text: 'LEICESTERSHIRE',
          label: 'ORG'
        });
-       expect(instance.annotations[1]).toEqual({
-         type: 'span',
-         position: [85, 112],
+       expect(instance.annotations.spans[1]).toEqual({
+         id: '2',
+         textrange: [85, 112],
          text: 'ENGLISH COUNTY CHAMPIONSHIP',
          label: 'MISC'
        });
-       expect(instance.annotations[2]).toEqual({
-         type: 'span',
-         position: [121, 132],
+       expect(instance.annotations.spans[2]).toEqual({
+         id: '3',
+         textrange: [121, 132],
          text: 'West Indian',
          label: 'MISC'
        });
-       expect(instance.annotations[3]).toEqual({
-         type: 'span',
-         position: [145, 157],
+       expect(instance.annotations.spans[3]).toEqual({
+         id: '4',
+         textrange: [145, 157],
          text: 'Phil Simmons',
          label: 'PER'
        });
@@ -86,10 +87,11 @@ Simmons	E-PER
       expect(result).toBeTruthy();
 
       expect(instance.content).toBe('<p>SingleLine</p>');
-      expect(instance.annotations.length).toBe(1);
-      expect(instance.annotations[0]).toEqual({
-        type: 'span',
-        position: [0, 10],
+      expect(Object.keys(instance.annotations).length).toBe(1);
+      expect(instance.annotations.spans.length).toBe(1);
+      expect(instance.annotations.spans[0]).toEqual({
+        id: '1',
+        textrange: [0, 10],
         text: 'SingleLine',
         label: 'ANNOTATION'
       });
