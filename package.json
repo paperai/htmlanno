@@ -20,6 +20,7 @@
     "urijs": "^1.19.0"
   },
   "devDependencies": {
+    "fs-extra": "^1.0.0",
     "gulp": "^3.0.1",
     "jasmine-core": "^2.7.0",
     "karma": "^1.7.0",
