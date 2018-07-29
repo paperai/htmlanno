@@ -17800,7 +17800,7 @@ class Bioes {
     // '<p>xxx<p><p>yyy zzz</p><p>111</p>
     this._content = '';
     // The array includes Toml Object.
-    this._annotations = [];
+    this._annotations = {spans: []};
 
     // ['xxx', 'yyy zzz, '111', ...]
     let contentArray = [];
@@ -17838,7 +17838,7 @@ class Bioes {
              break;
            case 'E': // End span.
              if (undefined != currentSpan) {
-               this._annotations.push(
+               this._appendAnnotation(
                  this._createTomlObj(currentSpan, currentContentArray, contentArray)
                );
                currentSpan = undefined;
@@ -17847,13 +17847,14 @@ class Bioes {
              }
              break;
            case 'S': // Single a span.
-             this._annotations.push(
+             this._appendAnnotation(
                this._createTomlObj(
                  this._createSpanObject(this._parseLabel(type), currentContentArray),
                  currentContentArray,
                  contentArray
                )
              );
+             
              break;
            case 'O': // Other.
              break;
@@ -17895,8 +17896,8 @@ class Bioes {
     // Add the last space before context.
     start += 0 == spanObject.startIndex ? 0: 1;
     return {
-      type: 'span',
-      position: [start, (start + content.length)],
+      id: undefined,
+      textrange: [start, (start + content.length)],
       text: content,
       label: spanObject.label
     };
@@ -17904,6 +17905,11 @@ class Bioes {
 
   _contentArrayToString(contentArray) {
     return `<p>${contentArray.join('</p><p>')}</p>`;
+  }
+
+  _appendAnnotation(span) {
+    span.id = `${this._annotations.spans.length + 1}`;
+    this._annotations.spans.push(span);
   }
 }
 
@@ -18449,6 +18455,7 @@ class Htmlanno{
     })
     .catch((reject) => {
       console.log(reject);
+      WindowEvent.emit('open-alert-dialog', {message: 'Read error'});
     });
   }
 
