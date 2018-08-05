@@ -208,23 +208,19 @@ class AnnotationContainer{
    * when change color on color picker; text, color, and annoType
    */
   setColor (query) {
-    if (query.color !== undefined) {
-      if (query.text !== undefined) {
-        return this.forEachPromise((annotation) => {
-          return this._annotationUpdater(
-            query, annotation,
-            (q, a) => { return a.text === q.text },
-            (q, a) => { a.setColor(q.color) }      
-          );
-        });
-      } else if (query.uuid !== undefined) {
-        return new Promise((resolve, reject) => {
-          this.findByUuid(query.uuid).setColor(query.color)
-          resolve(true);
-        }).then()
-      }
-    } else {
-      return false
+    if (query.text !== undefined) {
+      return this.forEachPromise((annotation) => {
+        return this._annotationUpdater(
+          query, annotation,
+          (q, a) => { return a.text === q.text },
+          (q, a) => { a.setColor(q.color) }      
+        )
+      })
+    } else if (query.uuid !== undefined) {
+      return new Promise((resolve, reject) => {
+        this.findByUuid(query.uuid).setColor(query.color)
+        resolve(true);
+      })
     }
   }
 
@@ -237,7 +233,7 @@ class AnnotationContainer{
    *  annoType: 'span' and 'relation'
    *  oldText: the lable text of before edit (this is only when listen for editButton)
    *
-   * when end edit label text; text, annoType, and oldText
+   * when end edit label text; text, color, annoType, and oldText
    * when change color on color picker; text, color, and annoType
    * @see _annotationUpdater
    */
@@ -250,8 +246,6 @@ class AnnotationContainer{
           (q, a) => { a.setContent(q.text) }
         )
       })
-    } else {
-      return false
     }
   }
 

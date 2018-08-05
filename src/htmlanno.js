@@ -725,11 +725,10 @@ class Htmlanno{
   }
 
   handleLabelChange(query) {
-    let result = annotationContainer.setColor(query);
-    if (result === false) {
-      result = annotationContainer.setContext(query);
-    }
-    return result;
+    return Promise.all([
+      annotationContainer.setContext(query),
+      annotationContainer.setColor(query)
+    ])
   }
 
   getSelectedAnnotations() {
