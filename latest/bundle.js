@@ -19684,7 +19684,7 @@ class AnnotationContainer{
    *  annoType: 'span' and 'relation'
    *  oldText: the lable text of before edit (this is only when listen for editButton)
    *
-   * when end edit label text; text, annoType, and oldText
+   * when end edit label text; text, color, annoType, and oldText
    * when change color on color picker; text, color, and annoType
    * @see _annotationUpdater
    */
