@@ -1,6 +1,6 @@
 {
   "name": "htmlanno",
-  "version": "0.1.1-dev",
+  "version": "0.1.1",
   "description": "",
   "scripts": {
     "watch": "npm run _prepare && webpack-dev-server --inline",
