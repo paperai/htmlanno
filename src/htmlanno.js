@@ -144,7 +144,7 @@ class Htmlanno{
       saveAnnotationText: this.endEditLabel.bind(this),
       createSpanAnnotation: this.handleAddSpan.bind(this),
       createRelAnnotation: this.handleAddRelation.bind(this),
-      colorChangeListener: this.handleColorChange.bind(this),
+      labelChangeListener: this.handleLabelChange.bind(this),
       namingRuleForExport: this.getExportFileName.bind(this)
     });
 
@@ -724,8 +724,11 @@ class Htmlanno{
     );
   }
 
-  handleColorChange(query) {
-    return annotationContainer.setColor(query);
+  handleLabelChange(query) {
+    return Promise.all([
+      annotationContainer.setContext(query),
+      annotationContainer.setColor(query)
+    ])
   }
 
   getSelectedAnnotations() {
