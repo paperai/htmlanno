@@ -1,4 +1,5 @@
 const gulp = require('gulp');
+const ghPages = require('gulp-gh-pages');
 const fs = require('fs-extra');
 const path = require('path');
 const version = require('./package.json').version;
@@ -33,3 +34,16 @@ gulp.task('publish_stable', () => {
   baseDir = path.join('docs', version);
   publish();
 });
+
+gulp.task('deploy', () => {
+  if (process.env.NODE_ENV) {
+    const opts = {
+      branch: 'test-page',
+      //message: `update[timestamp] ${process.env.NODE_ENV}`
+    }
+    gulp.src(`./docs/${process.env.NODE_ENV}/**/*`).pipe(ghPages(opts))
+  } else {
+    throw "Usage: NODE_ENV='latest' gulp deploy"
+  }
+})
+
