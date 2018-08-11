@@ -144,13 +144,13 @@ class Htmlanno{
       saveAnnotationText: this.endEditLabel.bind(this),
       createSpanAnnotation: this.handleAddSpan.bind(this),
       createRelAnnotation: this.handleAddRelation.bind(this),
-      colorChangeListener: this.handleColorChange.bind(this),
+      labelChangeListener: this.handleLabelChange.bind(this),
       namingRuleForExport: this.getExportFileName.bind(this)
     });
 
     AnnoUI.downloadButton.setup({
       getAnnotationTOMLString: this.handleExportAnnotation.bind(this),
-      getCurrentContentName: ()=> {
+      getDownloadFileName: () => {
          if (undefined == this.currentContentFileName) {
            WindowEvent.emit(
              'open-alert-dialog',
@@ -362,7 +362,10 @@ class Htmlanno{
         resolve();
       })
     );
-    return Promise.all(promises).then();
+    return Promise.all(promises).then().catch((error) => {
+      console.log(error);
+      WindowEvent.emit('open-alert-dialog', {message: 'Read error'});
+    });
   }
 
   renderPrimaryAnnotation(annotationFileObj) {
@@ -444,6 +447,7 @@ class Htmlanno{
     })
     .catch((reject) => {
       console.log(reject);
+      WindowEvent.emit('open-alert-dialog', {message: 'Read error'});
     });
   }
 
@@ -466,14 +470,12 @@ class Htmlanno{
     if (undefined == uiAnnotation) {
       TomlTool.loadToml(
         annotationFileObj,
-        this.highlighter, this.arrowConnector,
         undefined, /* uiAnnotation.name */
         colorMap
       );
     } else {
       TomlTool.loadToml(
         annotationFileObj,
-        this.highlighter, this.arrowConnector,
         uiAnnotation.name,
         colorMap
       );
@@ -604,32 +606,35 @@ class Htmlanno{
    * called from reloadContent()
    */
   _afterContentLoading(contentData, loadingResult) {
-    this.removeAll();
-    contentData.content = loadingResult.content;
-    contentData.source  = undefined;
-    document.getElementById('viewer').innerHTML = contentData.content;
-    if (loadingResult.annotation !== undefined) {
-      document.querySelectorAll('#dropdownAnnoPrimary li').forEach((listElement) => {
-        const listName = listElement.textContent.trim();
-        if (loadingResult.annotation.name == listName) {
-          document.querySelector('#dropdownAnnoPrimary .js-text').textContent = listName;
-          listElement.querySelector('.fa-check').classList.remove('no-visible');
-        } else {
-          listElement.querySelector('.fa-check').classList.add('no-visible');
-        }
-      });
-      loadingResult.annotation.primary = true;
-      TomlTool.loadToml(
-        loadingResult.annotation,
-        this.highlighter,
-        this.arrowConnector,
-        undefined,
-        AnnoUI.labelInput.getColorMap()
-      );
-      WindowEvent.emit('annotationrendered');
+    try {
+      this.removeAll();
+      contentData.content = loadingResult.content;
+      contentData.source  = undefined;
+      document.getElementById('viewer').innerHTML = contentData.content;
+      if (loadingResult.annotation !== undefined) {
+        document.querySelectorAll('#dropdownAnnoPrimary li').forEach((listElement) => {
+          const listName = listElement.textContent.trim();
+          if (loadingResult.annotation.name == listName) {
+            document.querySelector('#dropdownAnnoPrimary .js-text').textContent = listName;
+            listElement.querySelector('.fa-check').classList.remove('no-visible');
+          } else {
+            listElement.querySelector('.fa-check').classList.add('no-visible');
+          }
+        });
+        loadingResult.annotation.primary = true;
+        TomlTool.loadToml(
+          loadingResult.annotation,
+          undefined,
+          AnnoUI.labelInput.getColorMap()
+        );
+        WindowEvent.emit('annotationrendered');
+      }
+      this.handleResize();
+      new Searcher();
+    } catch(error) {
+      console.log(error);
+      WindowEvent.emit('open-alert-dialog', {message: 'Read error'});
     }
-    this.handleResize();
-    new Searcher();
   }
 
   restoreAnnotations(beforeStatus) {
@@ -719,8 +724,11 @@ class Htmlanno{
     );
   }
 
-  handleColorChange(query) {
-    return annotationContainer.setColor(query);
+  handleLabelChange(query) {
+    return Promise.all([
+      annotationContainer.setContext(query),
+      annotationContainer.setColor(query)
+    ])
   }
 
   getSelectedAnnotations() {

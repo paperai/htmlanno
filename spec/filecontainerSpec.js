@@ -1,4 +1,3 @@
-global.FileReader = require('filereader');
 const FileContainer = require('../src/filecontainer.js');
 
 class DummyFileObj {

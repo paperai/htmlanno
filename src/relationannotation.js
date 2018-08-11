@@ -86,18 +86,10 @@ class RelationAnnotation extends Annotation {
   saveToml(){
     // There is used '_id'. the uuid is set by constructor inner process, the _id is set by TomlTool#saveToml().
     return [
-      `type = "${RelationAnnotation.Type}"`,
-      `dir = "${this._direction}"`,
-      `ids = ["${this.startingCircle.highlight._id}", "${this.endingCircle.highlight._id}"]`,
+      `head = "${this.startingCircle.highlight._id}"`,
+      `tail = "${this.endingCircle.highlight._id}"`,
       `label = "${this.content()}"`
     ].join("\n");
-  }
-
-  static isMydata(toml){
-    return (
-      undefined !== toml && RelationAnnotation.Type === toml.type && 
-      ("one-way" === toml.dir || "two-way" === toml.dir || "link" === toml.dir)
-    );
   }
 
   setContent(text){
@@ -149,6 +141,34 @@ class RelationAnnotation extends Annotation {
       });
       resolve(targetExists);
     });
+  }
+
+  static parseToml(toml, color, referenceId) {
+    let startingHighlight = undefined;
+    let endingHighlight = undefined;
+    annotationContainer.forEach((annotation) => {
+      if (annotation._id === toml.head) {
+        startingHighlight = annotation;
+      }
+      if (annotation._id === toml.tail) {
+        endingHighlight = annotation;
+      }
+    });
+    if (startingHighlight !== undefined && endingHighlight !== undefined) {
+      const instance = new RelationAnnotation(
+        startingHighlight.circle, endingHighlight.circle,
+        'relation', // direction
+        referenceId
+      );
+      instance.setContent(toml.label);
+      if (color !== undefined) {
+        instance.setColor(color); 
+      }
+
+      return instance;
+    } else {
+      return null;
+    }
   }
 }
 

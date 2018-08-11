@@ -202,44 +202,61 @@ class AnnotationContainer{
    *  text: label text
    *  color: pickuped color(hex string)
    *  uuid: annotation's uuid(when end edit label text only)
-   *  annoType: 'span', 'one-way', 'two-way', and 'link'
+   *  annoType: 'span' and 'relation'
    *
    * when end edit label text; uuid and color
    * when change color on color picker; text, color, and annoType
    */
-  setColor(query) {
-    if (undefined != query.text) {
+  setColor (query) {
+    if (query.text !== undefined) {
       return this.forEachPromise((annotation) => {
-        if (query.text == annotation.text) {
-          switch(query.annoType) {
-            case 'span':
-              if (query.annoType == annotation.type) {
-                annotation.setColor(query.color);
-                return true;
-              }
-              break;
-
-            case 'one-way':
-            case 'two-way':
-            case 'link':
-              if ('relation' == annotation.type && query.annoType == annotation.direction ) {
-                annotation.setColor(query.color);
-                return true;
-              }
-              break;
-
-            default:
-              return false;
-          }
-        } else {
-          return false;
-        }
-      }).then();
-    } else if (undefined != query.uuid) {
+        return this._annotationUpdater(
+          query, annotation,
+          (q, a) => { return a.text === q.text },
+          (q, a) => { a.setColor(q.color) }      
+        )
+      })
+    } else if (query.uuid !== undefined) {
       return new Promise((resolve, reject) => {
-        this.findByUuid(query.uuid).setColor(query.color);
+        this.findByUuid(query.uuid).setColor(query.color)
         resolve(true);
-      }).then();
+      })
+    }
+  }
+
+  // For labelInput: labelChangeListener -> labelInput/behavior/editButton
+  /**
+   * @param query { text, color, uuid, annoType, oldText }
+   *  text: label text
+   *  color: pickuped color(hex string)
+   *  uuid: annotation's uuid(when end edit label text only)
+   *  annoType: 'span' and 'relation'
+   *  oldText: the lable text of before edit (this is only when listen for editButton)
+   *
+   * when end edit label text; text, color, annoType, and oldText
+   * when change color on color picker; text, color, and annoType
+   * @see _annotationUpdater
+   */
+  setContext (query) {
+    if (query.oldText !== undefined) {
+      return this.forEachPromise((annotation) => {
+        return this._annotationUpdater(
+          query, annotation,
+          (q, a) => { return a.text === q.oldText },
+          (q, a) => { a.setContent(q.text) }
+        )
+      })
+    }
+  }
+
+  _annotationUpdater (query, annotation, matchCondition, updateProcess) {
+    if (matchCondition(query, annotation)) {
+      if (query.annoType === annotation.type) {
+        updateProcess(query, annotation)
+        return true
+      }            
+    } else {
+      return false
     }
   }
 

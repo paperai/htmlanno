@@ -63,7 +63,7 @@ class Annotation {
   }
 
   /**
-   * Returns annotation direction.
+   * Returns annotation direction (CURRENT VERSION, NOT USED)
    * direction ::= 'one-way'|'two-way'|'link'
    * this method expects ths subclass to override.
    *
@@ -80,6 +80,10 @@ class Annotation {
    */
   get text() {
     return this.content();
+  }
+
+  set text(value) {
+    this.setContent(value);
   }
 
   /**

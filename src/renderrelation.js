@@ -12,19 +12,7 @@ class RenderRelation{
     this.move(position);
     this.eventHandlers = [];
 
-    switch(direction){
-      case 'one-way':
-        this.jObject = this._createOnewayArrowHead();
-        break;
-      case 'two-way':
-        this.jObject = this._createTwowayArrowHead();
-        break;
-      case 'link':
-        this.jObject = this._createLinkHead();
-        break;
-      default:
-        console.log('ERROR! Undefined type: ' + type);
-    }
+    this.jObject = this._createOnewayArrowHead();
 
     this.jObjectOutline = $(`
         <path
