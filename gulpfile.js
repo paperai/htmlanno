@@ -37,11 +37,29 @@ gulp.task('publish_stable', () => {
 
 gulp.task('deploy', () => {
   if (process.env.NODE_ENV) {
+    const target = process.env.NODE_ENV
+    // TODO: publish
     const opts = {
       branch: 'test-page',
-      //message: `update[timestamp] ${process.env.NODE_ENV}`
+      message: `updated ${process.env.NODE_ENV}`
     }
-    gulp.src(`./docs/${process.env.NODE_ENV}/**/*`).pipe(ghPages(opts))
+    const deployTargets = []
+
+    const srcDir = './docs'
+    fs.readdir(srcDir, (err, files) => {
+      if (err !== null) {
+        console.log(err)
+        return
+      }
+      files.forEach((fileName) => {
+        const filePath = srcDir + '/' + fileName
+        if (fs.statSync(filePath).isDirectory()) {
+          deployTargets.push(filePath + '/**/*')
+        }
+      })
+      console.log(deployTargets)
+      gulp.src(deployTargets, {base: './docs/'}).pipe(ghPages(opts))
+    })
   } else {
     throw "Usage: NODE_ENV='latest' gulp deploy"
   }
