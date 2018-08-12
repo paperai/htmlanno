@@ -1,20 +1,44 @@
-const gulp = require('gulp');
-const ghPages = require('gulp-gh-pages');
 const fs = require('fs-extra');
+const Git = require('gift');
+const gulp = require('gulp');
+const log = require('fancy-log');
 const path = require('path');
+const util = require('util');
 const version = require('./package.json').version;
 
-let baseDir;
-
+/**
+ * when version No is specified, check for be not development status
+ */
 function checkIsStableVersion () {
-    if (version.indexOf('dev') !== -1) {
-        throw 'version is not stable. version=' + version
-    }
+    return version.indexOf('dev') === -1;
 }
 
-function publish () {
-  fs.removeSync(baseDir);
-  fs.copySync('dist', baseDir);
+/**
+ * move 'dist' directory (that is compiled by the before webpack process) to the distribution directory
+ * @param baseDir webroot (/var/www/html/htmlanno) or gh-pages branch root ('.publish')
+ * @param tag application root (latest | the version No)
+ */
+function publish (baseDir, tag) {
+    const distDir = path.join(baseDir, tag);
+    log.info('replacing ' + distDir);
+    fs.removeSync(distDir);
+    fs.copySync('dist', distDir);
+}
+
+/**
+ * clone a repository from GitHub and checkout opts.branch branch.
+ * @param opts option set for git
+ * @param opts.cacheDir gh-pages branch root ('.publish')
+ * @param opts.branch branch name ('gh-pages')
+ * @return gift Repo object (https://github.com/notatestuser/gift#repo)
+ */
+async function cloneAndCheckout (opts) {
+    const git = Git(process.cwd());
+    const gitConf = await util.promisify(git.config.bind(git))();
+    const repository = await util.promisify(Git.clone.bind(this))(gitConf.items['remote.origin.url'], opts.cacheDir);
+    await util.promisify(repository.checkout.bind(repository))(opts.branch);
+
+    return repository;
 }
 
 gulp.task('prepare', () => {
@@ -24,44 +48,52 @@ gulp.task('prepare', () => {
   });
 });
 
-gulp.task('publish_latest', () => {
-  baseDir = path.join('docs', 'latest');
-  publish();
-});
-
-gulp.task('publish_stable', () => {
-  checkIsStableVersion();
-  baseDir = path.join('docs', version);
-  publish();
-});
-
-gulp.task('deploy', () => {
-  if (process.env.NODE_ENV) {
-    const target = process.env.NODE_ENV
-    // TODO: publish
-    const opts = {
-      branch: 'test-page',
-      message: `updated ${process.env.NODE_ENV}`
-    }
-    const deployTargets = []
-
-    const srcDir = './docs'
-    fs.readdir(srcDir, (err, files) => {
-      if (err !== null) {
-        console.log(err)
-        return
-      }
-      files.forEach((fileName) => {
-        const filePath = srcDir + '/' + fileName
-        if (fs.statSync(filePath).isDirectory()) {
-          deployTargets.push(filePath + '/**/*')
+gulp.task('publish', async () => {
+    const readmeFile = 'README.md';
+    if (version !== undefined && version !== null) {
+        const target = checkIsStableVersion() ? version: 'latest';
+        log.info(`start delpoying for ${target}`);
+        // Compatible with gulp-gh-pages lib.
+        const opts = {
+            branch: 'test-page',
+            message: `updated ${new Date().toISOString()}`,
+            cacheDir: '.publish',
+            push : true
+        };
+        log.info(`checking out ${opts.branch} branch as ${opts.cacheDir}`);
+        if (fs.existsSync(opts.cacheDir)) {
+            fs.removeSync(opts.cacheDir);
         }
-      })
-      console.log(deployTargets)
-      gulp.src(deployTargets, {base: './docs/'}).pipe(ghPages(opts))
-    })
-  } else {
-    throw "Usage: NODE_ENV='latest' gulp deploy"
-  }
-})
 
+        // 1. clone and checkout
+        const repo = await cloneAndCheckout(opts);
+        // 2, remove current content if exists it
+        await util.promisify(repo.remove.bind(repo))(target, {r: true, 'ignore-unmatch': true});
+        // 3. local deploy
+        publish(opts.cacheDir, target);
+        fs.copySync(readmeFile, path.join(opts.cacheDir, readmeFile));
+        // 4. add new content to repository
+        await util.promisify(repo.add.bind(repo))(target);
+        await util.promisify(repo.add.bind(repo))(readmeFile);
+        // 5. commit
+        const gitStatus = await util.promisify(repo.status.bind(repo))();
+        if (gitStatus.clean) {
+            log.info('commit are skipped because does not find any difference');
+        } else {
+            await util.promisify(repo.commit.bind(repo))(opts.message);
+            if (opts.push) {
+                // 6. push to GitHub (real deploy)
+                await util.promisify(repo.remote_push.bind(repo))('origin', opts.branch);
+            } else {
+                log.info('dry-run');
+            }
+        }
+    } else {
+        log.error('Need `version` property in package.json');
+    }
+});
+
+gulp.task('publishLocal', () => {
+    const baseDir = process.env.BASE_DIR;
+    publish(baseDir, 'latest');
+});
