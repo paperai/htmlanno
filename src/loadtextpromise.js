@@ -8,7 +8,9 @@ exports.run = (content, htmlanno) => {
       if (undefined == content.content) {
         FileContainer.textLoader(content.source, (text) => {
           if (undefined != text) {
-            resolve(text);
+            const bodyObj = document.createElement('body');
+            bodyObj.innerHTML = text;
+            resolve(bodyObj);
           } else {
             reject();
           }

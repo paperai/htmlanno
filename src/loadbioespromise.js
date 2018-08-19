@@ -25,7 +25,9 @@ exports.run = (content, htmlanno) => {
           } else {
             annotation.content = bioes.annotations;
             annotation.source = undefined;
-            resolve({content: bioes.content, annotation: annotation});
+            const bodyObj = document.createElement('body');
+            bodyObj.innerHTML = bioes.content;
+            resolve({content: bodyObj, annotation: annotation});
           }
         });
       } else {
