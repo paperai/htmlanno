@@ -4130,13 +4130,16 @@ class Circle{
     Circle.instances.push(this);
     this.id = id;
     this.highlight = highlight;
+    this.basePosition = undefined;
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="${this.className()}"></div>`);
+  }
 
+  setEventHandler () {
+    // TODO: jObject再作成が必要
     this.jObject.on("click", (e)=>{
       this.highlight.select();
     });
-
     this.jObject.hover(
       this.handleHoverIn.bind(this),
       this.handleHoverOut.bind(this)
@@ -4162,6 +4165,9 @@ class Circle{
   }
 
   originalPosition(){
+    if (this.basePosition === undefined) {
+      this.basePosition = this._calculateBasePosition();
+    }
     return this.basePosition;
   }
 
@@ -4205,10 +4211,6 @@ class Circle{
 
   appendTo(target){
     this.jObject.appendTo(target);
-    this.basePosition = this._calculateBasePosition();
-    const pos = this.divPosition();
-    this.jObject.css("left", `${pos.left}px`);
-    this.jObject.css("top", `${pos.top}px`);
   }
 
   /**
@@ -4242,9 +4244,10 @@ class Circle{
 
   reposition(){
     const pos = this.divPosition();
-    this.jObject.css("left", `${pos.left}px`);
-    this.jObject.css("top", `${pos.top}px`);
-    this.jObject.css("transition", "0.2s");
+    this.jObject.css({
+      left: `${pos.left}px`,
+      top: `${pos.top}px`
+    });
   }
 
   remove(batch = false){
@@ -4264,12 +4267,14 @@ class Circle{
   }
 
   static repositionAll() {
-    return new Promise((resolve, reject) => {
-      Circle.instances.forEach((cir) => {
-        cir.reposition();
-      });
-      resolve();
-    });
+    return Promise.all(
+      Circle.instances.map((cir) => {
+        return new Promise((resolve, reject) => {
+          cir.reposition();
+          resolve();
+        });
+      })
+    );
   }
 }
 
@@ -11550,29 +11555,51 @@ const Annotation = __webpack_require__(1);
 const Highlight = __webpack_require__(13);
 
 class SpanAnnotation extends Annotation {
-  constructor(startOffset, endOffset, content, referenceId){
+  constructor(startOffset, endOffset, content, viewer, referenceId){
     super(referenceId);
-    // TODO: 最終的にはDOM関連部分をHighlightへ委譲
-    this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName());
-    this.setDomElements(this.domHighlight.domElements);
 
-    this.setContent(content);
+    const start_index = viewer.findContentIndexThatIncludes(startOffset);
+    const end_index = viewer.findContentIndexThatIncludes(endOffset);
+    if (start_index !== -1 && end_index !== -1) {
+      const selector = [];
+      for(let selector_index = start_index; selector_index <= end_index; selector_index ++) {
+        selector.push(`[data-htmlanno-id="${selector_index + 1}"]`);
+      }
+      const target = $(selector.join(','), viewer.renderingBuffer());
+      target.wrapAll('<div id="temporary">')
+      const baseNode = viewer.renderingBuffer().getElementById('temporary');
+      startOffset = startOffset - viewer.getContentsOffset(start_index);
+      endOffset = endOffset - viewer.getContentsOffset(start_index);
+
+      // TODO: 最終的にはDOM関連部分をHighlightへ委譲
+      this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName(), baseNode);
+      this.setDomElements(this.domHighlight.domElements, baseNode);
+      this.setContent(content);
+      target.unwrap();
+    } else {
+      console.log("error!");
+    }
   }
 
-  setDomElements(elements) {
+  setDomElements(elements, baseNode) {
     this.elements = elements;
     this.topElement = this.elements[0];
 
     this.addCircle();
     this.setClass();
-    this.jObject = $(`.${this.getClassName()}`);
+    this.jObject = $(`.${this.getClassName()}`, baseNode);
+  }
 
-    this.jObject.hover(
-        this.handleHoverIn.bind(this),
-        this.handleHoverOut.bind(this)
-    );
-    // Move _content to jObject's data-label
-    this.setContent(this._content);
+  /**
+   * set the handler for HTML event.
+   * This method must be called after instance is set to real Document object
+   *  memo; this method uses jQuery object because be executed for each DOM element
+   */
+  setEventHandler () {
+    this.jObject.off('mouseenter').on('mouseenter', this.handleHoverIn.bind(this));
+    this.jObject.off('mouseleave').on('mouseleave', this.handleHoverOut.bind(this));
+
+    this.circle.setEventHandler();
   }
 
   handleHoverIn(e){
@@ -11742,11 +11769,11 @@ class SpanAnnotation extends Annotation {
     });
   }
 
-  static parseToml(toml, color, referenceId) {
+  static parseToml(toml, color, viewer, referenceId) {
     if (color === undefined) {
       color = {r: 255, g: 165, b: 0};
     }
-    const instance = new SpanAnnotation(toml.textrange[0], toml.textrange[1], toml.label, referenceId);
+    const instance = new SpanAnnotation(toml.textrange[0], toml.textrange[1], toml.label, viewer, referenceId);
     instance.setColor(color);
     instance._id = toml.id;
     return instance;
@@ -11766,7 +11793,7 @@ const globalEvent = window.globalEvent;
 const Annotation = __webpack_require__(1);
 
 class RelationAnnotation extends Annotation {
-  constructor(startingCircle, endingCircle, direction, referenceId){
+  constructor(startingCircle, endingCircle, direction, notUsed, referenceId){
     super(referenceId);
     this.startingCircle = startingCircle;
     this.endingCircle = endingCircle;
@@ -15710,9 +15737,10 @@ __webpack_require__(15);
 __webpack_require__(16);
 
 class Highlight {
-  constructor(startOffset, endOffset, htmlClassName) {
+  constructor(startOffset, endOffset, htmlClassName, baseNode) {
     this._startOffset = startOffset;
     this._endOffset   = endOffset;
+    this._baseNode = baseNode;
     this.htmlClassName = htmlClassName;
 
     this._createDom(this._startOffset, this._endOffset);
@@ -15723,7 +15751,7 @@ class Highlight {
   }
 
   get BASE_NODE() {
-    return document.getElementById("viewer");
+    return this._baseNode;
   }
 
   get SCROLL_BASE_NODE_ID() {
@@ -15754,30 +15782,25 @@ class Highlight {
     });
   }
 
-  _createDom(_startOffset, _endOffset) {
-    const selection = this._selectRange(_startOffset, _endOffset);
+  _createDom(startOffset, endOffset) {
+    const range = this._selectRange(startOffset, endOffset, this.BASE_NODE);
     const temporaryElements = [];
-    const highlighter = rangy.createHighlighter();
-    highlighter.addClassApplier(rangy.createClassApplier(
+    const classApplier = rangy.createClassApplier(
       this.className,
       {
         ignoreWhiteSpace: true,
         onElementCreate: (element)=>{temporaryElements.push(element)},
         useExistingElements: false
       }
-    ));
-
-    highlighter.highlightSelection(
-      this.className,
-      {exclusive: false}
     );
+    classApplier.applyToRange(range);
+
     if (temporaryElements.length > 0){
       this.domElements = temporaryElements;
     }
-    selection.removeAllRanges();
   }
 
-  _selectRange(startBodyOffset, endBodyOffset) {
+  _selectRange(startBodyOffset, endBodyOffset, baseNode) {
     if (startBodyOffset > endBodyOffset){
       const tmp = startBodyOffset;
       startBodyOffset = endBodyOffset;
@@ -15786,13 +15809,11 @@ class Highlight {
 
     const start = this._nodeFromTextOffset(startBodyOffset);
     const end = this._nodeFromTextOffset(endBodyOffset);
-    const selection = rangy.getSelection();
-    const range = rangy.createRange();
+    const range = rangy.createRangyRange(baseNode);
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
-    selection.setSingleRange(range);
 
-    return selection;
+    return range;
   }
 
   _nodeFromTextOffset(offset, node){
@@ -18117,20 +18138,14 @@ function htmlLoader(file, callback) {
 }
 
 function parseHtml(html) {
-  let sgmlFunc  = new RegExp(/<\?.+\?>/g);
-  let comment   = new RegExp(/<!--.+-->/g);
-  let htmlTag = new RegExp(/<html\s?.*>/i);
+  const sgmlFunc  = new RegExp(/<\?.+\?>/g);
+  const comment   = new RegExp(/<!--.+-->/g);
 
-  if (null != html.match(htmlTag)) {
-    let bodyStart = html.match(/<body\s?.*>/im);
-    let bodyEnd   = html.search(/<\/body>/im);
-    if (null != bodyStart && -1 != bodyEnd){
-      html = html.substring((bodyStart.index + bodyStart[0].length), bodyEnd);
-    }
-    return html.replace(sgmlFunc, '').replace(comment, '');
-  } else {
-    return undefined;
-  }
+  const parser = new DOMParser();
+  // Htmlanno uses the XHTML, but DOMParser accepted only 'text/html'.
+  const content_body = parser.parseFromString(html, 'text/html').body
+  content_body.innerHTML = content_body.innerHTML.replace(sgmlFunc, '').replace(comment, '');
+  return content_body;
 }
 
 
@@ -18178,6 +18193,7 @@ const LoadTextPromise = __webpack_require__(37);
 const HideBioesAnnotation = __webpack_require__(8);
 const WindowEvent = __webpack_require__(17);
 const Searcher = __webpack_require__(38);
+const HtmlViewer = __webpack_require__(39);
 
 class Htmlanno{
   constructor(){
@@ -18189,12 +18205,14 @@ class Htmlanno{
      * @see #loadDefaultData
      */
     this.useDefaultData = true;
-    this.setupHtml();
+    HtmlViewer._setupHtml();
     this.highlighter = new Highlighter(annotationContainer);
     this.arrowConnector = new ArrowConnector(annotationContainer);
 
     // The contents and annotations from files.
     this.fileContainer = new FileContainer();
+    // HtmlViewer object, etc.
+    this.viewer = undefined;
 
     globalEvent.on(this, "resizewindow", this.handleResize.bind(this));
     globalEvent.on(this, "mouseup", this.handleMouseUp.bind(this));
@@ -18203,6 +18221,7 @@ class Htmlanno{
       this.arrowConnector.removeAnnotation(data);
       this.unselectRelation();
     });
+    this.setupAnnoUI();
     this.wrapGlobalEvents();
 
     const query = URI(document.URL).query(true);
@@ -18228,40 +18247,7 @@ class Htmlanno{
     return "htmlanno-save-"+document.location.href;
   }
 
-  setupHtml(){
-    const html = `
-      <div id="htmlanno-annotation">
-      <link rel="stylesheet" href="index.css">
-      <svg id="htmlanno-svg-screen"
-      visibility="hidden"
-      baseProfile="full"
-      pointer-events="visible"
-      width="100%"
-      height="100%" style="z-index: 100;">
-      <defs>
-      <marker id="htmlanno-arrow-head"
-      class="htmlanno-arrow-head"
-      visibility="visible"
-      refX="6"
-      refY="3"
-      fill="red"
-      markerWidth="6"
-      markerHeight="6"
-      orient="auto-start-reverse"
-      markerUnits="strokeWidth">
-      <polyline
-      points="0,0 6,3 0,6 0.2,3" />
-      </marker>
-      </defs>
-      </svg>
-      <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;"></span>
-      </div>
-      `;
-
-    $(html).appendTo("#viewerWrapper");
-  }
-
-  wrapGlobalEvents(){
+  setupAnnoUI () {
     AnnoUI.util.setupResizableColumns();
     AnnoUI.event.setup();
     AnnoUI.core.setup({
@@ -18323,7 +18309,9 @@ class Htmlanno{
       getAnnotations: annotationContainer.getPrimaryAnnotations.bind(annotationContainer),
       scrollToAnnotation: this.scrollToAnnotation.bind(this)
     });
+  }
 
+  wrapGlobalEvents(){
     $(document).on("keydown", this.handleKeydown.bind(this));
     $("#viewer").on("mouseup", this.handleMouseUp.bind(this));
 
@@ -18626,13 +18614,15 @@ class Htmlanno{
       TomlTool.loadToml(
         annotationFileObj,
         undefined, /* uiAnnotation.name */
-        colorMap
+        colorMap,
+        this.viewer
       );
     } else {
       TomlTool.loadToml(
         annotationFileObj,
         uiAnnotation.name,
-        colorMap
+        colorMap,
+        this.viewer
       );
     }
     WindowEvent.emit('annotationrendered');
@@ -18763,9 +18753,15 @@ class Htmlanno{
   _afterContentLoading(contentData, loadingResult) {
     try {
       this.removeAll();
-      contentData.content = loadingResult.content;
-      contentData.source  = undefined;
-      document.getElementById('viewer').innerHTML = contentData.content;
+      if (loadingResult.content instanceof HtmlViewer) {
+        contentData.content.render();
+      } else {
+        contentData.content = new HtmlViewer();
+        contentData.content.render(loadingResult.content);
+        contentData.source = undefined;
+      }
+      this.viewer = contentData.content;
+
       if (loadingResult.annotation !== undefined) {
         document.querySelectorAll('#dropdownAnnoPrimary li').forEach((listElement) => {
           const listName = listElement.textContent.trim();
@@ -18780,7 +18776,8 @@ class Htmlanno{
         TomlTool.loadToml(
           loadingResult.annotation,
           undefined,
-          AnnoUI.labelInput.getColorMap()
+          AnnoUI.labelInput.getColorMap(),
+          this.viewer
         );
         WindowEvent.emit('annotationrendered');
       }
@@ -19752,23 +19749,24 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-exports.renderAnnotation = (annotationFileObj, tomlObj, referenceId, colorMap) => {
+// TODO: 要整理。viewer.reflectBuffer() 後でないとRelationAnnotationをレンダリングできないので2周している
+exports.renderAnnotation = (annotationFileObj, tomlObj, referenceId, colorMap, viewer) => {
   for(key in tomlObj) {
-    switch(key) {
-      case 'version':
-        continue;
+    if (key === SpanAnnotation.Type + 's') {
+      // Span.
+      _parseToml(annotationFileObj, tomlObj[key], referenceId, colorMap, viewer, SpanAnnotation);
+    }
+  }
+  viewer.reflectBuffer();
 
-      case SpanAnnotation.Type + 's': // Span.
-        _parseToml(annotationFileObj, tomlObj[key], referenceId, colorMap, SpanAnnotation);
-        break;
-
-      case RelationAnnotation.Type + 's': // Relation.
-        _parseToml(annotationFileObj, tomlObj[key], referenceId, colorMap, RelationAnnotation);
-        break;
-
-      default:
-        console.log(tomlObj);
-        throw `Unknown key type; ${key}`;
+  for(key in tomlObj) {
+    if (key === RelationAnnotation.Type + 's') {
+      // Relation.
+      // TODO: viewerは現状使用しないがコード共通化のため渡している
+      _parseToml(annotationFileObj, tomlObj[key], referenceId, colorMap, viewer, RelationAnnotation);
+    } else if (key !== 'version' && key !== SpanAnnotation.Type + 's') {
+      console.log(tomlObj);
+      throw `Unknown key type; ${key}`;
     } 
   }
 };
@@ -19776,23 +19774,24 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, referenceId, colorMap) =
 /**
  * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
  * @param referenceId (optional) ... Used to identify annotations.
+ * @param viewer HtmlViewer
  */
-exports.loadToml = (annotationFileObj, referenceId, colorMap) => {
+exports.loadToml = (annotationFileObj, referenceId, colorMap, viewer) => {
   const toml = typeof(annotationFileObj.content) === 'string' ?
     TomlParser.parse(annotationFileObj.content) :
     annotationFileObj.content;
 
-  exports.renderAnnotation(annotationFileObj, toml, referenceId, colorMap);
+  exports.renderAnnotation(annotationFileObj, toml, referenceId, colorMap, viewer);
 };
 
 function _getColor(colorMap, type, labelText) {
   return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
 }
 
-function _parseToml(annotationFileObj, tomlList, referenceId, colorMap, annotationClass) {
+function _parseToml(annotationFileObj, tomlList, referenceId, colorMap, viewer, annotationClass) {
   tomlList.forEach((anToml) => {
     const annotation = annotationClass.parseToml(
-      anToml, _getColor(colorMap, annotationClass.Type, anToml.label), referenceId
+      anToml, _getColor(colorMap, annotationClass.Type, anToml.label), viewer, referenceId
     );
     if (annotation === null) {
       console.log(`Cannot create an annotation. referenceId: ${referenceId}, toml(the following).`);
@@ -24353,7 +24352,9 @@ exports.run = (content, htmlanno) => {
           } else {
             annotation.content = bioes.annotations;
             annotation.source = undefined;
-            resolve({content: bioes.content, annotation: annotation});
+            const bodyObj = document.createElement('body');
+            bodyObj.innerHTML = bioes.content;
+            resolve({content: bodyObj, annotation: annotation});
           }
         });
       } else {
@@ -24379,7 +24380,9 @@ exports.run = (content, htmlanno) => {
       if (undefined == content.content) {
         FileContainer.textLoader(content.source, (text) => {
           if (undefined != text) {
-            resolve(text);
+            const bodyObj = document.createElement('body');
+            bodyObj.innerHTML = text;
+            resolve(bodyObj);
           } else {
             reject();
           }
@@ -24494,6 +24497,193 @@ class Search {
 }
 
 module.exports = Search;
+
+
+/***/ }),
+/* 39 */
+/***/ (function(module, exports, __webpack_require__) {
+
+const Annotation = __webpack_require__(1)
+
+class HtmlViewer {
+    constructor() {
+        /**
+         * infomation about each HTMLElement offset from head of text contents.
+         * [n] = {
+         *   parent_index: in case of [n] is included by other HTMLElement(is not the base node), this is n for other HTMLElement, other case be undefined
+         *   offset: position from head of text contents
+         *   id: id attribute value as HTML tag
+         * }
+         */
+        this.contents = []
+        /**
+         * original content that read from file
+         * TODO: Document (Fragment) or innerHTML string ? current is Document (from DOMParser)
+         */
+        this.content_source = undefined
+        /**
+         * DocumentFragment for annotation rendering buffer
+         */
+        this.view_buffer = undefined
+    }
+
+    /**
+     * (re)rendering HTML.
+     * @param doc HTMLElement of `<body>` tag (clear old content and rende) or undefined (re-render)
+     */
+    render(doc) {
+        if (doc !== undefined) {
+            this.content_source = doc
+            this.contents = []
+            this.content_length = this._calculateOffsetAndRegister(this.content_source, undefined, 0)
+        }
+        this.$containerViewer().innerHTML = this.content_source.innerHTML
+    }
+
+    /**
+     * get DocumentFragment with content source.
+     * in case it is not created returns new created, and other case, returns buffer
+     * @return DocumentFragment
+     */
+    renderingBuffer () {
+        if (this.view_buffer === undefined) {
+            this.view_buffer = document.createDocumentFragment()
+            const view = document.createElement('div')
+            view.id = 'viewer'
+            view.innerHTML = this.content_source.innerHTML
+            this.view_buffer.appendChild(view)
+        }
+        return this.view_buffer
+    }
+
+    /**
+     * replace the viewer on window.document by buffer, and destroy buffer.
+     */
+    reflectBuffer () {
+        this.$containerViewer().replaceWith(this.renderingBuffer());
+        this.view_buffer = undefined
+    }
+
+    /**
+     * search the index of contents that include position (First level, check only offset position each contents head)
+     * @param position offset from text content head
+     * @return index value of this.contents or -1 (not found)
+     */
+    findContentIndexThatIncludes(position) {
+        for(let index = 0; index < this.contents.length; index ++) {
+            if (this.contents[index].offset > position) {
+                const siblingsContent = this.contents[index - 1];
+                // 1. I gone too far, need back.
+                // siblingsContent = |------- [position?] ----|
+                // contents[index] = |------------------------|
+                //                      ^ now
+                if (siblingsContent.parent_index !== undefined) {
+                    // 2. I am child, search on parent content (position exists on the parent or parent parent ...)
+                    // contents[parent_index] = <parent tag>|----- [position?] --|
+                    // siblingsContent        =             |--------------------|
+                    // contents[index]        =             |--------------------|
+                    // contents[index+n]      =             |--------------------|</parent tag>
+                    return this._checkContentLength(position, siblingsContent.parent_index);
+                } else {
+                    // 3. I am top level content, position exists on the before content.
+                    return (index - 1);
+                }
+            }
+        }
+        return this._checkContentLength(position, this.contents.length - 1);
+    }
+
+    getContentsOffset(index) {
+        return this.contents[index].offset;
+    }
+
+    static _setupHtml () {
+        const html = `
+    <div id="htmlanno-annotation">
+    <link rel="stylesheet" href="index.css">
+    <svg id="htmlanno-svg-screen"
+      visibility="hidden"
+      baseProfile="full"
+      pointer-events="visible"
+      width="100%"
+      height="100%" style="z-index: 100;">
+      <defs>
+        <marker id="htmlanno-arrow-head"
+          class="htmlanno-arrow-head"
+          visibility="visible"
+          refX="6"
+          refY="3"
+          fill="red"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+          markerUnits="strokeWidth">
+          <polyline points="0,0 6,3 0,6 0.2,3" />
+        </marker>
+      </defs>
+    </svg>
+    <span id="ruler" style="visibility:hidden;position:absolute;white-space:nowrap;"></span>
+    </div>
+    `
+
+        $(html).appendTo('#viewerWrapper');
+    }
+
+    $containerViewer () {
+        return document.getElementById('viewer');
+    }
+
+    /**
+     * calculate offset from the text content head, and register to contents array.
+     * this method is called by recursive.
+     * @param html_node     target HTMLElement (when the first call; `<body>` tag, when recursive call; childNodes of html_node on calling base)
+     * @param parent_index  index of parent node (when the first call; undefined , when recursive call; integer)
+     * @param parent_offset offset from the text content head for html_node (when the first call; 0, when recursive call; offset at calling)
+     */
+    _calculateOffsetAndRegister(html_node, parent_index, parent_offset) {
+        let last_offset = parent_offset;
+        for(let index = 0; index < html_node.childNodes.length; index ++) {
+            const current_node = html_node.childNodes[index];
+            if (current_node.nodeName === '#text') {
+                last_offset += current_node.textContent.length;
+            } else {
+                const current_index = this.contents.length;
+                const id = this.contents.length + 1
+                current_node.setAttribute('data-htmlanno-id', id);
+                this.contents.push({
+                    parent_index: parent_index,
+                    offset: last_offset,
+                    id: id
+                });
+                last_offset = this._calculateOffsetAndRegister(current_node, current_index, last_offset);
+            }
+        }
+        return last_offset;
+    }
+
+    /**
+     * search the index of contents that include position (Second level, check that position is included in offset + content-length)
+     * this method is called by recursive.
+     * @param position offset from text content head
+     * @param index    value of this.contents
+     * @return index value of this.contents
+     */
+    _checkContentLength(position, index) {
+        if (index === undefined) {
+            return -1;
+        }
+        const node = document.querySelector(`[data-htmlanno-id="${index + 1}"`);
+        if (position > this.contents[index].offset + node.textContent.length) {
+            // position exists on before or later to me, check my parent
+            return this._checkContentLength(position, this.contents[index].parent_index);
+        } else {
+            // found.
+            return index;
+        }
+    }
+}
+
+module.exports = HtmlViewer;
 
 
 /***/ })
