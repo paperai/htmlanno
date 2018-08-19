@@ -6,13 +6,16 @@ class Circle{
     Circle.instances.push(this);
     this.id = id;
     this.highlight = highlight;
+    this.basePosition = undefined;
 
     this.jObject = $(`<div id="${this.domId()}" draggable="true" class="${this.className()}"></div>`);
+  }
 
+  setEventHandler () {
+    // TODO: jObject再作成が必要
     this.jObject.on("click", (e)=>{
       this.highlight.select();
     });
-
     this.jObject.hover(
       this.handleHoverIn.bind(this),
       this.handleHoverOut.bind(this)
@@ -38,6 +41,9 @@ class Circle{
   }
 
   originalPosition(){
+    if (this.basePosition === undefined) {
+      this.basePosition = this._calculateBasePosition();
+    }
     return this.basePosition;
   }
 
@@ -81,10 +87,6 @@ class Circle{
 
   appendTo(target){
     this.jObject.appendTo(target);
-    this.basePosition = this._calculateBasePosition();
-    const pos = this.divPosition();
-    this.jObject.css("left", `${pos.left}px`);
-    this.jObject.css("top", `${pos.top}px`);
   }
 
   /**
@@ -118,9 +120,10 @@ class Circle{
 
   reposition(){
     const pos = this.divPosition();
-    this.jObject.css("left", `${pos.left}px`);
-    this.jObject.css("top", `${pos.top}px`);
-    this.jObject.css("transition", "0.2s");
+    this.jObject.css({
+      left: `${pos.left}px`,
+      top: `${pos.top}px`
+    });
   }
 
   remove(batch = false){
@@ -140,12 +143,14 @@ class Circle{
   }
 
   static repositionAll() {
-    return new Promise((resolve, reject) => {
-      Circle.instances.forEach((cir) => {
-        cir.reposition();
-      });
-      resolve();
-    });
+    return Promise.all(
+      Circle.instances.map((cir) => {
+        return new Promise((resolve, reject) => {
+          cir.reposition();
+          resolve();
+        });
+      })
+    );
   }
 }
 

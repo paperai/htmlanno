@@ -6,29 +6,51 @@ const Annotation = require("./annotation.js");
 const Highlight = require('./highlight.js');
 
 class SpanAnnotation extends Annotation {
-  constructor(startOffset, endOffset, content, referenceId){
+  constructor(startOffset, endOffset, content, viewer, referenceId){
     super(referenceId);
-    // TODO: 最終的にはDOM関連部分をHighlightへ委譲
-    this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName());
-    this.setDomElements(this.domHighlight.domElements);
 
-    this.setContent(content);
+    const start_index = viewer.findContentIndexThatIncludes(startOffset);
+    const end_index = viewer.findContentIndexThatIncludes(endOffset);
+    if (start_index !== -1 && end_index !== -1) {
+      const selector = [];
+      for(let selector_index = start_index; selector_index <= end_index; selector_index ++) {
+        selector.push(`[data-htmlanno-id="${selector_index + 1}"]`);
+      }
+      const target = $(selector.join(','), viewer.renderingBuffer());
+      target.wrapAll('<div id="temporary">')
+      const baseNode = viewer.renderingBuffer().getElementById('temporary');
+      startOffset = startOffset - viewer.getContentsOffset(start_index);
+      endOffset = endOffset - viewer.getContentsOffset(start_index);
+
+      // TODO: 最終的にはDOM関連部分をHighlightへ委譲
+      this.domHighlight = new Highlight(startOffset, endOffset, this.getClassName(), baseNode);
+      this.setDomElements(this.domHighlight.domElements, baseNode);
+      this.setContent(content);
+      target.unwrap();
+    } else {
+      console.log("error!");
+    }
   }
 
-  setDomElements(elements) {
+  setDomElements(elements, baseNode) {
     this.elements = elements;
     this.topElement = this.elements[0];
 
     this.addCircle();
     this.setClass();
-    this.jObject = $(`.${this.getClassName()}`);
+    this.jObject = $(`.${this.getClassName()}`, baseNode);
+  }
 
-    this.jObject.hover(
-        this.handleHoverIn.bind(this),
-        this.handleHoverOut.bind(this)
-    );
-    // Move _content to jObject's data-label
-    this.setContent(this._content);
+  /**
+   * set the handler for HTML event.
+   * This method must be called after instance is set to real Document object
+   *  memo; this method uses jQuery object because be executed for each DOM element
+   */
+  setEventHandler () {
+    this.jObject.off('mouseenter').on('mouseenter', this.handleHoverIn.bind(this));
+    this.jObject.off('mouseleave').on('mouseleave', this.handleHoverOut.bind(this));
+
+    this.circle.setEventHandler();
   }
 
   handleHoverIn(e){
@@ -198,11 +220,11 @@ class SpanAnnotation extends Annotation {
     });
   }
 
-  static parseToml(toml, color, referenceId) {
+  static parseToml(toml, color, viewer, referenceId) {
     if (color === undefined) {
       color = {r: 255, g: 165, b: 0};
     }
-    const instance = new SpanAnnotation(toml.textrange[0], toml.textrange[1], toml.label, referenceId);
+    const instance = new SpanAnnotation(toml.textrange[0], toml.textrange[1], toml.label, viewer, referenceId);
     instance.setColor(color);
     instance._id = toml.id;
     return instance;

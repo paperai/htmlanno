@@ -4,9 +4,10 @@ require("rangy/lib/rangy-highlighter.js");
 require("rangy/lib/rangy-serializer.js");
 
 class Highlight {
-  constructor(startOffset, endOffset, htmlClassName) {
+  constructor(startOffset, endOffset, htmlClassName, baseNode) {
     this._startOffset = startOffset;
     this._endOffset   = endOffset;
+    this._baseNode = baseNode;
     this.htmlClassName = htmlClassName;
 
     this._createDom(this._startOffset, this._endOffset);
@@ -17,7 +18,7 @@ class Highlight {
   }
 
   get BASE_NODE() {
-    return document.getElementById("viewer");
+    return this._baseNode;
   }
 
   get SCROLL_BASE_NODE_ID() {
@@ -48,30 +49,25 @@ class Highlight {
     });
   }
 
-  _createDom(_startOffset, _endOffset) {
-    const selection = this._selectRange(_startOffset, _endOffset);
+  _createDom(startOffset, endOffset) {
+    const range = this._selectRange(startOffset, endOffset, this.BASE_NODE);
     const temporaryElements = [];
-    const highlighter = rangy.createHighlighter();
-    highlighter.addClassApplier(rangy.createClassApplier(
+    const classApplier = rangy.createClassApplier(
       this.className,
       {
         ignoreWhiteSpace: true,
         onElementCreate: (element)=>{temporaryElements.push(element)},
         useExistingElements: false
       }
-    ));
-
-    highlighter.highlightSelection(
-      this.className,
-      {exclusive: false}
     );
+    classApplier.applyToRange(range);
+
     if (temporaryElements.length > 0){
       this.domElements = temporaryElements;
     }
-    selection.removeAllRanges();
   }
 
-  _selectRange(startBodyOffset, endBodyOffset) {
+  _selectRange(startBodyOffset, endBodyOffset, baseNode) {
     if (startBodyOffset > endBodyOffset){
       const tmp = startBodyOffset;
       startBodyOffset = endBodyOffset;
@@ -80,13 +76,11 @@ class Highlight {
 
     const start = this._nodeFromTextOffset(startBodyOffset);
     const end = this._nodeFromTextOffset(endBodyOffset);
-    const selection = rangy.getSelection();
-    const range = rangy.createRange();
+    const range = rangy.createRangyRange(baseNode);
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
-    selection.setSingleRange(range);
 
-    return selection;
+    return range;
   }
 
   _nodeFromTextOffset(offset, node){
