@@ -20,23 +20,24 @@ exports.saveToml = (annotationSet)=>{
   return [data.join("\n")];
 };
 
-exports.renderAnnotation = (annotationFileObj, tomlObj, referenceId, colorMap) => {
+// TODO: 要整理。viewer.reflectBuffer() 後でないとRelationAnnotationをレンダリングできないので2周している
+exports.renderAnnotation = (annotationFileObj, tomlObj, referenceId, colorMap, viewer) => {
   for(key in tomlObj) {
-    switch(key) {
-      case 'version':
-        continue;
+    if (key === SpanAnnotation.Type + 's') {
+      // Span.
+      _parseToml(annotationFileObj, tomlObj[key], referenceId, colorMap, viewer, SpanAnnotation);
+    }
+  }
+  viewer.reflectBuffer();
 
-      case SpanAnnotation.Type + 's': // Span.
-        _parseToml(annotationFileObj, tomlObj[key], referenceId, colorMap, SpanAnnotation);
-        break;
-
-      case RelationAnnotation.Type + 's': // Relation.
-        _parseToml(annotationFileObj, tomlObj[key], referenceId, colorMap, RelationAnnotation);
-        break;
-
-      default:
-        console.log(tomlObj);
-        throw `Unknown key type; ${key}`;
+  for(key in tomlObj) {
+    if (key === RelationAnnotation.Type + 's') {
+      // Relation.
+      // TODO: viewerは現状使用しないがコード共通化のため渡している
+      _parseToml(annotationFileObj, tomlObj[key], referenceId, colorMap, viewer, RelationAnnotation);
+    } else if (key !== 'version' && key !== SpanAnnotation.Type + 's') {
+      console.log(tomlObj);
+      throw `Unknown key type; ${key}`;
     } 
   }
 };
@@ -44,23 +45,24 @@ exports.renderAnnotation = (annotationFileObj, tomlObj, referenceId, colorMap) =
 /**
  * @param annotationFileObj ... Annotation object that is created by FileContainer#loadFiles()
  * @param referenceId (optional) ... Used to identify annotations.
+ * @param viewer HtmlViewer
  */
-exports.loadToml = (annotationFileObj, referenceId, colorMap) => {
+exports.loadToml = (annotationFileObj, referenceId, colorMap, viewer) => {
   const toml = typeof(annotationFileObj.content) === 'string' ?
     TomlParser.parse(annotationFileObj.content) :
     annotationFileObj.content;
 
-  exports.renderAnnotation(annotationFileObj, toml, referenceId, colorMap);
+  exports.renderAnnotation(annotationFileObj, toml, referenceId, colorMap, viewer);
 };
 
 function _getColor(colorMap, type, labelText) {
   return undefined != colorMap[type][labelText] ? colorMap[type][labelText] : colorMap.default;
 }
 
-function _parseToml(annotationFileObj, tomlList, referenceId, colorMap, annotationClass) {
+function _parseToml(annotationFileObj, tomlList, referenceId, colorMap, viewer, annotationClass) {
   tomlList.forEach((anToml) => {
     const annotation = annotationClass.parseToml(
-      anToml, _getColor(colorMap, annotationClass.Type, anToml.label), referenceId
+      anToml, _getColor(colorMap, annotationClass.Type, anToml.label), viewer, referenceId
     );
     if (annotation === null) {
       console.log(`Cannot create an annotation. referenceId: ${referenceId}, toml(the following).`);

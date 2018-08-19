@@ -444,13 +444,15 @@ class Htmlanno{
       TomlTool.loadToml(
         annotationFileObj,
         undefined, /* uiAnnotation.name */
-        colorMap
+        colorMap,
+        this.viewer
       );
     } else {
       TomlTool.loadToml(
         annotationFileObj,
         uiAnnotation.name,
-        colorMap
+        colorMap,
+        this.viewer
       );
     }
     WindowEvent.emit('annotationrendered');
@@ -604,7 +606,8 @@ class Htmlanno{
         TomlTool.loadToml(
           loadingResult.annotation,
           undefined,
-          AnnoUI.labelInput.getColorMap()
+          AnnoUI.labelInput.getColorMap(),
+          this.viewer
         );
         WindowEvent.emit('annotationrendered');
       }
