@@ -4,7 +4,7 @@ const globalEvent = window.globalEvent;
 const Annotation = require("./annotation.js");
 
 class RelationAnnotation extends Annotation {
-  constructor(startingCircle, endingCircle, direction, referenceId){
+  constructor(startingCircle, endingCircle, direction, notUsed, referenceId){
     super(referenceId);
     this.startingCircle = startingCircle;
     this.endingCircle = endingCircle;
