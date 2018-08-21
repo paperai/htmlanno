@@ -55,7 +55,7 @@ gulp.task('publish', async () => {
         log.info(`start delpoying for ${target}`);
         // Compatible with gulp-gh-pages lib.
         const opts = {
-            branch: 'test-page',
+            branch: 'gh-pages',
             message: `updated ${new Date().toISOString()}`,
             cacheDir: '.publish',
             push : true
