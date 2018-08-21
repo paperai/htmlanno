@@ -5,23 +5,25 @@
   "scripts": {
     "watch": "npm run _prepare && webpack-dev-server --inline",
     "_prepare": "gulp prepare",
-    "publish:latest": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish_latest",
-    "publish:stable": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish_stable",
+    "publish": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publish",
+    "publishLocal": "npm run _prepare && webpack --progress --colors --config ./webpack.config.js && gulp publishLocal",
     "build-test": "webpack --progress --colors --config ./test/webpack_test.config.js",
     "test": "jasmine",
     "webtest": "karma start --single-run"
   },
   "dependencies": {
+    "anno-ui": "github:paperai/anno-ui",
     "events": "^1.1.1",
     "jquery": "^3.1.1",
     "rangy": "^1.3.0",
     "toml": "^2.3.2",
-    "anno-ui": "github:paperai/anno-ui",
     "urijs": "^1.19.0"
   },
   "devDependencies": {
+    "fancy-log": "^1.3.2",
     "fs-extra": "^1.0.0",
-    "gulp": "^3.0.1",
+    "gulp": "^3.9.1",
+    "gift": "^0.10.2",
     "jasmine-core": "^2.7.0",
     "karma": "^1.7.0",
     "karma-chrome-launcher": "^2.2.0",
