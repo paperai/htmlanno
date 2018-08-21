@@ -1,5 +1,6 @@
 .DS_Store
 node_modules
 
-# Work directory for npm run publish:*
+# Work directory for npm run deploy* 
 dist
+.publish
